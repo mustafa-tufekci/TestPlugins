@@ -15,6 +15,11 @@ class SezonlukDizi : MainAPI() {
     override var lang = "tr"
     override val hasMainPage = true
 
+    private val ajaxHeaders = mapOf(
+        "X-Requested-With" to "XMLHttpRequest",
+        "Content-Type" to "application/x-www-form-urlencoded"
+    )
+
     private val categories = mapOf(
         "Yabancı Diziler" to "/diziler.asp?kat=1",
         "Yerli Diziler" to "/diziler.asp?kat=2",
@@ -33,10 +38,12 @@ class SezonlukDizi : MainAPI() {
             val title: String = card.selectFirst(".content .description")?.text()
                 ?: link.attr("title").removeSuffix(" izle")
 
-            val img = card.selectFirst("img[data-src]")
+            val img = card.selectFirst("img[data-src], img[src]")
             val posterUrl: String? = img?.let {
-                val src = it.attr("data-src")
-                if (src.startsWith("/")) "$mainUrl$src" else src
+                val src = it.attr("data-src").ifEmpty { it.attr("src") }
+                if (src.startsWith("/") || src.startsWith("data:")) {
+                    if (src.startsWith("/")) "$mainUrl$src" else null
+                } else src
             }
 
             newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
@@ -46,24 +53,62 @@ class SezonlukDizi : MainAPI() {
     }
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val pages = categories.mapNotNull { (catName, path) ->
-            val doc: org.jsoup.nodes.Document = try {
+        val mainDoc = try {
+            app.get(mainUrl).document
+        } catch (_: Exception) {
+            return newHomePageResponse(emptyList())
+        }
+
+        val allPages = mutableListOf<HomePageList>()
+
+        // Popüler Diziler from homepage #enler section
+        val enlerSection = mainDoc.selectFirst("#enler")
+        if (enlerSection != null) {
+            val popularShows = enlerSection.select("a.column[title]").mapNotNull { link ->
+                val card = link.selectFirst("div.ui.card") ?: return@mapNotNull null
+                val href: String = link.attr("href")
+                if (href.isBlank()) return@mapNotNull null
+                val title: String = card.selectFirst(".content .description")?.text()
+                    ?: link.attr("title")
+                val img = card.selectFirst("img[src]")
+                val posterUrl: String? = img?.let {
+                    val src = it.attr("src")
+                    if (src.startsWith("/")) "$mainUrl$src" else src
+                }
+                newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
+                    this.posterUrl = posterUrl
+                }
+            }
+            if (popularShows.isNotEmpty()) {
+                allPages.add(HomePageList("Popüler Diziler", popularShows))
+            }
+        }
+
+        // Category pages
+        for ((catName, path) in categories) {
+            val doc = try {
                 app.get("$mainUrl$path").document
             } catch (_: Exception) {
-                return@mapNotNull null
+                continue
             }
-
             val shows = parseShowCards(doc)
-            if (shows.isEmpty()) null else HomePageList(catName, shows)
+            if (shows.isNotEmpty()) {
+                allPages.add(HomePageList(catName, shows))
+            }
         }
-        return newHomePageResponse(pages)
+
+        return newHomePageResponse(allPages)
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val doc: org.jsoup.nodes.Document = try {
+        val doc = try {
             app.post(
                 "$mainUrl/diziler.asp",
-                data = mapOf("adi" to query)
+                data = mapOf("adi" to query),
+                headers = mapOf(
+                    "Referer" to "$mainUrl/",
+                    "Content-Type" to "application/x-www-form-urlencoded"
+                )
             ).document
         } catch (_: Exception) {
             return emptyList()
@@ -104,7 +149,7 @@ class SezonlukDizi : MainAPI() {
             val episodesDoc: org.jsoup.nodes.Document = app.get(episodesUrl).document
 
             episodesDoc.select("table[sid]").forEach { table ->
-                table.select("tbody tr").forEach { row ->
+                table.select("tr").forEach { row ->
                     val link = row.selectFirst("a[href*='-sezon-']") ?: return@forEach
                     val href: String = link.attr("href")
                     val fullUrl = if (href.startsWith("/")) "$mainUrl$href" else href
@@ -123,31 +168,6 @@ class SezonlukDizi : MainAPI() {
                         episode = e
                         this.posterUrl = posterUrl
                     })
-                }
-            }
-
-            if (episodes.isEmpty()) {
-                episodesDoc.select("table[sid]").forEachIndexed { tableIdx, table ->
-                    table.select("tr").forEach { row ->
-                        val link = row.selectFirst("a[href*='-sezon-']") ?: return@forEach
-                        val href: String = link.attr("href")
-                        val fullUrl = if (href.startsWith("/")) "$mainUrl$href" else href
-
-                        val match = Regex("(\\d+)-sezon-(\\d+)-bolum").find(href) ?: return@forEach
-                        val s: Int = match.groupValues[1].toIntOrNull() ?: return@forEach
-                        val e: Int = match.groupValues[2].toIntOrNull() ?: return@forEach
-
-                        val tds = row.select("td")
-                        val epTitle: String = tds.getOrNull(3)?.text()
-                            ?: link.text()
-
-                        episodes.add(newEpisode(fullUrl) {
-                            name = epTitle
-                            season = s
-                            episode = e
-                            this.posterUrl = posterUrl
-                        })
-                    }
                 }
             }
         }
@@ -182,6 +202,7 @@ class SezonlukDizi : MainAPI() {
             Pair("0", "Dublajlı")
         )
 
+        var found = false
         for ((dilCode, langName) in languages) {
             try {
                 val alternatives: List<Alternative> = getAlternatives(episodeId, dilCode)
@@ -189,8 +210,9 @@ class SezonlukDizi : MainAPI() {
                     val embedHtml: String = getEmbedHtml(alt.id) ?: continue
                     val embedDoc: org.jsoup.nodes.Document = Jsoup.parse(embedHtml)
                     val iframe: org.jsoup.nodes.Element = embedDoc.selectFirst("iframe") ?: continue
-                    val src: String = iframe.attr("src")
+                    var src: String = iframe.attr("src")
                     if (src.isBlank()) continue
+                    if (src.startsWith("//")) src = "https:$src"
 
                     callback(
                         newExtractorLink(
@@ -203,20 +225,21 @@ class SezonlukDizi : MainAPI() {
                             this.quality = Qualities.P1080.value
                         }
                     )
+                    found = true
                 }
             } catch (_: Exception) {
                 // Language not available, skip
             }
         }
 
-        return true
+        return found
     }
 
     private suspend fun getAlternatives(episodeId: String, dil: String): List<Alternative> {
         val response = app.post(
             "$mainUrl/ajax/dataAlternatif22.asp",
             data = mapOf("bid" to episodeId, "dil" to dil),
-            headers = mapOf("Content-Type" to "application/x-www-form-urlencoded")
+            headers = ajaxHeaders
         ).parsedSafe<AlternativesResponse>()
 
         return if (response?.status == "success") response.data else emptyList()
@@ -226,7 +249,7 @@ class SezonlukDizi : MainAPI() {
         return app.post(
             "$mainUrl/ajax/dataEmbed22.asp",
             data = mapOf("id" to id),
-            headers = mapOf("Content-Type" to "application/x-www-form-urlencoded")
+            headers = ajaxHeaders
         ).text
     }
 
