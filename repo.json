@@ -1,6 +1,7 @@
 {
     "name": "Panates Plugins",
     "description": "Multi-source streaming extensions for CloudStream",
+    "iconUrl": "https://raw.githubusercontent.com/mustafa-tufekci/TestPlugins/master/panates-logo.png",
     "manifestVersion": 1,
     "pluginLists": [
         "https://raw.githubusercontent.com/mustafa-tufekci/TestPlugins/builds/plugins.json"

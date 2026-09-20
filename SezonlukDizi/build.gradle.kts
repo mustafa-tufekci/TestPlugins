@@ -1,7 +1,7 @@
-version = 3
+version = 4
 
 cloudstream {
-    description = "Multi-source Turkish series plugin (SezonlukDizi, etc.)"
+    description = "sezonlukdizi.cc - Turkish series with subtitles and dubbed"
     authors = listOf("Panates")
     status = 1
     tvTypes = listOf("TvSeries", "Anime")
