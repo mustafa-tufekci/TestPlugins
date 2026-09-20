@@ -277,10 +277,13 @@ class DiziBox : MainAPI() {
             }
         }
 
-        // DBX Pro (king.php) or Moly+ (moly.php): fetch the player page to get the real video iframe
+        // DBX Pro (king.php) or Moly+ (moly.php): fetch the player page with cookies to get the real video iframe
         if (iframeSrc.contains("king.php") || iframeSrc.contains("moly.php")) {
             try {
-                val playerDoc = app.get(iframeSrc).document
+                val playerDoc = app.get(
+                    iframeSrc,
+                    headers = mapOf("Cookie" to "isTrustedUser=true; LockUser=true")
+                ).document
                 val realIframes = playerDoc.select("iframe[src]").map { it.attr("src") }
                     .filter { it.isNotBlank() }
                     .map { src -> if (src.startsWith("//")) "https:$src" else src }
