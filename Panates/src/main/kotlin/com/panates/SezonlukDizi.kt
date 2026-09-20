@@ -3,9 +3,7 @@ package com.panates
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.ExtractorLink
-import com.lagradost.cloudstream3.utils.ExtractorLinkType
-import com.lagradost.cloudstream3.utils.Qualities
-import com.lagradost.cloudstream3.utils.newExtractorLink
+import com.lagradost.cloudstream3.utils.loadExtractor
 import org.jsoup.Jsoup
 
 class SezonlukDizi : MainAPI() {
@@ -214,17 +212,7 @@ class SezonlukDizi : MainAPI() {
                     if (src.isBlank()) continue
                     if (src.startsWith("//")) src = "https:$src"
 
-                    callback(
-                        newExtractorLink(
-                            source = this.name,
-                            name = "$langName - ${alt.name}",
-                            url = src,
-                            type = ExtractorLinkType.VIDEO,
-                        ) {
-                            this.referer = mainUrl
-                            this.quality = Qualities.P1080.value
-                        }
-                    )
+                    loadExtractor(src, mainUrl, subtitleCallback, callback)
                     found = true
                 }
             } catch (_: Exception) {
