@@ -1,0 +1,242 @@
+[
+    {
+        "iconUrl": "https://animecix.tv/favicon.ico",
+        "fileHash": "sha256-3b9d28b5b2d0d2a2119b1abf395b0de7082a3d2590dc08a9d2837a7070662515",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mustafa-tufekci/TestPlugins",
+        "fileSize": 40193,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Panates"
+        ],
+        "tvTypes": [
+            "TvSeries",
+            "Anime"
+        ],
+        "version": 6,
+        "internalName": "Animecix",
+        "description": "animecix.tv - Turkish anime",
+        "url": "https://raw.githubusercontent.com/mustafa-tufekci/TestPlugins/builds/Animecix.cs3",
+        "name": "Animecix"
+    },
+    {
+        "iconUrl": "https://dizibal.org/favicon.svg",
+        "fileHash": "sha256-38929b9695e66372a83ac928bc64a740943decb4073a3f1c7ff84c4e3bf51c88",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mustafa-tufekci/TestPlugins",
+        "fileSize": 24076,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Panates"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries",
+            "Anime"
+        ],
+        "version": 2,
+        "internalName": "DiziBal",
+        "description": "dizibal.org - Turkish series, movies & anime",
+        "url": "https://raw.githubusercontent.com/mustafa-tufekci/TestPlugins/builds/DiziBal.cs3",
+        "name": "DiziBal"
+    },
+    {
+        "iconUrl": "https://www.dizibox.live/favicon.ico",
+        "fileHash": "sha256-4404f39136022dac488ce981cd348ef4f3d5b798518e3353b0e99fc6b92ba972",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mustafa-tufekci/TestPlugins",
+        "fileSize": 34883,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Panates"
+        ],
+        "tvTypes": [
+            "TvSeries"
+        ],
+        "version": 6,
+        "internalName": "DiziBOX",
+        "description": "dizibox.live - Turkish series",
+        "url": "https://raw.githubusercontent.com/mustafa-tufekci/TestPlugins/builds/DiziBOX.cs3",
+        "name": "DiziBOX"
+    },
+    {
+        "iconUrl": "https://dizifilmizle.to/favicon.ico",
+        "fileHash": "sha256-9f997ea44c5c37ce5900322605d6aae29cd359dd1be6ab721bb2b821a3ac5c22",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mustafa-tufekci/TestPlugins",
+        "fileSize": 30374,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Panates"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "version": 3,
+        "internalName": "DiziFilm",
+        "description": "dizifilmizle.to - Turkish movies & series",
+        "url": "https://raw.githubusercontent.com/mustafa-tufekci/TestPlugins/builds/DiziFilm.cs3",
+        "name": "DiziFilm"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=dizilla.now&sz=%size%",
+        "fileHash": "sha256-3773d8cdf73ef240d7d1f5125c5fffaf3c4b5d8c820703916528b8b610b83528",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mustafa-tufekci/TestPlugins",
+        "fileSize": 29179,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Panates",
+            "keyiflerolsun",
+            "nikyokki"
+        ],
+        "tvTypes": [
+            "TvSeries"
+        ],
+        "version": 26,
+        "internalName": "Dizilla",
+        "description": "Dizilla t\u00fcm yabanc\u0131 dizileri \u00fccretsiz olarak T\u00fcrk\u00e7e Dublaj ve altyaz\u0131l\u0131 se\u00e7enekleri ile 1080P kalite izleyebilece\u011finiz yeni nesil yabanc\u0131 dizi izleme siteniz.",
+        "url": "https://raw.githubusercontent.com/mustafa-tufekci/TestPlugins/builds/Dizilla.cs3",
+        "name": "Dizilla"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=dizipal1583.com&sz=%size%",
+        "fileHash": "sha256-be56e609f43979860a62f43fd9b8563373e2ba6268334b9b0c7b1a562268c4b8",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mustafa-tufekci/TestPlugins",
+        "fileSize": 23672,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Panates",
+            "keyiflerolsun",
+            "muratcesmecioglu"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "version": 29,
+        "internalName": "DiziPal",
+        "description": "Dizipal - Yabanc\u0131 dizi, film ve anime izleme platformu",
+        "url": "https://raw.githubusercontent.com/mustafa-tufekci/TestPlugins/builds/DiziPal.cs3",
+        "name": "DiziPal"
+    },
+    {
+        "iconUrl": "https://www.fullhdfilmizlesene.now/favicon.ico",
+        "fileHash": "sha256-f398e15dac0c67b623bbdcaf1c4be3a674103c55c6fb377fe659879d52222445",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mustafa-tufekci/TestPlugins",
+        "fileSize": 24184,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Panates"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 3,
+        "internalName": "FullHDFilm",
+        "description": "fullhdfilmizlesene.now - Turkish movies & dubbed films",
+        "url": "https://raw.githubusercontent.com/mustafa-tufekci/TestPlugins/builds/FullHDFilm.cs3",
+        "name": "FullHDFilm"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=hdfilmcehennemi.com&sz=%size%",
+        "fileHash": "sha256-e8e14381430da60e75d20c178833fb05307abd0e4ef4fbe0bd40beae693a5880",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mustafa-tufekci/TestPlugins",
+        "fileSize": 32133,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Panates",
+            "hexated",
+            "keyiflerolsun",
+            "nikyokki"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "version": 36,
+        "internalName": "HDFilmCehennemi",
+        "description": "T\u00fcrkiye'nin en h\u0131zl\u0131 hd film izleme sitesi",
+        "url": "https://raw.githubusercontent.com/mustafa-tufekci/TestPlugins/builds/HDFilmCehennemi.cs3",
+        "name": "HDFilmCehennemi"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=hdfilmcehennemi2.biz&sz=%size%",
+        "fileHash": "sha256-ac90f2fd58297d1113b67e80ccf7e18f3a64f8fe8636176122310048805ab570",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mustafa-tufekci/TestPlugins",
+        "fileSize": 30288,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Panates",
+            "nikyokki"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "version": 10,
+        "internalName": "HDFilmCehennemi2",
+        "description": "Full hd film izleme keyfini hdfilmcehennemi2 ile ya\u015fay\u0131n",
+        "url": "https://raw.githubusercontent.com/mustafa-tufekci/TestPlugins/builds/HDFilmCehennemi2.cs3",
+        "name": "HDFilmCehennemi2"
+    },
+    {
+        "iconUrl": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh3vCp6N1K4bECoYRQD-cisJF2_6V_Hk01ZhDmoPR2JuM8O5qr4MqrPO1munM9cRlleBBSK6odYhLtDBWv4E3vhPhynlmS5hVVtJZShHoGA5REQ8_3v8SIlccTEqzVQu2UJyNYQdJNrKIfWy66RQeT0D-CcmFCbHPz5023H6p2v5fv4NVloZ5Rqo_yGrIY/s320/iNat-Box-App.png",
+        "fileHash": "sha256-959ea2746b0d06c3d416cfe5e0a5cb4c52793d3c41804f21ff0ede56ae19aac5",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mustafa-tufekci/TestPlugins",
+        "fileSize": 42637,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Panates",
+            "JustRelaxable",
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries",
+            "Live"
+        ],
+        "version": 16,
+        "internalName": "InatBox",
+        "description": "\u0130natBox - Film, dizi ve canl\u0131 yay\u0131n kanallar\u0131",
+        "url": "https://raw.githubusercontent.com/mustafa-tufekci/TestPlugins/builds/InatBox.cs3",
+        "name": "InatBox"
+    },
+    {
+        "iconUrl": "https://sezonlukdizi.cc/i/logo.png",
+        "fileHash": "sha256-ca44e5694837d3c8a5b0fb88245438daaa9699573e99211cdbb5d68c4b288e81",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mustafa-tufekci/TestPlugins",
+        "fileSize": 35986,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Panates"
+        ],
+        "tvTypes": [
+            "TvSeries",
+            "Anime"
+        ],
+        "version": 12,
+        "internalName": "SezonlukDizi",
+        "description": "sezonlukdizi.cc - Turkish series with subtitles and dubbed",
+        "url": "https://raw.githubusercontent.com/mustafa-tufekci/TestPlugins/builds/SezonlukDizi.cs3",
+        "name": "SezonlukDizi"
+    }
+]
