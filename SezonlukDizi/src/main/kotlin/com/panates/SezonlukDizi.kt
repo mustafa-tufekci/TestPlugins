@@ -207,7 +207,7 @@ class SezonlukDizi : MainAPI() {
         )
 
         val skipHosts = listOf("reCAPTCHADATA", "dzen.ru")
-        val skipNames = listOf("pixel", "dzen")
+        val skipNames = listOf("pixel", "dzen", "netu")
 
         var found = false
         for ((dilCode, langName) in languages) {
@@ -233,19 +233,21 @@ class SezonlukDizi : MainAPI() {
                     }
 
                     val langCallback: (ExtractorLink) -> Unit = { link ->
-                        callback(
-                            ExtractorLink(
-                                link.source,
-                                "$langName - ${link.name}",
-                                link.url,
-                                link.referer,
-                                link.quality,
-                                link.headers ?: emptyMap(),
-                                link.extractorData,
-                                link.type,
-                                link.audioTracks ?: emptyList()
+                        runCatching {
+                            callback(
+                                ExtractorLink(
+                                    link.source ?: "",
+                                    "$langName - ${link.name}",
+                                    link.url ?: "",
+                                    link.referer ?: mainUrl,
+                                    link.quality,
+                                    link.headers ?: emptyMap(),
+                                    link.extractorData,
+                                    link.type,
+                                    link.audioTracks ?: emptyList()
+                                )
                             )
-                        )
+                        }
                     }
 
                     if (loadExtractor(src, mainUrl, subtitleCallback, langCallback)) {
@@ -269,16 +271,16 @@ class SezonlukDizi : MainAPI() {
         return if (response?.status == "success") response.data else emptyList()
     }
 
-    private suspend fun getEmbedHtml(id: String): String? {
+    private suspend fun getEmbedHtml(id: Int): String? {
         return app.post(
             "$mainUrl/ajax/dataEmbed22.asp",
-            data = mapOf("id" to id),
+            data = mapOf("id" to id.toString()),
             headers = ajaxHeaders
         ).text
     }
 
     data class Alternative(
-        @JsonProperty("id") val id: String,
+        @JsonProperty("id") val id: Int,
         @JsonProperty("baslik") val name: String
     )
 
