@@ -201,6 +201,7 @@ class SezonlukDizi : MainAPI() {
         )
 
         val skipHosts = listOf("reCAPTCHADATA", "dzen.ru")
+        val skipNames = listOf("pixel", "dzen", "streamruby", "abstream")
 
         var found = false
         for ((dilCode, langName) in languages) {
@@ -209,7 +210,7 @@ class SezonlukDizi : MainAPI() {
                 for (alt in alternatives) {
                     val altName = alt.name.lowercase()
 
-                    if (altName == "pixel" || altName == "dzen") continue
+                    if (altName in skipNames) continue
 
                     val embedHtml: String = getEmbedHtml(alt.id) ?: continue
 
@@ -225,7 +226,23 @@ class SezonlukDizi : MainAPI() {
                         src = src.replace("bysejikuar.com", "filemoon.to")
                     }
 
-                    if (loadExtractor(src, mainUrl, subtitleCallback, callback)) {
+                    val langCallback: (ExtractorLink) -> Unit = { link ->
+                        callback(
+                            ExtractorLink(
+                                link.source,
+                                "$langName - ${link.name}",
+                                link.url,
+                                link.referer,
+                                link.quality,
+                                link.headers,
+                                link.extractorData,
+                                link.type,
+                                link.audioTracks
+                            )
+                        )
+                    }
+
+                    if (loadExtractor(src, mainUrl, subtitleCallback, langCallback)) {
                         found = true
                     }
                 }
