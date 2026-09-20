@@ -99,20 +99,26 @@ class SezonlukDizi : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val doc = try {
-            app.post(
-                "$mainUrl/diziler.asp",
-                data = mapOf("adi" to query),
-                headers = mapOf(
-                    "Referer" to "$mainUrl/",
-                    "Content-Type" to "application/x-www-form-urlencoded"
-                )
-            ).document
-        } catch (_: Exception) {
-            return emptyList()
-        }
+        return try {
+            val response = app.post(
+                "$mainUrl/ajax/arama.asp",
+                data = mapOf("q" to query),
+                headers = ajaxHeaders
+            ).parsedSafe<SearchApiResponse>()
 
-        return parseShowCards(doc)
+            response?.results?.diziler?.results?.mapNotNull { item ->
+                val href = item.url ?: return@mapNotNull null
+                val title = item.title ?: return@mapNotNull null
+                val posterUrl = item.image?.let { img ->
+                    if (img.startsWith("/")) "$mainUrl$img" else img
+                }
+                newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
+                    this.posterUrl = posterUrl
+                }
+            } ?: emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
     }
 
     override suspend fun load(url: String): LoadResponse {
@@ -234,10 +240,10 @@ class SezonlukDizi : MainAPI() {
                                 link.url,
                                 link.referer,
                                 link.quality,
-                                link.headers,
+                                link.headers ?: emptyMap(),
                                 link.extractorData,
                                 link.type,
-                                link.audioTracks
+                                link.audioTracks ?: emptyList()
                             )
                         )
                     }
@@ -279,5 +285,26 @@ class SezonlukDizi : MainAPI() {
     data class AlternativesResponse(
         @JsonProperty("status") val status: String,
         @JsonProperty("data") val data: List<Alternative>
+    )
+
+    data class SearchApiResponse(
+        @JsonProperty("status") val status: String,
+        @JsonProperty("results") val results: SearchApiResults?
+    )
+
+    data class SearchApiResults(
+        @JsonProperty("diziler") val diziler: SearchApiCategory?
+    )
+
+    data class SearchApiCategory(
+        @JsonProperty("results") val results: List<SearchApiItem>?
+    )
+
+    data class SearchApiItem(
+        @JsonProperty("did") val did: Int?,
+        @JsonProperty("title") val title: String?,
+        @JsonProperty("url") val url: String?,
+        @JsonProperty("image") val image: String?,
+        @JsonProperty("imdb") val imdb: Any?
     )
 }
