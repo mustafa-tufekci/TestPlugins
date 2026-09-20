@@ -24,6 +24,27 @@ class SezonlukDizi : MainAPI() {
         "Belgeseller" to "/diziler.asp?kat=6"
     )
 
+    private fun parseShowCards(doc: org.jsoup.nodes.Document): List<SearchResponse> {
+        return doc.select("a.column[title]").mapNotNull { link ->
+            val card = link.selectFirst("div.ui.card") ?: return@mapNotNull null
+            val href: String = link.attr("href")
+            if (href.isBlank()) return@mapNotNull null
+
+            val title: String = card.selectFirst(".content .description")?.text()
+                ?: link.attr("title").removeSuffix(" izle")
+
+            val img = card.selectFirst("img[data-src]")
+            val posterUrl: String? = img?.let {
+                val src = it.attr("data-src")
+                if (src.startsWith("/")) "$mainUrl$src" else src
+            }
+
+            newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
+                this.posterUrl = posterUrl
+            }
+        }
+    }
+
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val pages = categories.mapNotNull { (catName, path) ->
             val doc: org.jsoup.nodes.Document = try {
@@ -32,67 +53,45 @@ class SezonlukDizi : MainAPI() {
                 return@mapNotNull null
             }
 
-            val shows: List<SearchResponse> = doc.select("div.ui.card.golgever").mapNotNull { card ->
-                val link = card.selectFirst("a") ?: return@mapNotNull null
-                val href: String = link.attr("href")
-                val title: String = link.selectFirst(".description")?.text()
-                    ?: link.selectFirst("img")?.attr("alt")
-                    ?: return@mapNotNull null
-                val posterImg = link.selectFirst("img")
-                val posterUrl: String? = posterImg?.let { img ->
-                    val src = img.attr("src").ifEmpty { img.attr("data-src") }
-                    if (src.startsWith("/")) "$mainUrl$src" else src
-                }
-                newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
-                    this.posterUrl = posterUrl
-                }
-            }
-            HomePageList(catName, shows)
+            val shows = parseShowCards(doc)
+            if (shows.isEmpty()) null else HomePageList(catName, shows)
         }
         return newHomePageResponse(pages)
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
         val doc: org.jsoup.nodes.Document = try {
-            app.get("$mainUrl/diziler.asp", params = mapOf("adi" to query)).document
+            app.post(
+                "$mainUrl/diziler.asp",
+                data = mapOf("adi" to query)
+            ).document
         } catch (_: Exception) {
             return emptyList()
         }
 
-        return doc.select("div.ui.card.golgever").mapNotNull { card ->
-            val link = card.selectFirst("a") ?: return@mapNotNull null
-            val href: String = link.attr("href")
-            val title: String = link.selectFirst(".description")?.text()
-                ?: link.selectFirst("img")?.attr("alt")
-                ?: return@mapNotNull null
-            val posterImg = link.selectFirst("img")
-            val posterUrl: String? = posterImg?.let { img ->
-                val src = img.attr("src").ifEmpty { img.attr("data-src") }
-                if (src.startsWith("/")) "$mainUrl$src" else src
-            }
-            newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
-                this.posterUrl = posterUrl
-            }
-        }
+        return parseShowCards(doc)
     }
 
     override suspend fun load(url: String): LoadResponse {
         val doc: org.jsoup.nodes.Document = app.get(url).document
 
-        val title: String = doc.selectFirst(".header")?.text()
+        val title: String = doc.selectFirst(".content .header")?.text()
             ?: doc.selectFirst("h1")?.text()
             ?: "Unknown"
 
-        val posterImg = doc.selectFirst("img[data-src]")
-        val posterUrl: String? = posterImg?.let { img ->
-            val src = img.attr("data-src")
+        val img = doc.selectFirst("img[data-src]")
+        val posterUrl: String? = img?.let {
+            val src = it.attr("data-src")
             if (src.startsWith("/")) "$mainUrl$src" else src
         }
 
         val plot: String? = doc.selectFirst("#tartismayorum-konu blockquote")?.text()
-        val yearText: String? = doc.selectFirst(".right.floated")?.text()
+
+        val yearText: String? = doc.selectFirst(".extra.content .right.floated")?.text()
         val year: Int? = yearText?.split("-")?.firstOrNull()?.trim()?.toIntOrNull()
+
         val genres: List<String> = doc.select("a.ui.blue.label.golge").map { it.text() }
+
         val imdbText: String? = doc.selectFirst(".ui.label.imdb .detail")?.text()
 
         val dataDizi: String? = doc.selectFirst("#dizidetay")?.attr("data-dizi")
@@ -104,11 +103,11 @@ class SezonlukDizi : MainAPI() {
             val episodesUrl = "$mainUrl/bolumler/$dataDizi.html"
             val episodesDoc: org.jsoup.nodes.Document = app.get(episodesUrl).document
 
-            episodesDoc.select("table.ui.unstackable.table").forEach { table ->
-                table.select("tr").forEach { row ->
+            episodesDoc.select("table[sid]").forEach { table ->
+                table.select("tbody tr").forEach { row ->
                     val link = row.selectFirst("a[href*='-sezon-']") ?: return@forEach
                     val href: String = link.attr("href")
-                    val fullUrl = if (href.startsWith("/")) "$mainUrl$href" else "$mainUrl/$href"
+                    val fullUrl = if (href.startsWith("/")) "$mainUrl$href" else href
 
                     val match = Regex("(\\d+)-sezon-(\\d+)-bolum").find(href) ?: return@forEach
                     val s: Int = match.groupValues[1].toIntOrNull() ?: return@forEach
@@ -126,6 +125,31 @@ class SezonlukDizi : MainAPI() {
                     })
                 }
             }
+
+            if (episodes.isEmpty()) {
+                episodesDoc.select("table[sid]").forEachIndexed { tableIdx, table ->
+                    table.select("tr").forEach { row ->
+                        val link = row.selectFirst("a[href*='-sezon-']") ?: return@forEach
+                        val href: String = link.attr("href")
+                        val fullUrl = if (href.startsWith("/")) "$mainUrl$href" else href
+
+                        val match = Regex("(\\d+)-sezon-(\\d+)-bolum").find(href) ?: return@forEach
+                        val s: Int = match.groupValues[1].toIntOrNull() ?: return@forEach
+                        val e: Int = match.groupValues[2].toIntOrNull() ?: return@forEach
+
+                        val tds = row.select("td")
+                        val epTitle: String = tds.getOrNull(3)?.text()
+                            ?: link.text()
+
+                        episodes.add(newEpisode(fullUrl) {
+                            name = epTitle
+                            season = s
+                            episode = e
+                            this.posterUrl = posterUrl
+                        })
+                    }
+                }
+            }
         }
 
         return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
@@ -133,7 +157,6 @@ class SezonlukDizi : MainAPI() {
             this.plot = plot
             this.year = year
             this.tags = genres
-            this.recommendations = emptyList()
             if (imdbText != null) {
                 this.score = try {
                     Score.from10(imdbText)
