@@ -1,0 +1,8 @@
+{
+    "name": "Panates Plugins",
+    "description": "Multi-source streaming extensions for CloudStream",
+    "manifestVersion": 1,
+    "pluginLists": [
+        "https://raw.githubusercontent.com/mustafa-tufekci/TestPlugins/builds/plugins.json"
+    ]
+}
