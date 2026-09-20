@@ -43,9 +43,10 @@ class DiziBox : MainAPI() {
             if (items.isNotEmpty()) allPages.add(HomePageList("Beklenen / Eklenen Diziler", items))
         } catch (_: Exception) {}
 
-        // Dikkat Çeken Yeni Diziler
+        // Efsane Diziler (from dedicated page)
         try {
-            val items = doc.select("#new-series article.article-series-poster").mapNotNull { article ->
+            val efsaneDoc = app.get("$mainUrl/efsane-diziler/").document
+            val items = efsaneDoc.select("article.article-series-poster").mapNotNull { article ->
                 val titleLink = article.selectFirst("a.poster-title") ?: return@mapNotNull null
                 val href = titleLink.attr("href")
                 if (href.isBlank()) return@mapNotNull null
@@ -63,117 +64,10 @@ class DiziBox : MainAPI() {
                     if (imdb != null) this.score = Score.from10(imdb)
                 }
             }.distinctBy { it.url }
-            if (items.isNotEmpty()) allPages.add(HomePageList("Dikkat Çeken Yeni Diziler", items))
-        } catch (_: Exception) {}
-
-        // Popüler Dizilerden Son Bölümler
-        try {
-            val firstSection = doc.select("section.m-b-1").firstOrNull()
-            if (firstSection != null) {
-                val items = firstSection.select("article.article-episode-card").mapNotNull { article ->
-                    val titleLink = article.selectFirst("a.episode-card-title") ?: return@mapNotNull null
-                    val href = titleLink.attr("href")
-                    if (href.isBlank()) return@mapNotNull null
-                    val fullUrl = if (href.startsWith("/")) "$mainUrl$href" else href
-                    val seriesName = article.selectFirst("b.series-name")?.text()?.trim() ?: return@mapNotNull null
-                    val seasonText = article.selectFirst("span.season")?.text()?.trim() ?: ""
-                    val episodeText = article.selectFirst("b.episode")?.text()?.trim() ?: ""
-                    val title = "$seriesName $seasonText $episodeText".trim()
-                    val posterUrl = article.selectFirst("img.afis")?.attr("data-src")?.let { src ->
-                        if (src.startsWith("/")) "$mainUrl$src" else src
-                    }
-                    newTvSeriesSearchResponse(seriesName, fullUrl, TvType.TvSeries) {
-                        this.posterUrl = posterUrl
-                    }
-                }.distinctBy { it.url }
-                if (items.isNotEmpty()) allPages.add(HomePageList("Popüler Dizilerden Son Bölümler", items))
-            }
-        } catch (_: Exception) {}
-
-        // Yeni Eklenen Bölümler
-        try {
-            val secondSection = doc.select("section.m-b-1").getOrNull(1)
-            if (secondSection != null) {
-                val items = secondSection.select("article.article-episode-card").mapNotNull { article ->
-                    val titleLink = article.selectFirst("a.episode-card-title") ?: return@mapNotNull null
-                    val href = titleLink.attr("href")
-                    if (href.isBlank()) return@mapNotNull null
-                    val fullUrl = if (href.startsWith("/")) "$mainUrl$href" else href
-                    val seriesName = article.selectFirst("b.series-name")?.text()?.trim() ?: return@mapNotNull null
-                    val posterUrl = article.selectFirst("img.afis")?.attr("data-src")?.let { src ->
-                        if (src.startsWith("/")) "$mainUrl$src" else src
-                    }
-                    newTvSeriesSearchResponse(seriesName, fullUrl, TvType.TvSeries) {
-                        this.posterUrl = posterUrl
-                    }
-                }.distinctBy { it.url }
-                if (items.isNotEmpty()) allPages.add(HomePageList("Yeni Eklenen Bölümler", items))
-            }
-        } catch (_: Exception) {}
-
-        // Efsane Diziler
-        try {
-            val items = doc.select("#best-series article.article-series-small-grid").mapNotNull { article ->
-                val detailsLink = article.selectFirst("a.series-details") ?: return@mapNotNull null
-                val href = detailsLink.attr("href")
-                if (href.isBlank()) return@mapNotNull null
-                val fullUrl = if (href.startsWith("/")) "$mainUrl$href" else href
-                val title = article.selectFirst("div.tv-title")?.text()?.trim()?.removeSuffix(" izle") ?: return@mapNotNull null
-                if (title.isBlank()) return@mapNotNull null
-                val imdb = article.selectFirst("span.imdb")?.text()?.trim()
-                val genres = article.selectFirst("div.turler")?.text()?.trim()
-                val posterUrl = article.selectFirst("img.afis")?.attr("data-src")?.let { src ->
-                    if (src.startsWith("/")) "$mainUrl$src" else src
-                }
-                newTvSeriesSearchResponse(title, fullUrl, TvType.TvSeries) {
-                    this.posterUrl = posterUrl
-                    if (imdb != null) this.score = Score.from10(imdb)
-                }
-            }.distinctBy { it.url }
             if (items.isNotEmpty()) allPages.add(HomePageList("Efsane Diziler", items))
         } catch (_: Exception) {}
 
-        // Çeviri Durumu
-        try {
-            val items = doc.select("#translation-status article.article-episode-small-grid").mapNotNull { article ->
-                val titleLink = article.selectFirst("a.tv-title") ?: article.selectFirst("a.square-thumbnail") ?: return@mapNotNull null
-                val href = titleLink.attr("href")
-                if (href.isBlank()) return@mapNotNull null
-                val fullUrl = if (href.startsWith("/")) "$mainUrl$href" else href
-                val seriesName = article.selectFirst("strong.archive")?.text()?.trim() ?: return@mapNotNull null
-                val seasonText = article.selectFirst("span.season")?.text()?.trim() ?: ""
-                val episodeText = article.selectFirst("span.episode")?.text()?.trim() ?: ""
-                val posterUrl = article.selectFirst("img")?.attr("data-src")?.let { src ->
-                    if (src.startsWith("/")) "$mainUrl$src" else src
-                }
-                newTvSeriesSearchResponse(seriesName, fullUrl, TvType.TvSeries) {
-                    this.posterUrl = posterUrl
-                }
-            }.distinctBy { it.url }
-            if (items.isNotEmpty()) allPages.add(HomePageList("Çeviri Durumu", items))
-        } catch (_: Exception) {}
 
-        // Önerilen Diziler
-        try {
-            val items = doc.select("#recommended-series article.article-series-small-grid").mapNotNull { article ->
-                val detailsLink = article.selectFirst("a.series-details") ?: return@mapNotNull null
-                val href = detailsLink.attr("href")
-                if (href.isBlank()) return@mapNotNull null
-                val fullUrl = if (href.startsWith("/")) "$mainUrl$href" else href
-                val title = article.selectFirst("div.tv-title")?.text()?.trim()?.removeSuffix(" izle") ?: return@mapNotNull null
-                if (title.isBlank()) return@mapNotNull null
-                val imdb = article.selectFirst("span.imdb")?.text()?.trim()
-                val genres = article.selectFirst("div.turler")?.text()?.trim()
-                val posterUrl = article.selectFirst("img.afis")?.attr("data-src")?.let { src ->
-                    if (src.startsWith("/")) "$mainUrl$src" else src
-                }
-                newTvSeriesSearchResponse(title, fullUrl, TvType.TvSeries) {
-                    this.posterUrl = posterUrl
-                    if (imdb != null) this.score = Score.from10(imdb)
-                }
-            }.distinctBy { it.url }
-            if (items.isNotEmpty()) allPages.add(HomePageList("Önerilen Diziler", items))
-        } catch (_: Exception) {}
 
         return newHomePageResponse(allPages)
     }
@@ -316,26 +210,28 @@ class DiziBox : MainAPI() {
                 val iframeSrc = sourceDoc.selectFirst("#video-area iframe")?.attr("src")
                 if (iframeSrc.isNullOrBlank()) continue
 
-                val resolvedUrl = resolvePlayerUrl(iframeSrc)
+                val resolvedUrls = resolvePlayerUrl(iframeSrc)
 
-                if (loadExtractor(resolvedUrl, mainUrl, subtitleCallback) { link ->
-                        runCatching {
-                            callback(
-                                ExtractorLink(
-                                    link.source ?: "",
-                                    "$commentName - ${link.name}",
-                                    link.url ?: "",
-                                    link.referer ?: mainUrl,
-                                    link.quality,
-                                    link.headers ?: emptyMap(),
-                                    link.extractorData,
-                                    link.type,
-                                    link.audioTracks ?: emptyList()
+                for (resolvedUrl in resolvedUrls) {
+                    if (loadExtractor(resolvedUrl, mainUrl, subtitleCallback) { link ->
+                            runCatching {
+                                callback(
+                                    ExtractorLink(
+                                        link.source ?: "",
+                                        "$commentName - ${link.name}",
+                                        link.url ?: "",
+                                        link.referer ?: mainUrl,
+                                        link.quality,
+                                        link.headers ?: emptyMap(),
+                                        link.extractorData,
+                                        link.type,
+                                        link.audioTracks ?: emptyList()
+                                    )
                                 )
-                            )
-                        }
-                    }) {
-                    found = true
+                            }
+                        }) {
+                        found = true
+                    }
                 }
             } catch (_: Exception) {
             }
@@ -368,18 +264,44 @@ class DiziBox : MainAPI() {
         }
     }
 
-    private fun resolvePlayerUrl(iframeSrc: String): String {
+    private suspend fun resolvePlayerUrl(iframeSrc: String): List<String> {
+        // Odnok: base64 decode
         if (iframeSrc.contains("haydi.php")) {
             val base64Param = Regex("v=([A-Za-z0-9+/=]+)").find(iframeSrc)?.groupValues?.get(1)
             if (base64Param != null) {
                 try {
                     val decoded = String(Base64.decode(base64Param, Base64.DEFAULT))
-                    if (decoded.startsWith("http")) return decoded
+                    if (decoded.startsWith("http")) return listOf(decoded)
                 } catch (_: Exception) {
                 }
             }
         }
-        return iframeSrc
+
+        // DBX Pro (king.php) or Moly+ (moly.php): fetch the player page to get the real video iframe
+        if (iframeSrc.contains("king.php") || iframeSrc.contains("moly.php")) {
+            try {
+                val playerDoc = app.get(iframeSrc).document
+                val realIframes = playerDoc.select("iframe[src]").map { it.attr("src") }
+                    .filter { it.isNotBlank() }
+                    .map { src -> if (src.startsWith("//")) "https:$src" else src }
+                if (realIframes.isNotEmpty()) return realIframes
+
+                // Try embedded video sources
+                val videoSrc = playerDoc.selectFirst("video source[src]")?.attr("src")
+                if (!videoSrc.isNullOrBlank()) {
+                    return listOf(if (videoSrc.startsWith("//")) "https:$videoSrc" else videoSrc)
+                }
+
+                // Try direct video tag
+                val videoUrl = playerDoc.selectFirst("video[src]")?.attr("src")
+                if (!videoUrl.isNullOrBlank()) {
+                    return listOf(if (videoUrl.startsWith("//")) "https:$videoUrl" else videoUrl)
+                }
+            } catch (_: Exception) {
+            }
+        }
+
+        return listOf(iframeSrc)
     }
 
     data class AjaxSearchResult(
