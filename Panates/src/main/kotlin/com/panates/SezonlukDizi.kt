@@ -207,7 +207,7 @@ class SezonlukDizi : MainAPI() {
         )
 
         val skipHosts = listOf("reCAPTCHADATA", "dzen.ru")
-        val skipNames = listOf("pixel", "dzen", "streamruby", "abstream")
+        val skipNames = listOf("pixel", "dzen")
 
         var found = false
         for ((dilCode, langName) in languages) {
