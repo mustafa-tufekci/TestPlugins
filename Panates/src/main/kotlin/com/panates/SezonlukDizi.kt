@@ -200,23 +200,36 @@ class SezonlukDizi : MainAPI() {
             Pair("0", "Dublajlı")
         )
 
+        val skipHosts = listOf("reCAPTCHADATA", "dzen.ru")
+
         var found = false
         for ((dilCode, langName) in languages) {
             try {
                 val alternatives: List<Alternative> = getAlternatives(episodeId, dilCode)
                 for (alt in alternatives) {
+                    val altName = alt.name.lowercase()
+
+                    if (altName == "pixel" || altName == "dzen") continue
+
                     val embedHtml: String = getEmbedHtml(alt.id) ?: continue
+
+                    if (skipHosts.any { embedHtml.contains(it, ignoreCase = true) }) continue
+
                     val embedDoc: org.jsoup.nodes.Document = Jsoup.parse(embedHtml)
                     val iframe: org.jsoup.nodes.Element = embedDoc.selectFirst("iframe") ?: continue
                     var src: String = iframe.attr("src")
                     if (src.isBlank()) continue
                     if (src.startsWith("//")) src = "https:$src"
 
-                    loadExtractor(src, mainUrl, subtitleCallback, callback)
-                    found = true
+                    if (src.contains("bysejikuar.com")) {
+                        src = src.replace("bysejikuar.com", "filemoon.to")
+                    }
+
+                    if (loadExtractor(src, mainUrl, subtitleCallback, callback)) {
+                        found = true
+                    }
                 }
             } catch (_: Exception) {
-                // Language not available, skip
             }
         }
 
