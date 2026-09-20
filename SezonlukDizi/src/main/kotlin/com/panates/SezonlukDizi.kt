@@ -207,7 +207,7 @@ class SezonlukDizi : MainAPI() {
         )
 
         val skipHosts = listOf("reCAPTCHADATA", "dzen.ru")
-        val skipNames = listOf("pixel", "dzen", "netu")
+        val skipNames = listOf("pixel", "dzen", "netu", "filemoon", "streamruby", "abstream")
 
         var found = false
         for ((dilCode, langName) in languages) {
@@ -228,8 +228,8 @@ class SezonlukDizi : MainAPI() {
                     if (src.isBlank()) continue
                     if (src.startsWith("//")) src = "https:$src"
 
-                    if (src.contains("bysejikuar.com")) {
-                        src = src.replace("bysejikuar.com", "filemoon.to")
+                    if (src.contains("vidmoly.net")) {
+                        src = src.replace("vidmoly.net", "vidmoly.biz")
                     }
 
                     val langCallback: (ExtractorLink) -> Unit = { link ->
