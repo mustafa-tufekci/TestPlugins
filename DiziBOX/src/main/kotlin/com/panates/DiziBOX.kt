@@ -1,7 +1,6 @@
 package com.panates
 
 import android.util.Base64
-import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.ExtractorLinkType
@@ -72,38 +71,30 @@ class DiziBox : MainAPI() {
     // ── Search ───────────────────────────────────────────────────────────
 
     override suspend fun search(query: String): List<SearchResponse> {
-        // Try AJAX search first (Dave's WordPress Live Search)
-        try {
-            val ajaxResults = app.get(
-                "$mainUrl/wp-admin/admin-ajax.php",
-                params = mapOf("action" to "dwls_search", "s" to query)
-            ).parsedSafe<AjaxSearchResponse>()
-
-            if (ajaxResults != null && ajaxResults.results.isNotEmpty()) {
-                return ajaxResults.results.mapNotNull { result ->
-                    val href = result.permalink ?: return@mapNotNull null
-                    val title = result.postTitle ?: return@mapNotNull null
-                    if (href.isBlank() || title.isBlank()) return@mapNotNull null
-                    newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
-                        this.posterUrl = result.attachmentThumbnail
-                    }
-                }
-            }
-        } catch (_: Exception) {}
-
-        // Fallback: standard ?s= search
         return try {
-            val doc = app.get("$mainUrl/?s=$query").document
+            val doc = app.post(
+                "$mainUrl/",
+                data = mapOf("s" to query)
+            ).document
+
             doc.select("article.detailed-article").mapNotNull { article ->
                 val titleEl = article.selectFirst("h3 a") ?: return@mapNotNull null
                 val href = titleEl.attr("href")
                 val title = titleEl.text().trim()
                 if (href.isBlank() || title.isBlank()) return@mapNotNull null
-                val posterUrl = article.selectFirst("figure img")?.attr("src")?.let { fixUrl(it) }
-                newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
+                val posterUrl = (article.selectFirst("figure img")?.attr("data-src")
+                    ?: article.selectFirst("figure img")?.attr("src"))?.let { fixUrl(it) }
+                val yearText = article.selectFirst(".custom-field:has(i.icon-globe)")?.text()
+                val year = yearText?.replace(Regex("[^0-9]"), "")?.take(4)?.toIntOrNull()
+                val imdbRaw = article.selectFirst("span.label-imdb b, .label-imdb b")?.text()
+                    ?.replace(Regex("[^0-9.]"), "")
+                    ?.trim()
+                newTvSeriesSearchResponse(title, fixUrl(href), TvType.TvSeries) {
                     this.posterUrl = posterUrl
+                    this.year = year
+                    if (!imdbRaw.isNullOrBlank()) this.score = Score.from10(imdbRaw)
                 }
-            }
+            }.distinctBy { it.url }
         } catch (_: Exception) {
             emptyList()
         }
@@ -442,18 +433,4 @@ class DiziBox : MainAPI() {
 
         return listOf(iframeSrc)
     }
-
-    // ── Data Classes ─────────────────────────────────────────────────────
-
-    data class AjaxSearchResult(
-        @JsonProperty("permalink") val permalink: String?,
-        @JsonProperty("post_title") val postTitle: String?,
-        @JsonProperty("attachment_thumbnail") val attachmentThumbnail: String?,
-        @JsonProperty("post_excerpt") val postExcerpt: String?
-    )
-
-    data class AjaxSearchResponse(
-        @JsonProperty("searchTerms") val searchTerms: String?,
-        @JsonProperty("results") val results: List<AjaxSearchResult>
-    )
 }
