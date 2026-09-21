@@ -8,9 +8,9 @@ import com.lagradost.cloudstream3.utils.loadExtractor
 import org.json.JSONObject
 import java.net.URLEncoder
 
-class DiziPal : MainAPI() {
+class DiziBal : MainAPI() {
     override var mainUrl = "https://dizibal.org"
-    override var name = "DiziPal"
+    override var name = "DiziBal"
     override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries, TvType.Anime)
     override var lang = "tr"
     override val hasMainPage = true
@@ -309,9 +309,9 @@ class DiziPal : MainAPI() {
                         }
 
                         val streamName = if (audioLabels.isNotEmpty()) {
-                            "DiziPal (${audioLabels.joinToString(" / ")})"
+                            "DiziBal (${audioLabels.joinToString(" / ")})"
                         } else {
-                            "DiziPal (HLS)"
+                            "DiziBal (HLS)"
                         }
 
                         callback(
@@ -344,8 +344,8 @@ class DiziPal : MainAPI() {
                 if (loadExtractor(fullIframe, data, subtitleCallback) { link ->
                     callback(
                         ExtractorLink(
-                            link.source ?: "DiziPal",
-                            "DiziPal - ${link.name}",
+                            link.source ?: "DiziBal",
+                            "DiziBal - ${link.name}",
                             link.url ?: "",
                             link.referer ?: mainUrl,
                             link.quality,
