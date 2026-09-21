@@ -50,18 +50,19 @@ class Animecix : MainAPI() {
             ).parsedSafe<SearchApiResponse>()
 
             response?.results?.mapNotNull { result ->
-                val id = result.id ?: return@mapNotNull null
                 val title = result.name ?: return@mapNotNull null
+                val resultUrl = result.url ?: return@mapNotNull null
+                val fullUrl = if (resultUrl.startsWith("http")) resultUrl else "$mainUrl$resultUrl"
                 val posterUrl = result.poster?.let { fixUrl(it) }
                 val type = result.titleType ?: ""
 
                 if (type.contains("movie", ignoreCase = true)) {
-                    newMovieSearchResponse(title, "$mainUrl/anime/$id", TvType.Movie) {
+                    newMovieSearchResponse(title, fullUrl, TvType.Movie) {
                         this.posterUrl = posterUrl
                         this.year = result.year
                     }
                 } else {
-                    newTvSeriesSearchResponse(title, "$mainUrl/anime/$id", TvType.TvSeries) {
+                    newTvSeriesSearchResponse(title, fullUrl, TvType.TvSeries) {
                         this.posterUrl = posterUrl
                         this.year = result.year
                     }
@@ -135,10 +136,11 @@ class Animecix : MainAPI() {
                 ).parsedSafe<SearchApiResponse>()
 
                 val items = response?.results?.mapNotNull { result ->
-                    val id = result.id ?: return@mapNotNull null
                     val title = result.name ?: return@mapNotNull null
+                    val resultUrl = result.url ?: return@mapNotNull null
+                    val fullUrl = if (resultUrl.startsWith("http")) resultUrl else "$mainUrl$resultUrl"
                     val posterUrl = result.poster?.let { fixUrl(it) }
-                    newTvSeriesSearchResponse(title, "$mainUrl/anime/$id", TvType.TvSeries) {
+                    newTvSeriesSearchResponse(title, fullUrl, TvType.TvSeries) {
                         this.posterUrl = posterUrl
                         this.year = result.year
                     }
@@ -154,8 +156,9 @@ class Animecix : MainAPI() {
     // ── Load Details ────────────────────────────────────────────────────
 
     override suspend fun load(url: String): LoadResponse {
-        // Extract title ID from URL
+        // Extract title ID from URL — try numeric first, then slug-based resolution
         val titleId = extractTitleId(url)
+            ?: resolveTitleIdFromUrl(url)
             ?: throw ErrorLoadingException("Unable to extract title ID from '$url'")
 
         val data = app.get(
@@ -316,13 +319,50 @@ class Animecix : MainAPI() {
     // ── Helpers ─────────────────────────────────────────────────────────
 
     private fun extractTitleId(url: String): String? {
-        // Try /anime/{id} or /title/{id} patterns
+        // Try /anime/{id} or /title/{id} patterns (numeric ID)
         val match = Regex("""/(?:anime|title)/(\d+)""").find(url)
         if (match != null) return match.groupValues[1]
 
         // Try plain numeric ID at end
         val numMatch = Regex("""/(\d+)(?:\?|$)""").find(url)
-        return numMatch?.groupValues?.get(1)
+        if (numMatch != null) return numMatch.groupValues[1]
+
+        return null
+    }
+
+    /**
+     * Resolve a slug-based URL (e.g. /ylf-camp) to a numeric title ID
+     * by searching the API and matching the URL path.
+     */
+    private suspend fun resolveTitleIdFromUrl(url: String): String? {
+        // Extract the slug from the URL path
+        val path = try {
+            java.net.URL(url).path
+        } catch (_: Exception) {
+            url
+        }
+
+        // Try searching with the last path segment as query
+        val slug = path.trim('/').split("/").lastOrNull()?.replace("-", " ") ?: return null
+        if (slug.isBlank()) return null
+
+        return try {
+            val searchUrl = "$mainUrl/secure/search/${java.net.URLEncoder.encode(slug, "UTF-8")}"
+            val response = app.get(
+                searchUrl,
+                params = mapOf("type" to "", "limit" to "5"),
+                headers = defaultHeaders
+            ).parsedSafe<SearchApiResponse>()
+
+            // Match by URL path
+            response?.results?.firstOrNull { result ->
+                val resultUrl = result.url?.trimEnd('/')
+                val targetPath = path.trimEnd('/')
+                resultUrl == targetPath || resultUrl?.endsWith(targetPath) == true
+            }?.id?.toString()
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private suspend fun resolveVideoUrl(embedUrl: String): List<String> {
@@ -392,6 +432,7 @@ class Animecix : MainAPI() {
     data class SearchResult(
         @JsonProperty("id") val id: Int?,
         @JsonProperty("name") val name: String?,
+        @JsonProperty("url") val url: String?,
         @JsonProperty("name_english") val nameEnglish: String?,
         @JsonProperty("name_romanji") val nameRomanji: String?,
         @JsonProperty("poster") val poster: String?,
