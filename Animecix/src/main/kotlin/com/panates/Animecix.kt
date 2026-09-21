@@ -3,6 +3,8 @@ package com.panates
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.ExtractorLinkType
+import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.loadExtractor
 
 class Animecix : MainAPI() {
@@ -73,38 +75,50 @@ class Animecix : MainAPI() {
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val allPages = mutableListOf<HomePageList>()
 
-        val searchQueries = listOf(
-            "naruto" to "Naruto",
-            "one-piece" to "One Piece",
-            "attack-on-titan" to "Attack on Titan",
-            "demon-slayer" to "Demon Slayer",
-            "jujutsu-kaisen" to "Jujutsu Kaisen"
-        )
+        try {
+            val response = app.get(
+                "$mainUrl/secure/homepage/lists-guests",
+                headers = defaultHeaders
+            ).parsedSafe<GuestListsResponse>()
 
-        for ((slug, label) in searchQueries) {
-            try {
-                val url = "$mainUrl/secure/search/${java.net.URLEncoder.encode(slug, "UTF-8")}"
-                val response = app.get(
-                    url,
-                    params = mapOf("type" to "", "limit" to "10"),
-                    headers = defaultHeaders
-                ).parsedSafe<SearchApiResponse>()
+            response?.lists?.forEach { guestList ->
+                val listName = guestList.name?.trim() ?: return@forEach
+                val rawItems = guestList.items ?: return@forEach
 
-                val items = response?.results?.mapNotNull { result ->
-                    val id = result.id ?: return@mapNotNull null
-                    val title = result.name ?: return@mapNotNull null
-                    val posterUrl = result.poster?.let { fixUrl(it) }
-                    newTvSeriesSearchResponse(title, "$mainUrl/anime/$id", TvType.TvSeries) {
-                        this.posterUrl = posterUrl
-                        this.year = result.year
+                val searchResponses = rawItems.mapNotNull { item ->
+                    val id = item.id ?: return@mapNotNull null
+                    val title = item.name?.trim() ?: return@mapNotNull null
+
+                    val itemType = (item.type ?: "").lowercase()
+                    val modelType = (item.modelType ?: "").lowercase()
+                    if (itemType == "news_article" || modelType == "newsarticle") {
+                        return@mapNotNull null
                     }
-                }?.distinctBy { it.url } ?: emptyList()
 
-                if (items.isNotEmpty()) allPages.add(HomePageList(label, items))
-            } catch (_: Exception) {}
-        }
+                    val posterUrl = item.poster?.let { fixUrl(it) }
+                    val titleType = (item.titleType ?: item.type ?: "").lowercase()
+                    val isMovie = titleType.contains("movie") || titleType.contains("film")
 
-        // Fallback: broad search
+                    if (isMovie) {
+                        newMovieSearchResponse(title, "$mainUrl/anime/$id", TvType.Movie) {
+                            this.posterUrl = posterUrl
+                            this.year = item.year
+                        }
+                    } else {
+                        newTvSeriesSearchResponse(title, "$mainUrl/anime/$id", TvType.TvSeries) {
+                            this.posterUrl = posterUrl
+                            this.year = item.year
+                        }
+                    }
+                }.distinctBy { it.url }
+
+                if (searchResponses.isNotEmpty()) {
+                    allPages.add(HomePageList(listName, searchResponses))
+                }
+            }
+        } catch (_: Exception) {}
+
+        // Fallback: broad search if lists-guests failed
         if (allPages.isEmpty()) {
             try {
                 val response = app.get(
@@ -287,7 +301,42 @@ class Animecix : MainAPI() {
             null
         }
 
-        val videos = videoResponse?.videos
+        var videos = videoResponse?.videos
+
+        // Fallback 1: secure/episode-videos on mainUrl
+        if (videos.isNullOrEmpty()) {
+            videos = try {
+                app.get(
+                    "$mainUrl/secure/episode-videos",
+                    params = mapOf(
+                        "titleId" to titleId,
+                        "episode" to episode.toString(),
+                        "season" to season.toString()
+                    ),
+                    headers = defaultHeaders
+                ).parsedSafe<List<VideoSource>>()
+            } catch (_: Exception) {
+                null
+            }
+        }
+
+        // Fallback 2: secure/episode-videos on apiUrl (mangacix.net)
+        if (videos.isNullOrEmpty()) {
+            videos = try {
+                app.get(
+                    "$apiUrl/secure/episode-videos",
+                    params = mapOf(
+                        "titleId" to titleId,
+                        "episode" to episode.toString(),
+                        "season" to season.toString()
+                    ),
+                    headers = defaultHeaders
+                ).parsedSafe<List<VideoSource>>()
+            } catch (_: Exception) {
+                null
+            }
+        }
+
         if (videos.isNullOrEmpty()) return false
 
         var found = false
@@ -295,34 +344,95 @@ class Animecix : MainAPI() {
         for (video in videos) {
             val videoUrl = video.url ?: continue
             val extra = video.extra
+            val sourceName = video.name ?: "Tau Video"
 
             try {
-                val resolvedUrls = resolveVideoUrl(videoUrl)
-
-                for (resolvedUrl in resolvedUrls) {
-                    if (loadExtractor(resolvedUrl, mainUrl, subtitleCallback) { link ->
-                        runCatching {
+                if (videoUrl.contains("tau-video.xyz")) {
+                    val embedId = extractTauVideoId(videoUrl)
+                    if (embedId != null) {
+                        val tauUrls = resolveTauVideo(embedId)
+                        for (tauUrl in tauUrls) {
+                            val streamUrl = tauUrl.url ?: continue
+                            val label = tauUrl.label ?: "Auto"
                             val linkName = if (!extra.isNullOrBlank()) {
-                                "$extra - ${link.name}"
+                                "$sourceName ($label) • $extra"
                             } else {
-                                link.name
+                                "$sourceName ($label)"
                             }
                             callback(
                                 ExtractorLink(
-                                    link.source ?: "",
-                                    linkName,
-                                    link.url ?: "",
-                                    link.referer ?: mainUrl,
-                                    link.quality,
-                                    link.headers ?: emptyMap(),
-                                    link.extractorData,
-                                    link.type,
-                                    link.audioTracks ?: emptyList()
+                                    source = "Tau Video",
+                                    name = linkName,
+                                    url = streamUrl,
+                                    referer = "$TAU_VIDEO_URL/",
+                                    quality = parseQuality(label),
+                                    type = if (streamUrl.contains(".m3u8")) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO,
+                                    headers = mapOf(
+                                        "User-Agent" to defaultHeaders["User-Agent"]!!,
+                                        "Referer" to "$TAU_VIDEO_URL/",
+                                        "Origin" to TAU_VIDEO_URL
+                                    )
                                 )
                             )
+                            found = true
                         }
-                    }) {
+                    }
+                } else {
+                    val extracted = loadExtractor(videoUrl, mainUrl, subtitleCallback) { link ->
+                        val linkName = if (!extra.isNullOrBlank()) "$extra - ${link.name}" else link.name
+                        callback(
+                            ExtractorLink(
+                                link.source ?: "",
+                                linkName,
+                                link.url ?: "",
+                                link.referer ?: mainUrl,
+                                link.quality,
+                                link.headers ?: emptyMap(),
+                                link.extractorData,
+                                link.type,
+                                link.audioTracks ?: emptyList()
+                            )
+                        )
+                    }
+                    if (extracted) {
                         found = true
+                    } else {
+                        val resolvedUrls = resolveVideoUrl(videoUrl)
+                        for (resolvedUrl in resolvedUrls) {
+                            if (resolvedUrl.contains(".mp4") || resolvedUrl.contains(".m3u8")) {
+                                val linkName = if (!extra.isNullOrBlank()) "$sourceName • $extra" else sourceName
+                                callback(
+                                    ExtractorLink(
+                                        source = sourceName,
+                                        name = linkName,
+                                        url = resolvedUrl,
+                                        referer = mainUrl,
+                                        quality = Qualities.Unknown.value,
+                                        type = if (resolvedUrl.contains(".m3u8")) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
+                                    )
+                                )
+                                found = true
+                            } else {
+                                if (loadExtractor(resolvedUrl, mainUrl, subtitleCallback) { link ->
+                                    val linkName = if (!extra.isNullOrBlank()) "$extra - ${link.name}" else link.name
+                                    callback(
+                                        ExtractorLink(
+                                            link.source ?: "",
+                                            linkName,
+                                            link.url ?: "",
+                                            link.referer ?: mainUrl,
+                                            link.quality,
+                                            link.headers ?: emptyMap(),
+                                            link.extractorData,
+                                            link.type,
+                                            link.audioTracks ?: emptyList()
+                                        )
+                                    )
+                                }) {
+                                    found = true
+                                }
+                            }
+                        }
                     }
                 }
             } catch (_: Exception) {}
@@ -350,11 +460,22 @@ class Animecix : MainAPI() {
         return numMatch?.groupValues?.get(1)
     }
 
+    private fun parseQuality(label: String?): Int {
+        return when (label?.lowercase()?.replace("p", "")?.trim()) {
+            "360" -> Qualities.P360.value
+            "480" -> Qualities.P480.value
+            "720" -> Qualities.P720.value
+            "1080" -> Qualities.P1080.value
+            "2160", "4k" -> Qualities.P2160.value
+            else -> Qualities.Unknown.value
+        }
+    }
+
     private suspend fun resolveVideoUrl(embedUrl: String): List<String> {
         if (embedUrl.contains("tau-video.xyz")) {
             val embedId = extractTauVideoId(embedUrl)
             if (embedId != null) {
-                return resolveTauVideo(embedId)
+                return resolveTauVideo(embedId).mapNotNull { it.url }
             }
         }
 
@@ -388,24 +509,43 @@ class Animecix : MainAPI() {
     }
 
     private fun extractTauVideoId(url: String): String? {
-        val match = Regex("""tau-video\.xyz/(?:embed/)?([A-Za-z0-9]+)""").find(url)
+        val match = Regex("""tau-video\.xyz/(?:embed[-/])?([A-Za-z0-9]+)""").find(url)
         return match?.groupValues?.get(1)
     }
 
-    private suspend fun resolveTauVideo(embedId: String): List<String> {
+    private suspend fun resolveTauVideo(embedId: String): List<TauVideoUrl> {
         return try {
             val response = app.get(
                 "$TAU_VIDEO_URL/api/video/$embedId",
                 headers = tauHeaders
             ).parsedSafe<TauVideoResponse>()
 
-            response?.urls?.mapNotNull { it.url } ?: emptyList()
+            response?.urls?.filter { !it.url.isNullOrBlank() } ?: emptyList()
         } catch (_: Exception) {
             emptyList()
         }
     }
 
     // ── Data Classes ────────────────────────────────────────────────────
+
+    data class GuestListItem(
+        @JsonProperty("id") val id: Int?,
+        @JsonProperty("name") val name: String?,
+        @JsonProperty("poster") val poster: String?,
+        @JsonProperty("year") val year: Int?,
+        @JsonProperty("type") val type: String?,
+        @JsonProperty("title_type") val titleType: String?,
+        @JsonProperty("model_type") val modelType: String?
+    )
+
+    data class GuestList(
+        @JsonProperty("name") val name: String?,
+        @JsonProperty("items") val items: List<GuestListItem>?
+    )
+
+    data class GuestListsResponse(
+        @JsonProperty("lists") val lists: List<GuestList>?
+    )
 
     data class SearchResult(
         @JsonProperty("id") val id: Int?,
@@ -468,6 +608,7 @@ class Animecix : MainAPI() {
 
     data class VideoSource(
         @JsonProperty("id") val id: Any?,
+        @JsonProperty("name") val name: String?,
         @JsonProperty("url") val url: String?,
         @JsonProperty("extra") val extra: String?
     )
