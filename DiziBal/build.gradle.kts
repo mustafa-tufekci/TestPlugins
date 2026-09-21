@@ -1,4 +1,4 @@
-    version = 1
+    version = 2
 
 cloudstream {
     description = "dizibal.org - Turkish series, movies & anime"

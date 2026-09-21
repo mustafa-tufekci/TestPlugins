@@ -38,7 +38,18 @@ class DiziBal : MainAPI() {
         // Parse each section with an h2 heading and a row of content cards
         val sections = doc.select("section, div.container-site > div")
         for (sec in sections) {
-            val titleEl = sec.selectFirst("h2") ?: continue
+            // Ignore hero slider / carousel section
+            if (sec.hasClass("group/slider") ||
+                sec.attr("role") == "region" ||
+                sec.attr("aria-roledescription") == "kaydırıcı" ||
+                sec.attr("aria-label").contains("Öne çıkan", ignoreCase = true) ||
+                sec.selectFirst("[aria-roledescription='kaydırıcı'], .group\\/slider") != null) {
+                continue
+            }
+
+            // Real content sections use h2.section-title
+            val titleEl = sec.selectFirst("h2.section-title, h2") ?: continue
+            if (titleEl.hasClass("text-display-sm") || titleEl.hasClass("sr-only")) continue
             val rawTitle = titleEl.text().trim()
             if (rawTitle.isBlank() || rawTitle.equals("DiziBal", ignoreCase = true)) continue
 
@@ -58,16 +69,24 @@ class DiziBal : MainAPI() {
                 val title = cleanTitle(rawName)
                 if (title.isBlank()) return@mapNotNull null
 
+                val ratingRaw = a.selectFirst(".badge-rating, [class*='badge-rating']")?.text()?.trim()
+                val cardScore = ratingRaw?.let {
+                    Regex("""(\d+(?:\.\d+)?)""").find(it)?.groupValues?.get(1)?.toDoubleOrNull()
+                }
+
                 val fullUrl = fixUrl(href)
                 when {
                     fullUrl.contains("/movie/") -> newMovieSearchResponse(title, fullUrl, TvType.Movie) {
                         this.posterUrl = poster?.let { fixUrl(it) }
+                        if (cardScore != null) this.score = Score.from10(cardScore)
                     }
                     fullUrl.contains("/anime/") -> newTvSeriesSearchResponse(title, fullUrl, TvType.Anime) {
                         this.posterUrl = poster?.let { fixUrl(it) }
+                        if (cardScore != null) this.score = Score.from10(cardScore)
                     }
                     else -> newTvSeriesSearchResponse(title, fullUrl, TvType.TvSeries) {
                         this.posterUrl = poster?.let { fixUrl(it) }
+                        if (cardScore != null) this.score = Score.from10(cardScore)
                     }
                 }
             }.distinctBy { it.url }
@@ -108,16 +127,24 @@ class DiziBal : MainAPI() {
             val title = cleanTitle(rawName)
             if (title.isBlank()) return@mapNotNull null
 
+            val ratingRaw = a.selectFirst(".badge-rating, [class*='badge-rating']")?.text()?.trim()
+            val cardScore = ratingRaw?.let {
+                Regex("""(\d+(?:\.\d+)?)""").find(it)?.groupValues?.get(1)?.toDoubleOrNull()
+            }
+
             val fullUrl = fixUrl(href)
             when {
                 fullUrl.contains("/movie/") -> newMovieSearchResponse(title, fullUrl, TvType.Movie) {
                     this.posterUrl = poster?.let { fixUrl(it) }
+                    if (cardScore != null) this.score = Score.from10(cardScore)
                 }
                 fullUrl.contains("/anime/") -> newTvSeriesSearchResponse(title, fullUrl, TvType.Anime) {
                     this.posterUrl = poster?.let { fixUrl(it) }
+                    if (cardScore != null) this.score = Score.from10(cardScore)
                 }
                 else -> newTvSeriesSearchResponse(title, fullUrl, TvType.TvSeries) {
                     this.posterUrl = poster?.let { fixUrl(it) }
+                    if (cardScore != null) this.score = Score.from10(cardScore)
                 }
             }
         }.distinctBy { it.url }
