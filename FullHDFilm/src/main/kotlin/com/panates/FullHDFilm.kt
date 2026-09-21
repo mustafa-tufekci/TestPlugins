@@ -105,8 +105,7 @@ class FullHDFilm : MainAPI() {
         val poster = doc.selectFirst("meta[property='og:image']")?.attr("content")?.let { fixUrl(it) }
             ?: doc.selectFirst("img.afis, .film-afis img")?.attr("src")?.let { fixUrl(it) }
 
-        val plot = doc.selectFirst("meta[name='description']")?.attr("content")?.trim()
-            ?: doc.selectFirst("div.film-ozet, p.ozet, .ozet")?.text()?.trim()
+        val plot = extractPlot(doc)
 
         val year = doc.selectFirst("span.film-yil")?.text()?.trim()?.toIntOrNull()
             ?: Regex("""(20\d\d|19\d\d)""").find(doc.text())?.groupValues?.get(1)?.toIntOrNull()
@@ -250,8 +249,9 @@ class FullHDFilm : MainAPI() {
                         if (ctArr != null) {
                             for (i in 0 until ctArr.length()) {
                                 val cObj = ctArr.optJSONObject(i) ?: continue
-                                val file = cObj.optString("file")
-                                val subLabel = cObj.optString("label").takeIf { it.isNotBlank() } ?: "Türkçe"
+                                val file = cObj.optString("file").replace("\\/", "/")
+                                val rawLabel = cObj.optString("label").takeIf { it.isNotBlank() } ?: "Türkçe"
+                                val subLabel = unescapeUnicode(rawLabel)
                                 if (file.isNotBlank() && file.startsWith("http")) {
                                     subtitleCallback(SubtitleFile(lang = subLabel, url = file))
                                 }
@@ -437,14 +437,52 @@ class FullHDFilm : MainAPI() {
     }
 
     private fun parseJwTracks(html: String, subtitleCallback: (SubtitleFile) -> Unit) {
-        val trackMatches = Regex(""""kind"\s*:\s*"(?:captions|subtitles)"\s*,\s*"file"\s*:\s*"([^"]+)"\s*,\s*"label"\s*:\s*"([^"]+)"""").findAll(html)
-        for (m in trackMatches) {
-            val file = m.groupValues[1].replace("\\/", "/")
-            val label = m.groupValues[2].trim()
+        val trackBlocks = Regex("""\{[^{}]*(?:captions|subtitles)[^{}]*\}""").findAll(html)
+        for (block in trackBlocks) {
+            val text = block.value
+            val file = Regex("""["']?file["']?\s*:\s*["']([^"']+)["']""").find(text)?.groupValues?.get(1)?.replace("\\/", "/") ?: continue
+            val rawLabel = Regex("""["']?label["']?\s*:\s*["']([^"']+)["']""").find(text)?.groupValues?.get(1) ?: "Türkçe"
+            val label = unescapeUnicode(rawLabel)
             if (file.startsWith("http")) {
                 subtitleCallback(SubtitleFile(lang = label, url = file))
             }
         }
+    }
+
+    private fun extractPlot(doc: org.jsoup.nodes.Document): String? {
+        for (script in doc.select("script[type='application/ld+json']")) {
+            try {
+                val data = JSONObject(script.data())
+                val type = data.optString("@type")
+                if (type == "Movie" || type == "VideoObject") {
+                    val desc = data.optString("description")
+                    if (desc.isNotBlank() && !desc.contains("seçenekleriyle Full HD")) {
+                        return desc.trim()
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+        val domPlot = doc.selectFirst("div.film-ozet, p.ozet, .ozet")?.text()?.trim()
+        if (!domPlot.isNullOrBlank()) return domPlot
+        return doc.selectFirst("meta[name='description']")?.attr("content")?.trim()
+    }
+
+    private fun unescapeUnicode(input: String): String {
+        var str = input
+        val unicodeRegex = Regex("""(?:\\+u|%u)([0-9a-fA-F]{4})""")
+        str = unicodeRegex.replace(str) { match ->
+            try {
+                match.groupValues[1].toInt(16).toChar().toString()
+            } catch (_: Exception) {
+                match.value
+            }
+        }
+        return str.replace("&amp;", "&")
+            .replace("&quot;", "\"")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&#39;", "'")
+            .trim()
     }
 
     private fun getOrigin(url: String): String {

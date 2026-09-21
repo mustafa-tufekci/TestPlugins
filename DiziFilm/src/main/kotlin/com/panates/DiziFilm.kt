@@ -155,8 +155,7 @@ class DiziFilm : MainAPI() {
         val poster = doc.selectFirst("meta[property='og:image']")?.attr("content")?.let { fixUrl(it) }
             ?: doc.selectFirst("img.object-cover, img[src*='/poster/']")?.attr("src")?.let { fixUrl(it) }
 
-        val plot = doc.selectFirst("meta[name='description']")?.attr("content")?.trim()
-            ?: doc.selectFirst("p.text-gray-300, p.text-gray-400")?.text()?.trim()
+        val plot = extractPlot(doc, rscPayload)
 
         val year = Regex("""(20\d\d|19\d\d)""").find(html)?.groupValues?.get(1)?.toIntOrNull()
 
@@ -179,10 +178,45 @@ class DiziFilm : MainAPI() {
             }
         }
 
-        // TV Series: Find all season and episode links
-        val episodeMatches = Regex("""href=["'](/dizi/[^/]+/sezon-(\d+)/bolum-(\d+))["']""").findAll(html).toList()
-        val episodes = if (episodeMatches.isNotEmpty()) {
-            episodeMatches.map { m ->
+        // TV Series: First try Next.js RSC payload seasonsWithEpisodes
+        val seriesSlug = Regex("""/dizi/([^/?#]+)""").find(url)?.groupValues?.get(1) ?: ""
+        var episodes = if (seriesSlug.isNotBlank()) {
+            parseSeasonsWithEpisodes(rscPayload, seriesSlug)
+        } else {
+            emptyList()
+        }
+
+        // Fallback 1: DOM episode cards
+        if (episodes.isEmpty()) {
+            val episodeCards = doc.select("a[href*='/bolum-']")
+            if (episodeCards.isNotEmpty()) {
+                episodes = episodeCards.mapNotNull { a ->
+                    val epHref = a.attr("href")
+                    val m = Regex("""/dizi/[^/]+/sezon-(\d+)/bolum-(\d+)""").find(epHref) ?: return@mapNotNull null
+                    val sNum = m.groupValues[1].toIntOrNull() ?: 1
+                    val eNum = m.groupValues[2].toIntOrNull() ?: 1
+                    val epThumb = a.selectFirst(".bolum-afis-img img, img")?.let { img ->
+                        img.attr("src").takeIf { it.isNotBlank() } ?: img.attr("data-src")
+                    }?.let { fixUrl(it) } ?: poster
+                    val titleFromA = a.selectFirst("p.text-zinc-500")?.text()?.trim()
+                        ?: a.selectFirst("h3")?.text()?.trim()
+                        ?: a.attr("title").replace(Regex("""(?i)^.*?(\d+\.\s*Sezon\s*\d+\.\s*Bölüm)\s*"""), "").trim()
+                    val epTitle = if (!titleFromA.isNullOrBlank()) titleFromA else "$eNum. Bölüm"
+
+                    newEpisode(fixUrl(epHref)) {
+                        this.name = epTitle
+                        this.season = sNum
+                        this.episode = eNum
+                        this.posterUrl = epThumb
+                    }
+                }.distinctBy { "${it.season}-${it.episode}" }.sortedWith(compareBy({ it.season }, { it.episode }))
+            }
+        }
+
+        // Fallback 2: Regex href matching
+        if (episodes.isEmpty()) {
+            val episodeMatches = Regex("""href=["'](/dizi/[^/]+/sezon-(\d+)/bolum-(\d+))["']""").findAll(html).toList()
+            episodes = episodeMatches.map { m ->
                 val epUrl = fixUrl(m.groupValues[1])
                 val sNum = m.groupValues[2].toIntOrNull() ?: 1
                 val eNum = m.groupValues[3].toIntOrNull() ?: 1
@@ -193,8 +227,6 @@ class DiziFilm : MainAPI() {
                     this.posterUrl = poster
                 }
             }.distinctBy { "${it.season}-${it.episode}" }.sortedWith(compareBy({ it.season }, { it.episode }))
-        } else {
-            emptyList()
         }
 
         return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
@@ -313,7 +345,7 @@ class DiziFilm : MainAPI() {
                         ?: subObj.optString("language").takeIf { it.isNotBlank() } ?: "Türkçe"
                     subtitleCallback(
                         SubtitleFile(
-                            lang = subLabel,
+                            lang = unescapeUnicode(subLabel),
                             url = subFile
                         )
                     )
@@ -403,6 +435,138 @@ class DiziFilm : MainAPI() {
             sb.append(chunk)
         }
         return sb.toString()
+    }
+
+    private fun parseSeasonsWithEpisodes(rscPayload: String, seriesSlug: String): List<Episode> {
+        val marker = "\"seasonsWithEpisodes\":"
+        val idx = rscPayload.indexOf(marker)
+        if (idx == -1) return emptyList()
+
+        val start = idx + marker.length
+        var depth = 0
+        var end = -1
+        var inString = false
+        var escape = false
+
+        for (i in start until rscPayload.length) {
+            val c = rscPayload[i]
+            if (escape) {
+                escape = false
+                continue
+            }
+            if (c == '\\') {
+                escape = true
+                continue
+            }
+            if (c == '"') {
+                inString = !inString
+                continue
+            }
+            if (!inString) {
+                if (c == '[') {
+                    depth++
+                } else if (c == ']') {
+                    depth--
+                    if (depth == 0) {
+                        end = i + 1
+                        break
+                    }
+                }
+            }
+        }
+
+        if (end == -1) return emptyList()
+
+        val jsonStr = rscPayload.substring(start, end)
+        val episodes = mutableListOf<Episode>()
+
+        try {
+            val seasonsArr = JSONArray(jsonStr)
+            for (s in 0 until seasonsArr.length()) {
+                val seasonObj = seasonsArr.optJSONObject(s) ?: continue
+                val seasonNum = seasonObj.optInt("season_number", s + 1)
+                val epArr = seasonObj.optJSONArray("episodes") ?: continue
+
+                for (e in 0 until epArr.length()) {
+                    val epObj = epArr.optJSONObject(e) ?: continue
+                    val epNum = epObj.optInt("episode_number", e + 1)
+                    val rawTitle = epObj.optString("title").takeIf { it.isNotBlank() && it != "null" }
+                        ?: epObj.optString("title_tr").takeIf { it.isNotBlank() && it != "null" }
+                        ?: epObj.optString("title_en").takeIf { it.isNotBlank() && it != "null" }
+                    val rawOverview = epObj.optString("overview").takeIf { it.isNotBlank() && it != "null" }
+                        ?: epObj.optString("overview_tr").takeIf { it.isNotBlank() && it != "null" }
+                        ?: epObj.optString("description").takeIf { it.isNotBlank() && it != "null" }
+                    val rawThumb = epObj.optString("thumbnail_url").takeIf { it.isNotBlank() && it != "null" }
+                        ?: epObj.optString("still_path").takeIf { it.isNotBlank() && it != "null" }
+
+                    val epName = if (!rawTitle.isNullOrBlank()) unescapeUnicode(rawTitle) else "$epNum. Bölüm"
+                    val epDesc = if (!rawOverview.isNullOrBlank()) unescapeUnicode(rawOverview) else null
+                    val epThumb = rawThumb?.let { fixUrl(unescapeUnicode(it)) }
+
+                    val epUrl = "$mainUrl/dizi/$seriesSlug/sezon-$seasonNum/bolum-$epNum"
+
+                    episodes.add(newEpisode(epUrl) {
+                        this.name = epName
+                        this.season = seasonNum
+                        this.episode = epNum
+                        this.posterUrl = epThumb
+                        this.description = epDesc
+                    })
+                }
+            }
+        } catch (_: Exception) {}
+
+        return episodes
+    }
+
+    private fun extractPlot(doc: org.jsoup.nodes.Document, rscPayload: String): String? {
+        // 1. From schema.org LD+JSON
+        for (script in doc.select("script[type='application/ld+json']")) {
+            try {
+                val data = JSONObject(script.data())
+                val type = data.optString("@type")
+                if (type == "TVSeries" || type == "Movie" || type == "VideoObject") {
+                    val desc = data.optString("description")
+                    if (desc.isNotBlank() && !desc.contains("tüm sezonları ve bölümleri") && !desc.contains("olarak Full HD izleyebilirsiniz")) {
+                        return unescapeUnicode(desc.trim())
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+
+        // 2. From DOM div.prose or div.text-gray-300
+        val domPlot = doc.selectFirst("div.prose, div.text-gray-300.text-sm, div.text-gray-300.text-base, div.text-gray-300, p.text-gray-300")?.text()?.trim()
+        if (!domPlot.isNullOrBlank() && !domPlot.contains("olarak Full HD izleyebilirsiniz")) {
+            return domPlot
+        }
+
+        // 3. From RSC payload
+        val rscPlot = Regex(""""description"\s*:\s*"([^"]{20,})"""").find(rscPayload)?.groupValues?.get(1)
+            ?: Regex(""""overview"\s*:\s*"([^"]{20,})"""").find(rscPayload)?.groupValues?.get(1)
+        if (!rscPlot.isNullOrBlank() && !rscPlot.contains("olarak Full HD izleyebilirsiniz")) {
+            return unescapeUnicode(rscPlot)
+        }
+
+        // 4. Meta description fallback
+        return doc.selectFirst("meta[name='description']")?.attr("content")?.trim()
+    }
+
+    private fun unescapeUnicode(input: String): String {
+        var str = input
+        val unicodeRegex = Regex("""(?:\\+u|%u)([0-9a-fA-F]{4})""")
+        str = unicodeRegex.replace(str) { match ->
+            try {
+                match.groupValues[1].toInt(16).toChar().toString()
+            } catch (_: Exception) {
+                match.value
+            }
+        }
+        return str.replace("&amp;", "&")
+            .replace("&quot;", "\"")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&#39;", "'")
+            .trim()
     }
 
     private data class MoviePart(val title: String, val url: String, val language: String, val quality: String)
