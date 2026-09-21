@@ -4,6 +4,8 @@ import android.util.Base64
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.ExtractorLinkType
+import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.loadExtractor
 
 class DiziBox : MainAPI() {
@@ -173,42 +175,33 @@ class DiziBox : MainAPI() {
 
         val sourceOptions = doc.select("select.woca-linkpages-dd option")
 
-        // Fallback: if no dropdown, try a direct #video-area iframe on this page
-        if (sourceOptions.isEmpty()) {
-            val iframeSrc = doc.selectFirst("#video-area iframe")?.attr("src")
-            if (!iframeSrc.isNullOrBlank()) {
-                var found = false
-                for (resolved in resolvePlayerUrl(iframeSrc)) {
-                    if (loadExtractor(resolved, mainUrl, subtitleCallback, callback)) found = true
-                }
-                return found
-            }
-            return false
-        }
-
+        // If no dropdown, extract directly from current page
         val sourceUrls = mutableListOf<Pair<String, String>>()
+        if (sourceOptions.isEmpty()) {
+            sourceUrls.add("Varsayılan" to data)
+        } else {
+            for (option in sourceOptions) {
+                val sourceName = option.text().trim()
+                val value = option.attr("value").trim()
+                val href = option.attr("href").trim()
 
-        for (option in sourceOptions) {
-            val sourceName = option.text().trim()
-            val value = option.attr("value").trim()
-            val href = option.attr("href").trim()
+                if (sourceName.isEmpty()) continue
 
-            if (sourceName.isEmpty()) continue
+                val pageUrl = when {
+                    value.isNotEmpty() -> value
+                    href.isNotEmpty() -> href
+                    else -> data
+                }
 
-            val pageUrl = when {
-                value.isNotEmpty() -> value
-                href.isNotEmpty() -> href
-                else -> data
+                sourceUrls.add(sourceName to fixUrl(pageUrl))
             }
-
-            sourceUrls.add(sourceName to fixUrl(pageUrl))
         }
 
         var found = false
 
         for ((sourceName, pageUrl) in sourceUrls) {
             try {
-                val sourceDoc = app.get(pageUrl).document
+                val sourceDoc = if (pageUrl == data) doc else app.get(pageUrl).document
 
                 // Source display name from HTML comment <!-- baslik:... -->
                 val commentName = Regex("<!--baslik:(.*?)-->")
@@ -216,17 +209,127 @@ class DiziBox : MainAPI() {
                     ?: sourceName
 
                 val iframeSrc = sourceDoc.selectFirst("#video-area iframe")?.attr("src")
+                    ?: sourceDoc.select("iframe[src]").firstOrNull {
+                        val s = it.attr("src")
+                        s.contains("player") || s.contains("king") || s.contains("moly") || s.contains("haydi") || s.contains("mecnun")
+                    }?.attr("src")
+
                 if (iframeSrc.isNullOrBlank()) continue
 
-                for (resolvedUrl in resolvePlayerUrl(iframeSrc)) {
-                    if (loadExtractor(resolvedUrl, mainUrl, subtitleCallback) { link ->
+                val resolvedUrls = resolvePlayerUrl(iframeSrc, pageUrl)
+
+                for (resolvedUrl in resolvedUrls) {
+                    // 1. MOLYSTREAM HLS (DBX Pro / King backend)
+                    if (resolvedUrl.contains("molystream.org")) {
+                        val streamId = Regex("embed/(?:sheila/)?([A-Za-z0-9-]+)")
+                            .find(resolvedUrl)?.groupValues?.get(1)
+                        if (!streamId.isNullOrBlank()) {
+                            val m3u8Url = "https://dbx.molystream.org/embed/sheila/$streamId"
+                            callback(
+                                ExtractorLink(
+                                    source = "DBX Pro",
+                                    name = "$commentName - DBX Pro 1080p",
+                                    url = m3u8Url,
+                                    referer = "https://dbx.molystream.org/",
+                                    quality = Qualities.P1080.value,
+                                    headers = mapOf(
+                                        "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                                        "Referer" to "https://dbx.molystream.org/"
+                                    ),
+                                    type = ExtractorLinkType.M3U8
+                                )
+                            )
+                            found = true
+                            continue
+                        }
+                    }
+
+                    // 2. VIDMOLY (Moly+ player)
+                    if (resolvedUrl.contains("vidmoly")) {
+                        var vmUrl = resolvedUrl
+                        if (vmUrl.contains("vidmoly.net")) {
+                            vmUrl = vmUrl.replace("vidmoly.net", "vidmoly.biz")
+                        }
+
+                        // Try built-in extractor first
+                        val extracted = loadExtractor(vmUrl, "https://vidmoly.biz/", subtitleCallback) { link ->
+                            callback(
+                                ExtractorLink(
+                                    link.source ?: "",
+                                    "$commentName - ${link.name}",
+                                    link.url ?: "",
+                                    link.referer ?: "https://vidmoly.biz/",
+                                    link.quality,
+                                    link.headers ?: emptyMap(),
+                                    link.extractorData,
+                                    link.type,
+                                    link.audioTracks ?: emptyList()
+                                )
+                            )
+                        }
+
+                        if (extracted) {
+                            found = true
+                            continue
+                        }
+
+                        // Fallback: scrape Vidmoly master.m3u8 directly from embed HTML
+                        try {
+                            val vmHtml = app.get(
+                                vmUrl,
+                                headers = mapOf("Referer" to "https://www.dizibox.live/")
+                            ).text
+                            val m3u8Direct = Regex("""['"](https?://[^'"]+\.m3u8[^'"]*)['"]""")
+                                .find(vmHtml)?.groupValues?.get(1)
+                            if (!m3u8Direct.isNullOrBlank()) {
+                                callback(
+                                    ExtractorLink(
+                                        source = "Vidmoly",
+                                        name = "$commentName - Vidmoly HLS",
+                                        url = m3u8Direct,
+                                        referer = "https://vidmoly.biz/",
+                                        quality = Qualities.P1080.value,
+                                        headers = mapOf("Referer" to "https://vidmoly.biz/"),
+                                        type = ExtractorLinkType.M3U8
+                                    )
+                                )
+                                found = true
+                                continue
+                            }
+                        } catch (_: Exception) {}
+                    }
+
+                    // 3. Direct video file (.m3u8 or .mp4)
+                    if (resolvedUrl.contains(".m3u8") || resolvedUrl.contains(".mp4")) {
+                        val isM3u8 = resolvedUrl.contains(".m3u8")
+                        callback(
+                            ExtractorLink(
+                                source = commentName,
+                                name = "$commentName - Direct",
+                                url = resolvedUrl,
+                                referer = pageUrl,
+                                quality = Qualities.P1080.value,
+                                type = if (isM3u8) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
+                            )
+                        )
+                        found = true
+                        continue
+                    }
+
+                    // 4. General extractor fallback (OK.ru, etc.)
+                    val refererUrl = when {
+                        resolvedUrl.contains("ok.ru") -> "https://ok.ru/"
+                        else -> pageUrl
+                    }
+
+                    if (loadExtractor(resolvedUrl, refererUrl, subtitleCallback) { link ->
                         runCatching {
                             callback(
                                 ExtractorLink(
                                     link.source ?: "",
                                     "$commentName - ${link.name}",
                                     link.url ?: "",
-                                    link.referer ?: mainUrl,
+                                    link.referer ?: refererUrl,
                                     link.quality,
                                     link.headers ?: emptyMap(),
                                     link.extractorData,
@@ -280,26 +383,32 @@ class DiziBox : MainAPI() {
     }
 
     /**
-     * Resolve player iframe src to an actual video URL.
+     * Resolve player iframe src to actual video/embed URLs.
      */
-    private suspend fun resolvePlayerUrl(iframeSrc: String): List<String> {
-        // Odnok: base64 decode v= param
+    private suspend fun resolvePlayerUrl(iframeSrc: String, refererPage: String): List<String> {
+        // Odnok: base64 decode v= param -> ensure https
         if (iframeSrc.contains("haydi.php")) {
             val base64Param = Regex("v=([A-Za-z0-9+/=]+)").find(iframeSrc)?.groupValues?.get(1)
             if (base64Param != null) {
                 try {
                     val decoded = String(Base64.decode(base64Param, Base64.DEFAULT))
-                    if (decoded.startsWith("http")) return listOf(decoded)
+                    if (decoded.startsWith("http")) {
+                        val secureUrl = decoded.replace("http://", "https://")
+                        return listOf(secureUrl)
+                    }
                 } catch (_: Exception) {}
             }
         }
 
-        // DBX Pro (king.php) or Moly+ (moly.php): fetch player with cookies
-        if (iframeSrc.contains("king.php") || iframeSrc.contains("moly.php")) {
+        // DBX Pro (king.php), Moly+ (moly.php), or King (mecnun.php): fetch player page with auth cookies
+        if (iframeSrc.contains("king.php") || iframeSrc.contains("moly.php") || iframeSrc.contains("mecnun.php")) {
             try {
                 val playerDoc = app.get(
                     iframeSrc,
-                    headers = mapOf("Cookie" to "isTrustedUser=true; LockUser=true")
+                    headers = mapOf(
+                        "Cookie" to "isTrustedUser=true; LockUser=true",
+                        "Referer" to refererPage
+                    )
                 ).document
 
                 val realIframes = playerDoc.select("iframe[src]")
@@ -316,6 +425,17 @@ class DiziBox : MainAPI() {
                 val videoUrl = playerDoc.selectFirst("video[src]")?.attr("src")
                 if (!videoUrl.isNullOrBlank()) {
                     return listOf(if (videoUrl.startsWith("//")) "https:$videoUrl" else videoUrl)
+                }
+
+                // Check for inline JWPlayer/HLS file in scripts
+                val scripts = playerDoc.select("script").map { it.html() }
+                for (script in scripts) {
+                    val fileMatch = Regex("""['"]file['"]\s*:\s*['"](https?://[^'"]+)['"]""").find(script)
+                        ?: Regex("""file\s*:\s*['"](https?://[^'"]+)['"]""").find(script)
+                    val foundUrl = fileMatch?.groupValues?.get(1)
+                    if (!foundUrl.isNullOrBlank()) {
+                        return listOf(foundUrl)
+                    }
                 }
             } catch (_: Exception) {}
         }

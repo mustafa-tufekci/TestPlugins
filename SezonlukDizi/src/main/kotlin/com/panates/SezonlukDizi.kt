@@ -200,9 +200,9 @@ class SezonlukDizi : MainAPI() {
             "0" to "Dublajlı"
         )
 
-        // Hosts/names to skip (confirmed broken or non-video sources)
+        // Hosts/names to skip (only pixel, dzen, netu as requested)
         val skipHosts = listOf("reCAPTCHADATA", "dzen.ru")
-        val skipNames = listOf("pixel", "dzen", "netu", "streamruby", "abstream")
+        val skipNames = listOf("pixel", "dzen", "netu")
 
         var found = false
         for ((dilCode, langName) in languages) {
