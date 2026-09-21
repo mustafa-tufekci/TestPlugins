@@ -13,18 +13,13 @@ class Animecix : MainAPI() {
     override val hasMainPage = true
 
     companion object {
+        private const val API_URL = "https://mangacix.net"
         private const val TAU_VIDEO_URL = "https://tau-video.xyz"
 
+        // Minimal headers matching reference implementations
         private val defaultHeaders = mapOf(
-            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-            "Accept" to "application/json, text/plain, */*",
-            "Accept-Language" to "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
-            "Sec-Ch-Ua" to "\"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"",
-            "Sec-Ch-Ua-Mobile" to "?0",
-            "Sec-Ch-Ua-Platform" to "\"Windows\"",
-            "Sec-Fetch-Dest" to "empty",
-            "Sec-Fetch-Mode" to "cors",
-            "Sec-Fetch-Site" to "same-origin"
+            "Accept" to "application/json",
+            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
         )
 
         private val tauHeaders = mapOf(
@@ -50,19 +45,18 @@ class Animecix : MainAPI() {
             ).parsedSafe<SearchApiResponse>()
 
             response?.results?.mapNotNull { result ->
+                val id = result.id ?: return@mapNotNull null
                 val title = result.name ?: return@mapNotNull null
-                val resultUrl = result.url ?: return@mapNotNull null
-                val fullUrl = if (resultUrl.startsWith("http")) resultUrl else "$mainUrl$resultUrl"
                 val posterUrl = result.poster?.let { fixUrl(it) }
                 val type = result.titleType ?: ""
 
                 if (type.contains("movie", ignoreCase = true)) {
-                    newMovieSearchResponse(title, fullUrl, TvType.Movie) {
+                    newMovieSearchResponse(title, "$mainUrl/anime/$id", TvType.Movie) {
                         this.posterUrl = posterUrl
                         this.year = result.year
                     }
                 } else {
-                    newTvSeriesSearchResponse(title, fullUrl, TvType.TvSeries) {
+                    newTvSeriesSearchResponse(title, "$mainUrl/anime/$id", TvType.TvSeries) {
                         this.posterUrl = posterUrl
                         this.year = result.year
                     }
@@ -78,55 +72,40 @@ class Animecix : MainAPI() {
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val allPages = mutableListOf<HomePageList>()
 
-        // Try the browse page which has sections
-        try {
-            val doc = app.get("$mainUrl/browse", headers = defaultHeaders).document
+        // Use search API to populate homepage categories
+        val categories = listOf(
+            "naruto" to "Anime",
+            "one piece" to "Anime",
+            "attack on titan" to "Anime",
+            "demon slayer" to "Anime",
+            "jujutsu kaisen" to "Anime"
+        )
 
-            // Popüler Animeler
-            val popularSection = doc.selectFirst(".section-popular, .popular-section, section:has(h2)")
-            if (popularSection != null) {
-                val items = popularSection.select("a[href*='/anime/'], a[href*='/title/']").mapNotNull { link ->
-                    val href = link.attr("href")
-                    if (href.isBlank()) return@mapNotNull null
-                    val fullUrl = if (href.startsWith("http")) href else "$mainUrl$href"
-                    val title = link.selectFirst(".card-title, .title, h3, h4")?.text()?.trim()
-                        ?: link.attr("title").trim().ifEmpty { return@mapNotNull null }
-                    val posterUrl = link.selectFirst("img")?.let { img ->
-                        (img.attr("data-src").ifEmpty { null } ?: img.attr("src")).let { src ->
-                            if (src.startsWith("http")) src else "$mainUrl$src"
-                        }
-                    }
-                    newTvSeriesSearchResponse(title, fullUrl, TvType.TvSeries) {
+        for ((query, label) in categories) {
+            try {
+                val slug = query.replace(Regex("\\s+"), "-")
+                val url = "$mainUrl/secure/search/${java.net.URLEncoder.encode(slug, "UTF-8")}"
+                val response = app.get(
+                    url,
+                    params = mapOf("type" to "", "limit" to "10"),
+                    headers = defaultHeaders
+                ).parsedSafe<SearchApiResponse>()
+
+                val items = response?.results?.mapNotNull { result ->
+                    val id = result.id ?: return@mapNotNull null
+                    val title = result.name ?: return@mapNotNull null
+                    val posterUrl = result.poster?.let { fixUrl(it) }
+                    newTvSeriesSearchResponse(title, "$mainUrl/anime/$id", TvType.TvSeries) {
                         this.posterUrl = posterUrl
+                        this.year = result.year
                     }
-                }.distinctBy { it.url }
-                if (items.isNotEmpty()) allPages.add(HomePageList("Popüler Animeler", items))
-            }
+                }?.distinctBy { it.url } ?: emptyList()
 
-            // Recent releases from general card grid
-            val cards = doc.select(".card, .anime-card, .item, a.column[title]")
-            if (cards.isNotEmpty() && allPages.isEmpty()) {
-                val items = cards.mapNotNull { card ->
-                    val link = if (card.tagName() == "a") card else card.selectFirst("a[href]")
-                    val href = link?.attr("href") ?: return@mapNotNull null
-                    if (href.isBlank()) return@mapNotNull null
-                    val fullUrl = if (href.startsWith("http")) href else "$mainUrl$href"
-                    val title = card.selectFirst(".card-title, .title, .description, h3")?.text()?.trim()
-                        ?: link.attr("title").trim().ifEmpty { return@mapNotNull null }
-                    val posterUrl = card.selectFirst("img")?.let { img ->
-                        (img.attr("data-src").ifEmpty { null } ?: img.attr("src")).let { src ->
-                            if (src.startsWith("http")) src else "$mainUrl$src"
-                        }
-                    }
-                    newTvSeriesSearchResponse(title, fullUrl, TvType.TvSeries) {
-                        this.posterUrl = posterUrl
-                    }
-                }.distinctBy { it.url }.take(30)
-                if (items.isNotEmpty()) allPages.add(HomePageList("Son Eklenenler", items))
-            }
-        } catch (_: Exception) {}
+                if (items.isNotEmpty()) allPages.add(HomePageList(label, items))
+            } catch (_: Exception) {}
+        }
 
-        // If main page didn't yield much, try fetching popular via search API with empty-ish query
+        // Fallback: single broad search if categories failed
         if (allPages.isEmpty()) {
             try {
                 val response = app.get(
@@ -136,11 +115,10 @@ class Animecix : MainAPI() {
                 ).parsedSafe<SearchApiResponse>()
 
                 val items = response?.results?.mapNotNull { result ->
+                    val id = result.id ?: return@mapNotNull null
                     val title = result.name ?: return@mapNotNull null
-                    val resultUrl = result.url ?: return@mapNotNull null
-                    val fullUrl = if (resultUrl.startsWith("http")) resultUrl else "$mainUrl$resultUrl"
                     val posterUrl = result.poster?.let { fixUrl(it) }
-                    newTvSeriesSearchResponse(title, fullUrl, TvType.TvSeries) {
+                    newTvSeriesSearchResponse(title, "$mainUrl/anime/$id", TvType.TvSeries) {
                         this.posterUrl = posterUrl
                         this.year = result.year
                     }
@@ -156,11 +134,11 @@ class Animecix : MainAPI() {
     // ── Load Details ────────────────────────────────────────────────────
 
     override suspend fun load(url: String): LoadResponse {
-        // Extract title ID from URL — try numeric first, then slug-based resolution
+        // Extract title ID from URL (format: /anime/{id})
         val titleId = extractTitleId(url)
-            ?: resolveTitleIdFromUrl(url)
             ?: throw ErrorLoadingException("Unable to extract title ID from '$url'")
 
+        // Fetch title metadata
         val data = app.get(
             "$mainUrl/secure/titles/$titleId",
             params = mapOf("titleId" to titleId),
@@ -183,41 +161,29 @@ class Animecix : MainAPI() {
 
         if (isMovie) {
             // Movie: single episode
-            episodes.add(newEpisode("$mainUrl/movie/$titleId") {
+            val epData = org.json.JSONObject(mapOf(
+                "id" to titleId,
+                "season" to "1",
+                "episode" to "1"
+            )).toString()
+
+            episodes.add(newEpisode(epData) {
                 this.name = name
                 this.season = 1
                 this.episode = 1
             })
         } else {
-            // Series: fetch episodes from seasons
-            val seasons = title.seasons ?: emptyList()
+            // Series: fetch episodes from mangacix.net related-videos API
+            // First get season count
+            val seasonCount = title.seasonCount
+                ?: title.seasons?.size
+                ?: 1
 
-            if (seasons.isNotEmpty()) {
-                for (season in seasons) {
-                    val seasonNumber = season.number ?: continue
-                    val episodeList = season.episodePagination?.data ?: emptyList()
-
-                    for (ep in episodeList) {
-                        val epNumber = ep.episodeNumber ?: continue
-                        val epName = ep.name ?: "Bölüm $epNumber"
-                        val epId = ep.id ?: continue
-
-                        // Store composite data for loadLinks
-                        val epData = mapOf(
-                            "id" to titleId,
-                            "season" to seasonNumber.toString(),
-                            "episode" to epNumber.toString()
-                        )
-                        val dataStr = org.json.JSONObject(epData).toString()
-
-                        episodes.add(newEpisode(dataStr) {
-                            this.name = epName
-                            this.season = seasonNumber
-                            this.episode = epNumber
-                            this.posterUrl = posterUrl
-                        })
-                    }
-                }
+            for (s in 1..seasonCount) {
+                try {
+                    val seasonEpisodes = fetchSeasonEpisodes(titleId, s)
+                    episodes.addAll(seasonEpisodes)
+                } catch (_: Exception) {}
             }
         }
 
@@ -234,6 +200,45 @@ class Animecix : MainAPI() {
                 this.plot = plot
                 this.year = year
                 this.tags = genres
+            }
+        }
+    }
+
+    /**
+     * Fetch episodes for a given season using the mangacix.net related-videos API.
+     * Reference: https://github.com/fmustafayaman/turkish-nuvio/blob/main/src/animecix/episodes.js
+     */
+    private suspend fun fetchSeasonEpisodes(titleId: String, seasonNum: Int): List<Episode> {
+        val response = app.get(
+            "$API_URL/secure/related-videos",
+            params = mapOf(
+                "episode" to "1",
+                "season" to seasonNum.toString(),
+                "titleId" to titleId,
+                "videoId" to "637113"
+            ),
+            headers = defaultHeaders
+        ).parsedSafe<RelatedVideosResponse>()
+
+        val videos = response?.videos ?: return emptyList()
+
+        return videos.mapNotNull { video ->
+            val videoUrl = video.url ?: return@mapNotNull null
+            val videoName = video.name ?: return@mapNotNull null
+            val epNum = video.episodeNum ?: return@mapNotNull null
+            val sNum = video.seasonNum ?: seasonNum
+
+            // Store titleId + season + episode for loadLinks
+            val epData = org.json.JSONObject(mapOf(
+                "id" to titleId,
+                "season" to sNum.toString(),
+                "episode" to epNum.toString()
+            )).toString()
+
+            newEpisode(epData) {
+                this.name = videoName
+                this.season = sNum
+                this.episode = epNum
             }
         }
     }
@@ -257,10 +262,10 @@ class Animecix : MainAPI() {
         val season = episodeData.optInt("season", 1)
         val episode = episodeData.optInt("episode", 1)
 
-        // Fetch video sources for this episode
+        // Fetch video sources using episode-videos-points endpoint
         val videoResponse = try {
             app.get(
-                "$mainUrl/secure/episode-videos",
+                "$mainUrl/secure/episode-videos-points",
                 params = mapOf(
                     "titleId" to titleId,
                     "episode" to episode.toString(),
@@ -279,7 +284,7 @@ class Animecix : MainAPI() {
 
         for (video in videos) {
             val videoUrl = video.url ?: continue
-            val extra = video.extra // subtitle label or null
+            val extra = video.extra
 
             try {
                 val resolvedUrls = resolveVideoUrl(videoUrl)
@@ -319,50 +324,13 @@ class Animecix : MainAPI() {
     // ── Helpers ─────────────────────────────────────────────────────────
 
     private fun extractTitleId(url: String): String? {
-        // Try /anime/{id} or /title/{id} patterns (numeric ID)
+        // Try /anime/{id} or /title/{id} patterns
         val match = Regex("""/(?:anime|title)/(\d+)""").find(url)
         if (match != null) return match.groupValues[1]
 
         // Try plain numeric ID at end
         val numMatch = Regex("""/(\d+)(?:\?|$)""").find(url)
-        if (numMatch != null) return numMatch.groupValues[1]
-
-        return null
-    }
-
-    /**
-     * Resolve a slug-based URL (e.g. /ylf-camp) to a numeric title ID
-     * by searching the API and matching the URL path.
-     */
-    private suspend fun resolveTitleIdFromUrl(url: String): String? {
-        // Extract the slug from the URL path
-        val path = try {
-            java.net.URL(url).path
-        } catch (_: Exception) {
-            url
-        }
-
-        // Try searching with the last path segment as query
-        val slug = path.trim('/').split("/").lastOrNull()?.replace("-", " ") ?: return null
-        if (slug.isBlank()) return null
-
-        return try {
-            val searchUrl = "$mainUrl/secure/search/${java.net.URLEncoder.encode(slug, "UTF-8")}"
-            val response = app.get(
-                searchUrl,
-                params = mapOf("type" to "", "limit" to "5"),
-                headers = defaultHeaders
-            ).parsedSafe<SearchApiResponse>()
-
-            // Match by URL path
-            response?.results?.firstOrNull { result ->
-                val resultUrl = result.url?.trimEnd('/')
-                val targetPath = path.trimEnd('/')
-                resultUrl == targetPath || resultUrl?.endsWith(targetPath) == true
-            }?.id?.toString()
-        } catch (_: Exception) {
-            null
-        }
+        return numMatch?.groupValues?.get(1)
     }
 
     private suspend fun resolveVideoUrl(embedUrl: String): List<String> {
@@ -487,6 +455,20 @@ class Animecix : MainAPI() {
 
     data class TitleApiResponse(
         @JsonProperty("title") val title: TitleDetails?
+    )
+
+    // Related videos (mangacix.net)
+    data class RelatedVideo(
+        @JsonProperty("id") val id: Any?,
+        @JsonProperty("name") val name: String?,
+        @JsonProperty("url") val url: String?,
+        @JsonProperty("episode_num") val episodeNum: Int?,
+        @JsonProperty("season_num") val seasonNum: Int?,
+        @JsonProperty("extra") val extra: String?
+    )
+
+    data class RelatedVideosResponse(
+        @JsonProperty("videos") val videos: List<RelatedVideo>?
     )
 
     // Episode videos
