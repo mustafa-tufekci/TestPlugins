@@ -13,10 +13,8 @@ class Animecix : MainAPI() {
     override val hasMainPage = true
 
     companion object {
-        private const val API_URL = "https://mangacix.net"
         private const val TAU_VIDEO_URL = "https://tau-video.xyz"
 
-        // Minimal headers matching reference implementations
         private val defaultHeaders = mapOf(
             "Accept" to "application/json",
             "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
@@ -32,8 +30,9 @@ class Animecix : MainAPI() {
     // ── Search ──────────────────────────────────────────────────────────
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val slug = query.trim().replace(Regex("\\s+"), "-")
-            .replace(Regex("[^\\w-]"), "")
+        val slug = query.trim()
+            .replace(Regex("\\s+"), "-")
+            .lowercase()
 
         val url = "$mainUrl/secure/search/${java.net.URLEncoder.encode(slug, "UTF-8")}"
 
@@ -48,7 +47,7 @@ class Animecix : MainAPI() {
                 val id = result.id ?: return@mapNotNull null
                 val title = result.name ?: return@mapNotNull null
                 val posterUrl = result.poster?.let { fixUrl(it) }
-                val type = result.titleType ?: ""
+                val type = result.titleType ?: result.type ?: ""
 
                 if (type.contains("movie", ignoreCase = true)) {
                     newMovieSearchResponse(title, "$mainUrl/anime/$id", TvType.Movie) {
@@ -72,18 +71,16 @@ class Animecix : MainAPI() {
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val allPages = mutableListOf<HomePageList>()
 
-        // Use search API to populate homepage categories
-        val categories = listOf(
-            "naruto" to "Anime",
-            "one piece" to "Anime",
-            "attack on titan" to "Anime",
-            "demon slayer" to "Anime",
-            "jujutsu kaisen" to "Anime"
+        val searchQueries = listOf(
+            "naruto" to "Naruto",
+            "one-piece" to "One Piece",
+            "attack-on-titan" to "Attack on Titan",
+            "demon-slayer" to "Demon Slayer",
+            "jujutsu-kaisen" to "Jujutsu Kaisen"
         )
 
-        for ((query, label) in categories) {
+        for ((slug, label) in searchQueries) {
             try {
-                val slug = query.replace(Regex("\\s+"), "-")
                 val url = "$mainUrl/secure/search/${java.net.URLEncoder.encode(slug, "UTF-8")}"
                 val response = app.get(
                     url,
@@ -105,7 +102,7 @@ class Animecix : MainAPI() {
             } catch (_: Exception) {}
         }
 
-        // Fallback: single broad search if categories failed
+        // Fallback: broad search
         if (allPages.isEmpty()) {
             try {
                 val response = app.get(
@@ -134,56 +131,112 @@ class Animecix : MainAPI() {
     // ── Load Details ────────────────────────────────────────────────────
 
     override suspend fun load(url: String): LoadResponse {
-        // Extract title ID from URL (format: /anime/{id})
         val titleId = extractTitleId(url)
             ?: throw ErrorLoadingException("Unable to extract title ID from '$url'")
 
-        // Fetch title metadata
+        // IMPORTANT: /secure/titles/{id} ignores the path ID entirely.
+        // The API only reads the `titleId` query parameter.
         val data = app.get(
-            "$mainUrl/secure/titles/$titleId",
+            "$mainUrl/secure/titles",
             params = mapOf("titleId" to titleId),
             headers = defaultHeaders
         ).parsedSafe<TitleApiResponse>()
 
-        val title = data?.title ?: throw ErrorLoadingException("No title data found")
+        val title = data?.title ?: throw ErrorLoadingException("No title data found for titleId=$titleId")
 
         val name = title.name ?: "Unknown"
         val posterUrl = title.poster?.let { fixUrl(it) }
         val plot = title.description
         val year = title.year
-        val genres = title.genres?.mapNotNull { it.name } ?: emptyList()
+        val genres = title.genres?.mapNotNull { it.displayName ?: it.name } ?: emptyList()
 
-        // Determine content type
         val titleType = (title.type ?: title.titleType ?: "").lowercase()
         val isMovie = titleType.contains("movie") || titleType.contains("film")
+
+        val seasonCount = title.seasonCount ?: title.seasons?.size ?: 1
 
         val episodes = mutableListOf<Episode>()
 
         if (isMovie) {
-            // Movie: single episode
-            val epData = org.json.JSONObject(mapOf(
-                "id" to titleId,
-                "season" to "1",
-                "episode" to "1"
-            )).toString()
-
+            val epData = buildEpData(titleId, 1, 1)
             episodes.add(newEpisode(epData) {
                 this.name = name
                 this.season = 1
                 this.episode = 1
+                this.posterUrl = posterUrl
             })
         } else {
-            // Series: fetch episodes from mangacix.net related-videos API
-            // First get season count
-            val seasonCount = title.seasonCount
-                ?: title.seasons?.size
-                ?: 1
-
+            // Step 1: collect episode metadata (name, poster, description) via episodeList
+            // from the first episode of each season
+            val episodeMeta = mutableMapOf<Pair<Int, Int>, EpisodeItem>()
             for (s in 1..seasonCount) {
                 try {
-                    val seasonEpisodes = fetchSeasonEpisodes(titleId, s)
-                    episodes.addAll(seasonEpisodes)
+                    val epResponse = app.get(
+                        "$mainUrl/secure/episode-videos-points",
+                        params = mapOf(
+                            "titleId" to titleId,
+                            "season" to s.toString(),
+                            "episode" to "1"
+                        ),
+                        headers = defaultHeaders
+                    ).parsedSafe<EpisodeVideosResponse>()
+
+                    epResponse?.episodeList?.forEach { item ->
+                        val sNum = item.seasonNumber ?: s
+                        val eNum = item.episodeNumber ?: return@forEach
+                        episodeMeta[Pair(sNum, eNum)] = item
+                    }
                 } catch (_: Exception) {}
+            }
+
+            // Step 2: use mangacix related-videos to get all episode entries with ordering
+            for (s in 1..seasonCount) {
+                try {
+                    val relResponse = app.get(
+                        "https://mangacix.net/secure/related-videos",
+                        params = mapOf(
+                            "episode" to "1",
+                            "season" to s.toString(),
+                            "titleId" to titleId,
+                            "videoId" to "637113"
+                        ),
+                        headers = defaultHeaders
+                    ).parsedSafe<RelatedVideosResponse>()
+
+                    val videos = relResponse?.videos ?: continue
+
+                    for (video in videos) {
+                        val epNum = video.episodeNum ?: continue
+                        val sNum = video.seasonNum ?: s
+                        val epData = buildEpData(titleId, sNum, epNum)
+                        val meta = episodeMeta[Pair(sNum, epNum)]
+
+                        episodes.add(newEpisode(epData) {
+                            this.name = meta?.name ?: video.name ?: "$sNum. Sezon $epNum. Bölüm"
+                            this.season = sNum
+                            this.episode = epNum
+                            this.posterUrl = meta?.poster?.let { fixUrl(it) }
+                            this.description = meta?.description
+                        })
+                    }
+                } catch (_: Exception) {}
+            }
+
+            // Fallback: if related-videos returned nothing, use episodeMeta directly
+            if (episodes.isEmpty() && episodeMeta.isNotEmpty()) {
+                episodeMeta.entries
+                    .sortedWith(compareBy({ it.key.first }, { it.key.second }))
+                    .forEach { (key, item) ->
+                        val (sNum, eNum) = key
+                        val epData = buildEpData(titleId, sNum, eNum)
+                        episodes.add(newEpisode(epData) {
+                            this.name = item.name ?: "$sNum. Sezon $eNum. Bölüm"
+                            this.season = sNum
+                            this.episode = eNum
+                            this.posterUrl = item.poster?.let { fixUrl(it) }
+                            this.description = item.description
+                        })
+                    }
             }
         }
 
@@ -204,45 +257,6 @@ class Animecix : MainAPI() {
         }
     }
 
-    /**
-     * Fetch episodes for a given season using the mangacix.net related-videos API.
-     * Reference: https://github.com/fmustafayaman/turkish-nuvio/blob/main/src/animecix/episodes.js
-     */
-    private suspend fun fetchSeasonEpisodes(titleId: String, seasonNum: Int): List<Episode> {
-        val response = app.get(
-            "$API_URL/secure/related-videos",
-            params = mapOf(
-                "episode" to "1",
-                "season" to seasonNum.toString(),
-                "titleId" to titleId,
-                "videoId" to "637113"
-            ),
-            headers = defaultHeaders
-        ).parsedSafe<RelatedVideosResponse>()
-
-        val videos = response?.videos ?: return emptyList()
-
-        return videos.mapNotNull { video ->
-            val videoUrl = video.url ?: return@mapNotNull null
-            val videoName = video.name ?: return@mapNotNull null
-            val epNum = video.episodeNum ?: return@mapNotNull null
-            val sNum = video.seasonNum ?: seasonNum
-
-            // Store titleId + season + episode for loadLinks
-            val epData = org.json.JSONObject(mapOf(
-                "id" to titleId,
-                "season" to sNum.toString(),
-                "episode" to epNum.toString()
-            )).toString()
-
-            newEpisode(epData) {
-                this.name = videoName
-                this.season = sNum
-                this.episode = epNum
-            }
-        }
-    }
-
     // ── Load Links ──────────────────────────────────────────────────────
 
     override suspend fun loadLinks(
@@ -251,7 +265,6 @@ class Animecix : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        // Parse episode data
         val episodeData = try {
             org.json.JSONObject(data)
         } catch (_: Exception) {
@@ -262,7 +275,6 @@ class Animecix : MainAPI() {
         val season = episodeData.optInt("season", 1)
         val episode = episodeData.optInt("episode", 1)
 
-        // Fetch video sources using episode-videos-points endpoint
         val videoResponse = try {
             app.get(
                 "$mainUrl/secure/episode-videos-points",
@@ -323,18 +335,24 @@ class Animecix : MainAPI() {
 
     // ── Helpers ─────────────────────────────────────────────────────────
 
+    private fun buildEpData(titleId: String, season: Int, episode: Int): String {
+        return org.json.JSONObject(
+            mapOf(
+                "id" to titleId,
+                "season" to season.toString(),
+                "episode" to episode.toString()
+            )
+        ).toString()
+    }
+
     private fun extractTitleId(url: String): String? {
-        // Try /anime/{id} or /title/{id} patterns
         val match = Regex("""/(?:anime|title)/(\d+)""").find(url)
         if (match != null) return match.groupValues[1]
-
-        // Try plain numeric ID at end
-        val numMatch = Regex("""/(\d+)(?:\?|$)""").find(url)
+        val numMatch = Regex(""""/(\d+)(?:\?|$)""").find(url)
         return numMatch?.groupValues?.get(1)
     }
 
     private suspend fun resolveVideoUrl(embedUrl: String): List<String> {
-        // If it's a tau-video embed, resolve via API
         if (embedUrl.contains("tau-video.xyz")) {
             val embedId = extractTauVideoId(embedUrl)
             if (embedId != null) {
@@ -342,30 +360,25 @@ class Animecix : MainAPI() {
             }
         }
 
-        // If it's a direct mp4/m3u8 URL, return as-is
         if (embedUrl.contains(".mp4") || embedUrl.contains(".m3u8")) {
             return listOf(embedUrl)
         }
 
-        // Try fetching the embed page to find iframe or video source
         try {
             val doc = app.get(embedUrl, headers = defaultHeaders).document
 
-            // Check for nested iframe
             val iframeSrc = doc.selectFirst("iframe[src]")?.attr("src")
             if (!iframeSrc.isNullOrBlank()) {
                 val fullSrc = if (iframeSrc.startsWith("//")) "https:$iframeSrc" else iframeSrc
                 return resolveVideoUrl(fullSrc)
             }
 
-            // Check for video source
             val videoSrc = doc.selectFirst("video source[src]")?.attr("src")
             if (!videoSrc.isNullOrBlank()) {
                 val fullSrc = if (videoSrc.startsWith("//")) "https:$videoSrc" else videoSrc
                 return listOf(fullSrc)
             }
 
-            // Check for direct video tag
             val videoUrl = doc.selectFirst("video[src]")?.attr("src")
             if (!videoUrl.isNullOrBlank()) {
                 val fullUrl = if (videoUrl.startsWith("//")) "https:$videoUrl" else videoUrl
@@ -377,7 +390,6 @@ class Animecix : MainAPI() {
     }
 
     private fun extractTauVideoId(url: String): String? {
-        // Match tau-video.xyz/embed/{id} or similar patterns
         val match = Regex("""tau-video\.xyz/(?:embed/)?([A-Za-z0-9]+)""").find(url)
         return match?.groupValues?.get(1)
     }
@@ -405,6 +417,7 @@ class Animecix : MainAPI() {
         @JsonProperty("name_romanji") val nameRomanji: String?,
         @JsonProperty("poster") val poster: String?,
         @JsonProperty("year") val year: Int?,
+        @JsonProperty("type") val type: String?,
         @JsonProperty("title_type") val titleType: String?,
         @JsonProperty("tmdb_id") val tmdbId: Any?
     )
@@ -413,7 +426,16 @@ class Animecix : MainAPI() {
         @JsonProperty("results") val results: List<SearchResult>?
     )
 
-    // Title details
+    data class Genre(
+        @JsonProperty("id") val id: Int?,
+        @JsonProperty("name") val name: String?,
+        @JsonProperty("display_name") val displayName: String?
+    )
+
+    data class Season(
+        @JsonProperty("number") val number: Int?
+    )
+
     data class TitleDetails(
         @JsonProperty("id") val id: Int?,
         @JsonProperty("name") val name: String?,
@@ -425,39 +447,22 @@ class Animecix : MainAPI() {
         @JsonProperty("title_type") val titleType: String?,
         @JsonProperty("genres") val genres: List<Genre>?,
         @JsonProperty("seasons") val seasons: List<Season>?,
-        @JsonProperty("season_count") val seasonCount: Int?,
-        @JsonProperty("videos") val videos: List<MovieVideo>?
-    )
-
-    data class Genre(
-        @JsonProperty("id") val id: Int?,
-        @JsonProperty("name") val name: String?
-    )
-
-    data class Season(
-        @JsonProperty("number") val number: Int?,
-        @JsonProperty("episodePagination") val episodePagination: EpisodePagination?
-    )
-
-    data class EpisodePagination(
-        @JsonProperty("data") val data: List<EpisodeItem>?
-    )
-
-    data class EpisodeItem(
-        @JsonProperty("id") val id: Int?,
-        @JsonProperty("episode_number") val episodeNumber: Int?,
-        @JsonProperty("name") val name: String?
-    )
-
-    data class MovieVideo(
-        @JsonProperty("url") val url: String?
+        @JsonProperty("season_count") val seasonCount: Int?
     )
 
     data class TitleApiResponse(
         @JsonProperty("title") val title: TitleDetails?
     )
 
-    // Related videos (mangacix.net)
+    data class EpisodeItem(
+        @JsonProperty("id") val id: Int?,
+        @JsonProperty("name") val name: String?,
+        @JsonProperty("description") val description: String?,
+        @JsonProperty("poster") val poster: String?,
+        @JsonProperty("season_number") val seasonNumber: Int?,
+        @JsonProperty("episode_number") val episodeNumber: Int?
+    )
+
     data class RelatedVideo(
         @JsonProperty("id") val id: Any?,
         @JsonProperty("name") val name: String?,
@@ -471,7 +476,6 @@ class Animecix : MainAPI() {
         @JsonProperty("videos") val videos: List<RelatedVideo>?
     )
 
-    // Episode videos
     data class VideoSource(
         @JsonProperty("id") val id: Any?,
         @JsonProperty("url") val url: String?,
@@ -479,10 +483,10 @@ class Animecix : MainAPI() {
     )
 
     data class EpisodeVideosResponse(
-        @JsonProperty("videos") val videos: List<VideoSource>?
+        @JsonProperty("videos") val videos: List<VideoSource>?,
+        @JsonProperty("episodeList") val episodeList: List<EpisodeItem>?
     )
 
-    // Tau video
     data class TauVideoUrl(
         @JsonProperty("url") val url: String?,
         @JsonProperty("label") val label: String?,
