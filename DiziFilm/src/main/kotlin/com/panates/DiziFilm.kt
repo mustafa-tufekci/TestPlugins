@@ -169,31 +169,8 @@ class DiziFilm : MainAPI() {
         }.distinct()
 
         val isMovie = url.contains("/film/")
-
         if (isMovie) {
-            // Check for parts in RSC payload
-            val parts = parseMovieParts(rscPayload)
-            val episodes = if (parts.isNotEmpty()) {
-                parts.mapIndexed { idx, part ->
-                    newEpisode(part.url) {
-                        this.name = if (parts.size > 1) "${part.title} (${part.language})" else title
-                        this.season = 1
-                        this.episode = idx + 1
-                        this.posterUrl = poster
-                    }
-                }
-            } else {
-                listOf(
-                    newEpisode(url) {
-                        this.name = title
-                        this.season = 1
-                        this.episode = 1
-                        this.posterUrl = poster
-                    }
-                )
-            }
-
-            return newMovieLoadResponse(title, url, TvType.Movie, episodes) {
+            return newMovieLoadResponse(title, url, TvType.Movie, url) {
                 this.posterUrl = poster
                 this.plot = plot
                 this.year = year
@@ -482,7 +459,7 @@ class DiziFilm : MainAPI() {
     private fun decryptBePlayer(passphrase: String, setJson: String): String? {
         return try {
             val obj = JSONObject(setJson)
-            val ctB64 = obj.getString("ct")
+            val ctB64 = obj.getString("ct").replace("\\/", "/").replace("\\", "")
             val saltHex = obj.getString("s")
             val ct = Base64.decode(ctB64, Base64.DEFAULT)
             val salt = saltHex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()

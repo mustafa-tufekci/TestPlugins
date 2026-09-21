@@ -119,16 +119,7 @@ class FullHDFilm : MainAPI() {
             it.text().trim().takeIf { t -> t.isNotBlank() }
         }.distinct()
 
-        val episodes = listOf(
-            newEpisode(url) {
-                this.name = title
-                this.season = 1
-                this.episode = 1
-                this.posterUrl = poster
-            }
-        )
-
-        return newMovieLoadResponse(title, url, TvType.Movie, episodes) {
+        return newMovieLoadResponse(title, url, TvType.Movie, url) {
             this.posterUrl = poster
             this.plot = plot
             this.year = year
@@ -213,7 +204,7 @@ class FullHDFilm : MainAPI() {
     ): Boolean {
         val url = rewriteEmbedUrl(embedUrl)
         return when {
-            url.contains("rapidvid") || url.contains("/vod/") -> extractRapidVid(url, referer, label, subtitleCallback, callback)
+            url.contains("rapidvid") || url.contains("/vod/") || url.contains("/vx/") -> extractRapidVid(url, referer, label, subtitleCallback, callback)
             url.contains("trplayer") || url.contains("turkeyplayer") -> extractTRPlayer(url, referer, label, callback)
             url.contains("vidmoxy") -> extractVidMoxy(url, referer, label, subtitleCallback, callback)
             else -> loadExtractor(url, referer, subtitleCallback, callback)
@@ -243,10 +234,42 @@ class FullHDFilm : MainAPI() {
                 "Referer" to referer
             )).text
 
-            val match = Regex("""av\('([^']+)'\)""").find(html) ?: return false
-            val enc = match.groupValues[1]
+            var streamUrl: String? = null
 
-            val streamUrl = decodeRapidSecret(enc) ?: return false
+            // 1) New RapidVid player with window._p8
+            val p8Match = Regex("""window\._p8\s*=\s*['"]([^'"]+)['"]""").find(html)
+            if (p8Match != null) {
+                val decoded = decodeRapidSecret(p8Match.groupValues[1])
+                if (!decoded.isNullOrBlank() && decoded.startsWith("{")) {
+                    try {
+                        val json = JSONObject(decoded)
+                        streamUrl = json.optString("cm").takeIf { it.isNotBlank() }
+                            ?: json.optString("tm").takeIf { it.isNotBlank() }
+
+                        val ctArr = json.optJSONArray("ct")
+                        if (ctArr != null) {
+                            for (i in 0 until ctArr.length()) {
+                                val cObj = ctArr.optJSONObject(i) ?: continue
+                                val file = cObj.optString("file")
+                                val subLabel = cObj.optString("label").takeIf { it.isNotBlank() } ?: "Türkçe"
+                                if (file.isNotBlank() && file.startsWith("http")) {
+                                    subtitleCallback(SubtitleFile(lang = subLabel, url = file))
+                                }
+                            }
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+
+            // 2) Classic RapidVid player with av('...')
+            if (streamUrl == null) {
+                val match = Regex("""av\('([^']+)'\)""").find(html)
+                if (match != null) {
+                    streamUrl = decodeRapidSecret(match.groupValues[1])
+                }
+            }
+
+            if (streamUrl.isNullOrBlank() || !streamUrl.startsWith("http")) return false
 
             // Subtitles from jwSetup.tracks
             parseJwTracks(html, subtitleCallback)

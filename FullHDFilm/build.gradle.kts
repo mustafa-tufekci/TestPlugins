@@ -1,4 +1,4 @@
-    version = 1
+    version = 2
 
 cloudstream {
     description = "fullhdfilmizlesene.now - Turkish movies & dubbed films"
