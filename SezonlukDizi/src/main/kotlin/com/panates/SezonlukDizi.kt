@@ -1,9 +1,17 @@
 package com.panates
 
-import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.fasterxml.jackson.module.kotlin.readValue
 import com.lagradost.cloudstream3.*
+import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.ExtractorLinkType
+import com.lagradost.cloudstream3.utils.JsUnpacker
+import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.loadExtractor
+import com.lagradost.cloudstream3.utils.newExtractorLink
 import org.jsoup.Jsoup
 
 class SezonlukDizi : MainAPI() {
@@ -18,30 +26,27 @@ class SezonlukDizi : MainAPI() {
         "Content-Type" to "application/x-www-form-urlencoded"
     )
 
-    // mainPageOf enables per-category lazy loading; each category is fetched
-    // only when the user scrolls to it — no more 7 simultaneous requests on startup.
     override val mainPage = mainPageOf(
-        "$mainUrl/diziler.asp?kat=1" to "Yabancı Diziler",
-        "$mainUrl/diziler.asp?kat=2" to "Yerli Diziler",
-        "$mainUrl/diziler.asp?kat=3" to "Asya Dizileri",
-        "$mainUrl/diziler.asp?kat=4" to "Animasyonlar",
-        "$mainUrl/diziler.asp?kat=5" to "Animeler",
-        "$mainUrl/diziler.asp?kat=6" to "Belgeseller"
+        "$mainUrl/diziler.asp?siralama_tipi=id&s=" to "Son Eklenenler",
+        "$mainUrl/diziler.asp?siralama_tipi=id&tur=mini&s=" to "Mini Diziler",
+        "$mainUrl/diziler.asp?siralama_tipi=id&kat=2&s=" to "Yerli Diziler",
+        "$mainUrl/diziler.asp?siralama_tipi=id&kat=1&s=" to "Yabancı Diziler",
+        "$mainUrl/diziler.asp?siralama_tipi=id&kat=3&s=" to "Asya Dizileri",
+        "$mainUrl/diziler.asp?siralama_tipi=id&kat=4&s=" to "Animasyonlar",
+        "$mainUrl/diziler.asp?siralama_tipi=id&kat=5&s=" to "Animeler",
+        "$mainUrl/diziler.asp?siralama_tipi=id&kat=6&s=" to "Belgeseller"
     )
 
     // ── Main Page ────────────────────────────────────────────────────────
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        // On first load (before any category is selected) show Popular Diziler from homepage
-        val url = request.data
         val doc = try {
-            app.get(url).document
+            app.get("${request.data}${page}").document
         } catch (_: Exception) {
             return newHomePageResponse(request.name, emptyList())
         }
 
-        val shows = parseShowCards(doc)
-        return newHomePageResponse(request.name, shows)
+        return newHomePageResponse(request.name, parseShowCards(doc))
     }
 
     // ── Card Parser ──────────────────────────────────────────────────────
@@ -73,8 +78,18 @@ class SezonlukDizi : MainAPI() {
                 }
             }
 
+            // <span class="imdbp"><b>IMDb</b> 6,9</span>
+            val scoreText = card.selectFirst("span.imdbp")?.text()
+                ?.replace("IMDb", "")?.trim()
+                ?.replace(",", ".")
+                ?.replace(Regex("[^0-9.]"), "")
+                ?.trim()
+
             newTvSeriesSearchResponse(title, fullUrl, TvType.TvSeries) {
                 this.posterUrl = posterUrl
+                if (!scoreText.isNullOrBlank()) {
+                    this.score = runCatching { Score.from10(scoreText) }.getOrNull()
+                }
             }
         }
     }
@@ -126,14 +141,42 @@ class SezonlukDizi : MainAPI() {
         val yearText = doc.selectFirst(".extra.content .right.floated")?.text()
         val year = yearText?.split("-")?.firstOrNull()?.trim()?.toIntOrNull()
 
-        val genres = doc.select("a.ui.blue.label.golge").map { it.text() }
+        val genres = doc.select("a.ui.blue.label.golge").map { it.text() }.filter { it.isNotBlank() }
 
         // IMDB: "9,0" — replace comma with dot before parsing
         val imdbText = doc.selectFirst(".ui.label.imdb .detail")?.text()
             ?.replace(",", ".")?.replace(Regex("[^0-9.]"), "")
 
+        // Duration: <span class="ui orange label golge">47 Dk.</span>
+        val duration = doc.selectXpath("//span[contains(text(), 'Dk.')]").text().trim()
+            .substringBefore(" Dk.").trim().toIntOrNull()
+
         val dataDizi = doc.selectFirst("#dizidetay")?.attr("data-dizi")
             ?: doc.selectFirst("[data-dizi]")?.attr("data-dizi")
+
+        // Actors live on a separate page: /oyuncular/{endpoint}.html
+        val actors = dataDizi?.let { slug ->
+            try {
+                app.get("$mainUrl/oyuncular/$slug.html").document
+                    .select("div.ui.card.golgever")
+                    .mapNotNull { card ->
+                        val name = card.selectFirst("div.header")?.text()?.trim()
+                            ?: return@mapNotNull null
+                        val photo = card.selectFirst("img")?.let { i ->
+                            val src = i.attr("src").ifEmpty { i.attr("data-src") }
+                            when {
+                                src.isBlank() || src.startsWith("data:") -> null
+                                src.startsWith("/") -> "$mainUrl$src"
+                                else -> src
+                            }
+                        }
+                        Actor(name, photo)
+                    }
+                    .filter { it.name.isNotBlank() }
+            } catch (_: Exception) {
+                emptyList()
+            }
+        } ?: emptyList()
 
         val episodes = mutableListOf<Episode>()
 
@@ -148,6 +191,7 @@ class SezonlukDizi : MainAPI() {
                         val href = link.attr("href")
                         val fullUrl = fixUrl(href)
 
+                        // Prefer the href: server-side encoding mangles "Bölüm" -> "Blm"
                         val match = Regex("(\\d+)-sezon-(\\d+)-bolum").find(href)
                             ?: return@forEach
                         val s = match.groupValues[1].toIntOrNull() ?: return@forEach
@@ -173,6 +217,7 @@ class SezonlukDizi : MainAPI() {
             this.plot = plot
             this.year = year
             this.tags = genres
+            this.duration = duration
             if (!imdbText.isNullOrBlank()) {
                 this.score = try {
                     Score.from10(imdbText)
@@ -180,6 +225,7 @@ class SezonlukDizi : MainAPI() {
                     null
                 }
             }
+            addActors(actors)
         }
     }
 
@@ -195,9 +241,11 @@ class SezonlukDizi : MainAPI() {
 
         val episodeId = doc.selectFirst("#dilsec")?.attr("data-id") ?: return false
 
+        val aspData = getAspData()
+
         val languages = listOf(
-            "1" to "Altyazılı",
-            "0" to "Dublajlı"
+            "1" to "AltYazı",
+            "0" to "Dublaj"
         )
 
         // Hosts/names to skip (only pixel, dzen, netu as requested)
@@ -205,14 +253,25 @@ class SezonlukDizi : MainAPI() {
         val skipNames = listOf("pixel", "dzen", "netu")
 
         var found = false
-        for ((dilCode, langName) in languages) {
+        for ((dilCode, prefix) in languages) {
             try {
-                val alternatives = getAlternatives(episodeId, dilCode)
-                for (alt in alternatives) {
-                    val altName = alt.name.lowercase()
-                    if (altName in skipNames) continue
+                val response = app.post(
+                    "$mainUrl/ajax/dataAlternatif${aspData.alternatif}.asp",
+                    data = mapOf("bid" to episodeId, "dil" to dilCode),
+                    headers = ajaxHeaders
+                ).parsedSafe<Kaynak>() ?: continue
 
-                    val embedHtml = getEmbedHtml(alt.id) ?: continue
+                if (response.status != "success") continue
+
+                for (veri in response.data) {
+                    if (veri.baslik.lowercase() in skipNames) continue
+
+                    val embedHtml = app.post(
+                        "$mainUrl/ajax/dataEmbed${aspData.embed}.asp",
+                        data = mapOf("id" to veri.id.toString()),
+                        headers = ajaxHeaders
+                    ).text
+
                     if (skipHosts.any { embedHtml.contains(it, ignoreCase = true) }) continue
 
                     val embedDoc = Jsoup.parse(embedHtml)
@@ -220,32 +279,22 @@ class SezonlukDizi : MainAPI() {
                     var src = iframe.attr("src")
                     if (src.isBlank()) continue
                     if (src.startsWith("//")) src = "https:$src"
+                    if (src.startsWith("/")) src = fixUrl(src)
 
                     // vidmoly.net → vidmoly.biz (confirmed: site returns .net, .biz needed for playback)
                     if (src.contains("vidmoly.net")) {
                         src = src.replace("vidmoly.net", "vidmoly.biz")
                     }
 
-                    val langCallback: (ExtractorLink) -> Unit = { link ->
-                        runCatching {
-                            callback(
-                                ExtractorLink(
-                                    link.source ?: "",
-                                    "$langName - ${link.name}",
-                                    link.url ?: "",
-                                    link.referer ?: mainUrl,
-                                    link.quality,
-                                    link.headers ?: emptyMap(),
-                                    link.extractorData,
-                                    link.type,
-                                    link.audioTracks ?: emptyList()
-                                )
-                            )
-                        }
-                    }
+                    val label = "$prefix - ${veri.baslik}"
 
-                    if (loadExtractor(src, mainUrl, subtitleCallback, langCallback)) {
-                        found = true
+                    if (src.contains("ruby", ignoreCase = true)) {
+                        if (extractRuby(src, callback, veri, prefix)) found = true
+                    } else {
+                        if (loadExtractor(src, "$mainUrl/", subtitleCallback) { link ->
+                                callback(renameLink(link, label))
+                            }
+                        ) found = true
                     }
                 }
             } catch (_: Exception) {}
@@ -256,54 +305,77 @@ class SezonlukDizi : MainAPI() {
 
     // ── Private Helpers ──────────────────────────────────────────────────
 
-    private suspend fun getAlternatives(episodeId: String, dil: String): List<Alternative> {
-        val response = app.post(
-            "$mainUrl/ajax/dataAlternatif22.asp",
-            data = mapOf("bid" to episodeId, "dil" to dil),
-            headers = ajaxHeaders
-        ).parsedSafe<AlternativesResponse>()
+    private fun renameLink(link: ExtractorLink, newName: String): ExtractorLink = ExtractorLink(
+        source = link.source ?: newName,
+        name = newName,
+        url = link.url ?: "",
+        referer = link.referer ?: "$mainUrl/",
+        quality = link.quality,
+        headers = link.headers ?: emptyMap(),
+        extractorData = link.extractorData,
+        type = link.type,
+        audioTracks = link.audioTracks ?: emptyList()
+    )
 
-        return if (response?.status == "success") response.data else emptyList()
+    private suspend fun extractRuby(
+        iframe: String,
+        callback: (ExtractorLink) -> Unit,
+        veri: Veri,
+        dil: String
+    ): Boolean {
+        return try {
+            val header = mapOf(
+                "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
+                "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Referer" to "$mainUrl/"
+            )
+            val son = app.get(iframe, referer = "$mainUrl/", headers = header)
+                .document.select("script")
+                .find { it.data().contains("function(p,a,c,k,e") }?.data()
+                ?: return false
+
+            val unPacked = JsUnpacker(son).unpack() ?: return false
+            val file = unPacked.substringAfter("sources:[", "")
+                .substringBefore("],")
+                .addMarks("file")
+            if (file.isBlank()) return false
+
+            val objectMapper = ObjectMapper().registerModule(KotlinModule.Builder().build())
+            objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            val sonFile = objectMapper.readValue<Ruby>(file)
+            if (sonFile.file.isBlank()) return false
+
+            callback(
+                newExtractorLink(
+                    source = "$dil - ${veri.baslik}",
+                    name = "$dil - ${veri.baslik}",
+                    url = sonFile.file,
+                    ExtractorLinkType.M3U8
+                ) {
+                    this.referer = "$mainUrl/"
+                    this.quality = Qualities.Unknown.value
+                }
+            )
+            true
+        } catch (_: Exception) {
+            false
+        }
     }
 
-    private suspend fun getEmbedHtml(id: Int): String? {
-        return app.post(
-            "$mainUrl/ajax/dataEmbed22.asp",
-            data = mapOf("id" to id.toString()),
-            headers = ajaxHeaders
-        ).text
+    private fun String.addMarks(str: String): String {
+        return this.replace(Regex("\"?$str\"?"), "\"$str\"")
     }
 
-    // ── Data Classes ─────────────────────────────────────────────────────
-
-    data class Alternative(
-        @JsonProperty("id") val id: Int,
-        @JsonProperty("baslik") val name: String
-    )
-
-    data class AlternativesResponse(
-        @JsonProperty("status") val status: String,
-        @JsonProperty("data") val data: List<Alternative>
-    )
-
-    data class SearchApiResponse(
-        @JsonProperty("status") val status: String,
-        @JsonProperty("results") val results: SearchApiResults?
-    )
-
-    data class SearchApiResults(
-        @JsonProperty("diziler") val diziler: SearchApiCategory?
-    )
-
-    data class SearchApiCategory(
-        @JsonProperty("results") val results: List<SearchApiItem>?
-    )
-
-    data class SearchApiItem(
-        @JsonProperty("did") val did: Int?,
-        @JsonProperty("title") val title: String?,
-        @JsonProperty("url") val url: String?,
-        @JsonProperty("image") val image: String?,
-        @JsonProperty("imdb") val imdb: Any?
-    )
+    //Helper function for getting the number (probably some kind of version?) after the dataAlternatif and dataEmbed
+    private suspend fun getAspData(): AspData {
+        val websiteCustomJavascript = app.get("$mainUrl/js/site.min.js").text
+        val dataAlternatifAsp =
+            Regex("""dataAlternatif(.*?)\.asp""").find(websiteCustomJavascript)?.groupValues?.get(1)
+        val dataEmbedAsp =
+            Regex("""dataEmbed(.*?)\.asp""").find(websiteCustomJavascript)?.groupValues?.get(1)
+        return AspData(
+            alternatif = dataAlternatifAsp?.takeIf { it.isNotBlank() } ?: "22",
+            embed = dataEmbedAsp?.takeIf { it.isNotBlank() } ?: "22"
+        )
+    }
 }
