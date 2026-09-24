@@ -13,8 +13,16 @@ buildscript {
 
     dependencies {
         classpath("com.android.tools.build:gradle:8.7.3")
-        // Cloudstream gradle plugin which makes everything work and builds plugins
-        classpath("com.github.recloudstream:gradle:-SNAPSHOT")
+        // Cloudstream gradle plugin which makes everything work and builds plugins.
+        // Vendored (equivalent to com.github.recloudstream:gradle:-SNAPSHOT from
+        // github.com/recloudstream/gradle) because JitPack's -SNAPSHOT resolution
+        // is broken: maven-metadata.xml advertises a timestamped filename that
+        // only exists in a different directory, so Gradle's lookup 404s.
+        // Transitive deps of the plugin, declared explicitly:
+        classpath(files("gradle/libs/recloudstream-gradle-plugin.jar"))
+        classpath("org.ow2.asm:asm:9.9.1")
+        classpath("org.ow2.asm:asm-tree:9.9.1")
+        classpath("com.github.vidstige:jadb:v1.2.1")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.0")
     }
 }
