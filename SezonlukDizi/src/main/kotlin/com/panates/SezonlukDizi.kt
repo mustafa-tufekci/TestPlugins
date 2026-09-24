@@ -241,7 +241,8 @@ class SezonlukDizi : MainAPI() {
 
         val episodeId = doc.selectFirst("#dilsec")?.attr("data-id") ?: return false
 
-        val aspData = getAspData()
+        val aspData = runCatching { getAspData() }
+            .getOrElse { AspData(alternatif = "22", embed = "22") }
 
         val languages = listOf(
             "1" to "AltYazı",
@@ -266,36 +267,43 @@ class SezonlukDizi : MainAPI() {
                 for (veri in response.data) {
                     if (veri.baslik.lowercase() in skipNames) continue
 
-                    val embedHtml = app.post(
-                        "$mainUrl/ajax/dataEmbed${aspData.embed}.asp",
-                        data = mapOf("id" to veri.id.toString()),
-                        headers = ajaxHeaders
-                    ).text
+                    try {
+                        val embedHtml = app.post(
+                            "$mainUrl/ajax/dataEmbed${aspData.embed}.asp",
+                            data = mapOf("id" to veri.id.toString()),
+                            headers = ajaxHeaders
+                        ).text
 
-                    if (skipHosts.any { embedHtml.contains(it, ignoreCase = true) }) continue
+                        if (skipHosts.any { embedHtml.contains(it, ignoreCase = true) }) continue
 
-                    val embedDoc = Jsoup.parse(embedHtml)
-                    val iframe = embedDoc.selectFirst("iframe") ?: continue
-                    var src = iframe.attr("src")
-                    if (src.isBlank()) continue
-                    if (src.startsWith("//")) src = "https:$src"
-                    if (src.startsWith("/")) src = fixUrl(src)
+                        val embedDoc = Jsoup.parse(embedHtml)
+                        val iframe = embedDoc.selectFirst("iframe") ?: continue
+                        var src = iframe.attr("src")
+                        if (src.isBlank()) continue
+                        if (src.startsWith("//")) src = "https:$src"
+                        if (src.startsWith("/")) src = fixUrl(src)
 
-                    // vidmoly.net → vidmoly.biz (confirmed: site returns .net, .biz needed for playback)
-                    if (src.contains("vidmoly.net")) {
-                        src = src.replace("vidmoly.net", "vidmoly.biz")
-                    }
+                        // vidmoly.net → vidmoly.biz (confirmed: site returns .net, .biz needed for playback)
+                        if (src.contains("vidmoly.net")) {
+                            src = src.replace("vidmoly.net", "vidmoly.biz")
+                        }
 
-                    val label = "$prefix - ${veri.baslik}"
+                        val label = "$prefix - ${veri.baslik}"
 
-                    if (src.contains("ruby", ignoreCase = true)) {
-                        if (extractRuby(src, callback, veri, prefix)) found = true
-                    } else {
-                        if (loadExtractor(src, "$mainUrl/", subtitleCallback) { link ->
-                                callback(renameLink(link, label))
+                        if (src.contains("ruby", ignoreCase = true) &&
+                            extractRuby(src, callback, veri, prefix)
+                        ) {
+                            found = true
+                            continue
+                        }
+
+                        if (loadExtractor(src, mainUrl, subtitleCallback) { link ->
+                                runCatching { callback(renameLink(link, label)) }
                             }
-                        ) found = true
-                    }
+                        ) {
+                            found = true
+                        }
+                    } catch (_: Exception) {}
                 }
             } catch (_: Exception) {}
         }
@@ -309,7 +317,7 @@ class SezonlukDizi : MainAPI() {
         source = link.source ?: newName,
         name = newName,
         url = link.url ?: "",
-        referer = link.referer ?: "$mainUrl/",
+        referer = link.referer ?: mainUrl,
         quality = link.quality,
         headers = link.headers ?: emptyMap(),
         extractorData = link.extractorData,
