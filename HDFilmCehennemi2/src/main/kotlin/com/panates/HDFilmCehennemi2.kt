@@ -336,9 +336,25 @@ class HDFilmCehennemi2 : MainAPI() {
             }
         )
 
-        Regex(""","file":"(https?://[^"]+\.vtt[^"]*)"""").findAll(page).forEach { match ->
-            val url = match.groupValues[1]
-            subtitleCallback.invoke(SubtitleFile(subtitleLabel(url), url))
+        val seen = mutableSetOf<String>()
+        val tracksJson = Regex("""Tracks\s*=\s*(\[[\s\S]*?\])""").find(page)?.groupValues?.get(1)
+        if (tracksJson != null) {
+            runCatching {
+                ObjectMapper().readTree(tracksJson).forEach { node ->
+                    val url = node.path("file").asText(null) ?: return@forEach
+                    if (!url.contains(".vtt") || !seen.add(url)) return@forEach
+                    val name = node.path("label").asText(null)
+                        ?: node.path("srclang").asText(null)
+                        ?: subtitleLabel(url)
+                    subtitleCallback.invoke(SubtitleFile(name, url))
+                }
+            }
+        }
+        if (seen.isEmpty()) {
+            Regex(""""file"\s*:\s*"(https?://[^"]+\.vtt[^"]*)"""").findAll(page).forEach { match ->
+                val url = match.groupValues[1]
+                if (seen.add(url)) subtitleCallback.invoke(SubtitleFile(subtitleLabel(url), url))
+            }
         }
     }
 
