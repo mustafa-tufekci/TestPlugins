@@ -29,11 +29,12 @@ open class HCCloseLoadExtractor : ExtractorApi() {
         val iSource = app.get(url, referer = extRef)
         val packerScript = iSource.document.select("script")
             .find { it.data().contains("eval(function(p,a,c,k,e") }?.data()?.trim()
-        getSubs(iSource, packerScript, subtitleCallback)
 
         val unpacked = packerScript?.let { script ->
             runCatching { getAndUnpack(script) }.getOrNull()
         }
+
+        getSubs(iSource, listOfNotNull(packerScript, unpacked).joinToString("\n"), subtitleCallback)
 
         val haystack = iSource.text + "\n" + (unpacked ?: "")
         val slug = hdcSlugFromEmbedUrl(url)
@@ -70,29 +71,36 @@ open class HCCloseLoadExtractor : ExtractorApi() {
 
     private fun getSubs(
         iSource: NiceResponse,
-        obfuscatedScript: String?,
+        extraScript: String?,
         subtitleCallback: (SubtitleFile) -> Unit
     ) {
         iSource.document.select("track").forEach {
+            val src = it.attr("src")
+            val subUrl = if (src.startsWith("http")) src else mainUrl + src
             subtitleCallback.invoke(
                 SubtitleFile(
                     lang = it.attr("label"),
-                    url = mainUrl + it.attr("src")
+                    url = subUrl
                 )
             )
         }
-        val track = obfuscatedScript?.substringAfter("tracks: ")?.substringBefore("]") + "]"
-        if (track.startsWith("[") && track.endsWith("]")) {
+        val haystack = iSource.text + "\n" + (extraScript ?: "")
+        val track = if (haystack.contains("tracks: [")) {
+            "[" + haystack.substringAfter("tracks: [").substringBefore("]") + "]"
+        } else ""
+        if (track.length > 2 && track.endsWith("]")) {
             Log.d("Kekik_${this.name}", "track -> $track")
             val objectMapper = ObjectMapper().registerModule(KotlinModule.Builder().build())
             objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
             val tracks: List<SubSource> = objectMapper.readValue(track)
             Log.d("Kekik_${this.name}", "tracks -> $tracks")
-            tracks.forEach { it ->
+            tracks.forEach {
+                val file = it.file.orEmpty()
+                val subUrl = if (file.startsWith("http")) file else mainUrl + file
                 subtitleCallback.invoke(
                     SubtitleFile(
-                        lang = it.label.toString(),
-                        url = mainUrl + it.file.toString()
+                        lang = it.label ?: it.language ?: "Sub",
+                        url = subUrl
                     )
                 )
             }
