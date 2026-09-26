@@ -8,5 +8,6 @@ import com.lagradost.cloudstream3.plugins.Plugin
 class PanatesPlugin : Plugin() {
     override fun load(context: Context) {
         registerMainAPI(SezonlukDizi())
+        registerExtractorAPI(DzenSez())
     }
 }
