@@ -13,6 +13,7 @@ import com.lagradost.cloudstream3.SearchResponse
 import com.lagradost.cloudstream3.SubtitleFile
 import com.lagradost.cloudstream3.TvType
 import com.lagradost.cloudstream3.app
+import com.lagradost.cloudstream3.fixUrl
 import com.lagradost.cloudstream3.fixUrlNull
 import com.lagradost.cloudstream3.mainPageOf
 import com.lagradost.cloudstream3.newEpisode
@@ -208,10 +209,22 @@ class HDFilmCehennemi2 : MainAPI() {
         val tags = ld?.path("genre")?.mapNotNull { it.asText(null)?.trim()?.ifBlank { null } }
         val duration = ld?.path("duration")?.asText(null)?.let { parseDuration(it) }
 
-        val actors = ld?.path("actor")?.mapNotNull { person ->
+        val castImages = LinkedHashMap<String, String>()
+        document.select("""div[aria-label="Oyuncu listesi"] img""").forEach { img ->
+            val name = img.attr("alt").trim().ifBlank { null } ?: return@forEach
+            val src = img.attr("src").trim().ifBlank { null } ?: return@forEach
+            if (!castImages.containsKey(name)) castImages[name] = fixUrl(src)
+        }
+
+        val ldActors = ld?.path("actor")?.mapNotNull { person ->
             val name = person.path("name").asText(null)?.trim()?.ifBlank { null } ?: return@mapNotNull null
             Actor(name = name, image = fixUrlNull(person.path("image").asText(null)))
         } ?: emptyList()
+
+        val actors = ldActors.map { person ->
+            if (person.image.isNullOrBlank()) person.copy(image = castImages[person.name]) else person
+        } + castImages.filterKeys { name -> ldActors.none { it.name == name } }
+            .map { (name, image) -> Actor(name = name, image = image) }
 
         if (url.contains("/dizi/")) {
             val episodes = LinkedHashMap<String, Episode>()
