@@ -249,9 +249,9 @@ class SezonlukDizi : MainAPI() {
             "0" to "Dublaj"
         )
 
-        // Hosts/names to skip (only pixel, dzen, netu as requested)
-        val skipHosts = listOf("reCAPTCHADATA", "dzen.ru")
-        val skipNames = listOf("pixel", "dzen", "netu")
+        // Hosts/names to skip (pixel, netu as requested; dzen now resolved via global Dzen extractor)
+        val skipHosts = listOf("reCAPTCHADATA")
+        val skipNames = listOf("pixel", "netu")
 
         var found = false
         for ((dilCode, prefix) in languages) {
