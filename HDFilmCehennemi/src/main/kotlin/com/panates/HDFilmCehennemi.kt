@@ -107,12 +107,14 @@ class HDFilmCehennemi : MainAPI() {
             "Accept" to "*/*", "X-Requested-With" to "fetch"
         )
         val doc = app.get(url, headers = headers, referer = mainUrl, interceptor = interceptor)
-        val home: List<SearchResponse>?
         if (!doc.text.contains("Sayfa Bulunamadı")) {
-            val aa: HDFC = objectMapper.readValue(doc.text)
-            val document = Jsoup.parse(aa.html)
-
-            home = document.select("a").mapNotNull { it.toSearchResult() }
+            // meta alanlarını modele almadan sadece html alıyoruz: site
+            // meta.canonical değerini Boolean'dan URL string'e çevirdi (nik v32'deki hata)
+            val html = runCatching { objectMapper.readTree(doc.text) }
+                .getOrNull()?.path("html")?.asText("").orEmpty()
+            if (html.isBlank()) return newHomePageResponse(request.name, emptyList())
+            val document = Jsoup.parse(html)
+            val home: List<SearchResponse> = document.select("a").mapNotNull { it.toSearchResult() }
             return newHomePageResponse(request.name, home)
         }
         return newHomePageResponse(request.name, emptyList())
@@ -334,16 +336,5 @@ class HDFilmCehennemi : MainAPI() {
 
     data class Results(
         @JsonProperty("results") val results: List<String> = arrayListOf()
-    )
-
-    data class HDFC(
-        @JsonProperty("html") val html: String,
-        @JsonProperty("meta") val meta: Meta
-    )
-
-    data class Meta(
-        @JsonProperty("title") val title: String,
-        @JsonProperty("canonical") val canonical: Boolean,
-        @JsonProperty("keywords") val keywords: Boolean
     )
 }
