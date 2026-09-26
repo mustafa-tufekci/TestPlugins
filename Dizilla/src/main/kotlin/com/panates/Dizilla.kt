@@ -34,6 +34,7 @@ import com.lagradost.cloudstream3.utils.loadExtractor
 import okhttp3.Interceptor
 import okhttp3.Response
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import java.net.URLEncoder
 import java.util.Calendar
@@ -174,10 +175,15 @@ class Dizilla : MainAPI() {
     override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
 
     override suspend fun load(url: String): LoadResponse? {
-        val secure = fetchSecureData(url) ?: return null
+        val page = fetchSecurePage(url) ?: return null
+        val secure = page.secure
         val contentItem = secure.path("contentItem")
         val title = contentItem.path("original_title").asText("").ifBlank { return null }
         val poster = contentItem.path("poster_url").asText(null)
+        val heroSrc = page.document.selectFirst("div.w-full.page-top.relative img")
+            ?.attr("src")?.trim().orEmpty()
+        val hero = if (heroSrc.isBlank()) null
+            else if (heroSrc.startsWith("http")) heroSrc else fixUrl(heroSrc)
         val year = contentItem.path("release_year")
             .takeIf { !it.isMissingNode && !it.isNull }?.asInt()
         val description = contentItem.path("description").asText(null)
@@ -213,7 +219,8 @@ class Dizilla : MainAPI() {
         if (episodeses.isEmpty()) return null
 
         return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodeses) {
-            this.posterUrl = poster
+            this.posterUrl = poster ?: hero
+            this.backgroundPosterUrl = hero
             this.year = year
             this.plot = description
             this.tags = tags
@@ -248,14 +255,18 @@ class Dizilla : MainAPI() {
         }
     }
 
-    private suspend fun fetchSecureData(url: String): JsonNode? {
+    private data class SecurePage(val secure: JsonNode, val document: Document)
+
+    private suspend fun fetchSecurePage(url: String): SecurePage? {
         val document = app.get(url, interceptor = interceptor).document
         val script = document.selectFirst("script#__NEXT_DATA__")?.data() ?: return null
         val secureData = objectMapper.readTree(script)?.path("props")?.path("pageProps")
             ?.path("secureData")?.asText(null) ?: return null
         val decrypted = decryptDizillaResponse(secureData) ?: return null
-        return objectMapper.readTree(decrypted)
+        return SecurePage(objectMapper.readTree(decrypted), document)
     }
+
+    private suspend fun fetchSecureData(url: String): JsonNode? = fetchSecurePage(url)?.secure
 
     private val privateAESKey = "9bYMCNQiWsXIYFWYAu7EkdsSbmGBTyUI"
 
