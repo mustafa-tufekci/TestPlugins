@@ -22,8 +22,8 @@ class DiziBox : MainAPI() {
 
     // Cloudflare bypass — request rows sequentially with a small delay
     override var sequentialMainPage = true
-    override var sequentialMainPageDelay = 200L
-    override var sequentialMainPageScrollDelay = 200L
+    override var sequentialMainPageDelay = 150L
+    override var sequentialMainPageScrollDelay = 150L
 
     private val cloudflareKiller by lazy { CloudflareKiller() }
     private val interceptor by lazy { CloudflareInterceptor(cloudflareKiller) }
@@ -78,28 +78,7 @@ class DiziBox : MainAPI() {
         "$mainUrl/efsane-diziler/" to "Efsane Diziler",
         "$mainUrl/tum-bolumler/page/SAYFA/" to "Yeni Eklenen Bölümler",
         "$mainUrl/tum-bolumler/page/SAYFA/?tip=populer" to "Popüler Dizilerden Son Bölümler",
-        "$mainUrl/dizi-arsivi/page/SAYFA/" to "Dizi Arşivi",
-        "$mainUrl/dizi-arsivi/page/SAYFA/?ulke%5B%5D=turkiye&yil=&imdb" to "Yerli",
-        "$mainUrl/dizi-arsivi/page/SAYFA/?tur%5B0%5D=aile&yil&imdb" to "Aile",
-        "$mainUrl/dizi-arsivi/page/SAYFA/?tur%5B0%5D=aksiyon&yil&imdb" to "Aksiyon",
-        "$mainUrl/dizi-arsivi/page/SAYFA/?tur%5B0%5D=animasyon&yil&imdb" to "Animasyon",
-        "$mainUrl/dizi-arsivi/page/SAYFA/?tur%5B0%5D=belgesel&yil&imdb" to "Belgesel",
-        "$mainUrl/dizi-arsivi/page/SAYFA/?tur%5B0%5D=bilimkurgu&yil&imdb" to "Bilimkurgu",
-        "$mainUrl/dizi-arsivi/page/SAYFA/?tur%5B0%5D=biyografi&yil&imdb" to "Biyografi",
-        "$mainUrl/dizi-arsivi/page/SAYFA/?tur%5B0%5D=dram&yil&imdb" to "Dram",
-        "$mainUrl/dizi-arsivi/page/SAYFA/?tur%5B0%5D=drama&yil&imdb" to "Drama",
-        "$mainUrl/dizi-arsivi/page/SAYFA/?tur%5B0%5D=fantastik&yil&imdb" to "Fantastik",
-        "$mainUrl/dizi-arsivi/page/SAYFA/?tur%5B0%5D=gerilim&yil&imdb" to "Gerilim",
-        "$mainUrl/dizi-arsivi/page/SAYFA/?tur%5B0%5D=gizem&yil&imdb" to "Gizem",
-        "$mainUrl/dizi-arsivi/page/SAYFA/?tur%5B0%5D=komedi&yil&imdb" to "Komedi",
-        "$mainUrl/dizi-arsivi/page/SAYFA/?tur%5B0%5D=korku&yil&imdb" to "Korku",
-        "$mainUrl/dizi-arsivi/page/SAYFA/?tur%5B0%5D=macera&yil&imdb" to "Macera",
-        "$mainUrl/dizi-arsivi/page/SAYFA/?tur%5B0%5D=reality-tv&yil&imdb" to "Reality TV",
-        "$mainUrl/dizi-arsivi/page/SAYFA/?tur%5B0%5D=romantik&yil&imdb" to "Romantik",
-        "$mainUrl/dizi-arsivi/page/SAYFA/?tur%5B0%5D=savas&yil&imdb" to "Savaş",
-        "$mainUrl/dizi-arsivi/page/SAYFA/?tur%5B0%5D=suc&yil&imdb" to "Suç",
-        "$mainUrl/dizi-arsivi/page/SAYFA/?tur%5B0%5D=tarih&yil&imdb" to "Tarih",
-        "$mainUrl/dizi-arsivi/page/SAYFA/?tur%5B0%5D=western&yil&imdb" to "Western"
+        "$mainUrl/dizi-arsivi/page/SAYFA/" to "Dizi Arşivi"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
