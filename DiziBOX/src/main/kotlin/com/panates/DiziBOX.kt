@@ -22,8 +22,8 @@ class DiziBox : MainAPI() {
 
     // Cloudflare bypass — request rows sequentially with a small delay
     override var sequentialMainPage = true
-    override var sequentialMainPageDelay = 50L
-    override var sequentialMainPageScrollDelay = 50L
+    override var sequentialMainPageDelay = 200L
+    override var sequentialMainPageScrollDelay = 200L
 
     private val cloudflareKiller by lazy { CloudflareKiller() }
     private val interceptor by lazy { CloudflareInterceptor(cloudflareKiller) }
@@ -32,9 +32,20 @@ class DiziBox : MainAPI() {
         override fun intercept(chain: Interceptor.Chain): Response {
             val request = chain.request()
             val response = chain.proceed(request)
-            val doc = Jsoup.parse(response.peekBody(1024 * 1024).string())
+            val body = response.peekBody(1024 * 1024).string()
+            val doc = Jsoup.parse(body)
+            val title = doc.selectFirst("title")?.text().orEmpty()
 
-            if (doc.text().contains("Güvenlik taramasından geçiriliyorsunuz. Lütfen bekleyiniz..")) {
+            // Site artık managed challenge döndürüyor: "Just a moment..." + cdn-cgi/challenge-platform
+            // (eski Türkçe uyarı metni artık üretilmiyor)
+            val isChallenge = title == "Just a moment..." ||
+                title == "Bir dakika lütfen..." ||
+                body.contains("cdn-cgi/challenge-platform") ||
+                body.contains("Güvenlik taramasından geçiriliyorsunuz") ||
+                (response.code in intArrayOf(403, 503) && response.header("Server") == "cloudflare")
+
+            if (isChallenge) {
+                response.close()
                 return cloudflareKiller.intercept(chain)
             }
 
@@ -47,6 +58,12 @@ class DiziBox : MainAPI() {
         "isTrustedUser" to "true",
         "dbxu" to "1744009162326"
     )
+
+    companion object {
+        private const val USER_AGENT =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+                "(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+    }
 
     private suspend fun getDoc(url: String, referer: String = "$mainUrl/"): Document =
         app.get(url, referer = referer, cookies = authCookies, interceptor = interceptor).document
@@ -405,7 +422,9 @@ class DiziBox : MainAPI() {
                     this.referer = "https://dbx.molystream.org/"
                     this.headers = mapOf(
                         "Referer" to "https://dbx.molystream.org/",
-                        "Origin" to "https://dbx.molystream.org/"
+                        "Origin" to "https://dbx.molystream.org/",
+                        // molystream segmentleri ExoPlayerLib UA ile 404 döndürüyor
+                        "User-Agent" to USER_AGENT
                     )
                     this.quality = Qualities.P1080.value
                 }
@@ -497,7 +516,10 @@ class DiziBox : MainAPI() {
                     url = m3u8,
                     referer = "https://vidmoly.biz/",
                     quality = Qualities.P1080.value,
-                    headers = mapOf("Referer" to "https://vidmoly.biz/"),
+                    headers = mapOf(
+                        "Referer" to "https://vidmoly.biz/",
+                        "User-Agent" to USER_AGENT
+                    ),
                     type = ExtractorLinkType.M3U8
                 )
             )
