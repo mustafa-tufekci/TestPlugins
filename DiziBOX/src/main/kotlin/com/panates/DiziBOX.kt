@@ -1,6 +1,9 @@
 package com.panates
 
 import android.util.Base64
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
@@ -65,6 +68,12 @@ class DiziBox : MainAPI() {
                 "(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
     }
 
+    private val objectMapper by lazy {
+        ObjectMapper().registerModule(KotlinModule.Builder().build()).apply {
+            configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        }
+    }
+
     private suspend fun getDoc(url: String, referer: String = "$mainUrl/"): Document =
         app.get(url, referer = referer, cookies = authCookies, interceptor = interceptor).document
 
@@ -82,10 +91,24 @@ class DiziBox : MainAPI() {
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val url = request.data.replace("SAYFA", "$page")
+        val rawUrl = request.data
+        // /page/1/ her zaman kanonik URL'ye 301 atıyor; redirect zincirini
+        // baştan önle (ekstra istek = ek CF tetikleme riski)
+        val url = if (page == 1 && rawUrl.contains("/page/SAYFA/")) {
+            val base = rawUrl.substringBefore("/page/SAYFA/") + "/"
+            if (rawUrl.contains("?")) base + "?" + rawUrl.substringAfter("?") else base
+        } else {
+            rawUrl.replace("SAYFA", "$page")
+        }
 
         val document = try {
-            getDoc(url)
+            app.get(
+                url,
+                referer = "$mainUrl/",
+                cookies = authCookies,
+                interceptor = interceptor,
+                cacheTime = 60
+            ).document
         } catch (_: Exception) {
             return newHomePageResponse(request.name, emptyList())
         }
@@ -208,10 +231,51 @@ class DiziBox : MainAPI() {
     // ── Search ───────────────────────────────────────────────────────────
 
     override suspend fun search(query: String): List<SearchResponse> {
-        return try {
-            app.post(
+        // 1) Dave's WordPress Live Search AJAX endpoint — hafif JSON yanıt,
+        // CF challenge'a takılmıyor (feroxx/Kekik v23 ile aynı yöntem)
+        runCatching {
+            val res = app.get(
+                "$mainUrl/wp-admin/admin-ajax.php",
+                params = mapOf("s" to query, "action" to "dwls_search"),
+                headers = mapOf(
+                    "X-Requested-With" to "XMLHttpRequest",
+                    "Referer" to "$mainUrl/?s=$query"
+                ),
+                cookies = authCookies,
+                interceptor = interceptor
+            )
+            if (res.isSuccessful) {
+                val ajax: DbxAjaxSearchResponse =
+                    objectMapper.readValue(res.text, DbxAjaxSearchResponse::class.java)
+                val hits = ajax.results.mapNotNull { r ->
+                    val title = r.postTitle.trim()
+                    val href = fixUrlNull(r.permalink) ?: return@mapNotNull null
+                    if (title.isBlank()) return@mapNotNull null
+                    newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
+                        this.posterUrl =
+                            fixUrlNull(r.attachmentThumbnail?.replace("50x50", "200x290"))
+                    }
+                }.distinctBy { it.url }
+                if (hits.isNotEmpty()) return hits
+            }
+        }
+
+        // 2) POST fallback
+        runCatching {
+            val hits = app.post(
                 "$mainUrl/",
                 data = mapOf("s" to query),
+                cookies = authCookies,
+                interceptor = interceptor
+            ).document.select("article.detailed-article").mapNotNull { it.toDetailResult() }
+                .distinctBy { it.url }
+            if (hits.isNotEmpty()) return hits
+        }
+
+        // 3) GET fallback
+        return try {
+            app.get(
+                "$mainUrl/?s=$query",
                 cookies = authCookies,
                 interceptor = interceptor
             ).document.select("article.detailed-article").mapNotNull { it.toDetailResult() }
