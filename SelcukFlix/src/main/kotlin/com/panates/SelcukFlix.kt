@@ -320,41 +320,49 @@ class SelcukFlix : MainAPI() {
         val json: JsonNode = try { slcJacksonMapper.readTree(jsonText) } catch (_: Exception) { return false }
         val related: JsonNode = json.get("RelatedResults") ?: return false
 
-        val sourceContent: String? = if (data.contains("/dizi/") || data.contains("/bolum-")) {
+        // One page can carry several alternative players (verified 4 on a series
+        // episode). Try them all instead of just result[0] so the user gets a
+        // working fallback when the first source is down or unplayable.
+        val sourceContents = mutableListOf<String>()
+        if (data.contains("/dizi/") || data.contains("/bolum-")) {
             related.get("getEpisodeSources")
                 ?.get("result")
-                ?.get(0)
-                ?.get("source_content")
-                ?.asText()
+                ?.forEach { src ->
+                    src.get("source_content")?.asText()
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { sourceContents.add(it) }
+                }
         } else {
-            var content: String? = null
-
-            val firstPartId = related.get("getMoviePartsById")
-                ?.get("result")?.get(0)?.get("id")?.asInt()
-
-            if (firstPartId != null) {
-                content = related.get("getMoviePartSourcesById_$firstPartId")
-                    ?.get("result")?.get(0)?.get("source_content")?.asText()
+            related.fieldNames().forEachRemaining { key ->
+                if (key.startsWith("getMoviePartSourcesBy")) {
+                    related.get(key)
+                        ?.get("result")
+                        ?.forEach { src ->
+                            src.get("source_content")?.asText()
+                                ?.takeIf { it.isNotBlank() }
+                                ?.let { sourceContents.add(it) }
+                        }
+                }
             }
-            if (content.isNullOrBlank()) {
-                content = related.get("getMoviePartSourcesById")
-                    ?.get("result")?.get(0)?.get("source_content")?.asText()
-            }
-            content
         }
 
-        if (sourceContent.isNullOrBlank()) return false
+        if (sourceContents.isEmpty()) return false
 
-        val iframeEl  = Jsoup.parse(sourceContent).selectFirst("iframe")
-        val iframeUrl = iframeEl?.attr("src") ?: return false
-        var finalUrl  = fixUrlNull(iframeUrl) ?: return false
+        var found = false
+        sourceContents.distinct().forEach { sourceContent ->
+            runCatching {
+                val iframeEl  = Jsoup.parse(sourceContent).selectFirst("iframe")
+                val iframeUrl = iframeEl?.attr("src") ?: return@forEach
+                var finalUrl  = fixUrlNull(iframeUrl) ?: return@forEach
 
-        finalUrl = finalUrl
-            .replace("sn.dplayer74.site", "sn.hotlinger.com")
-            .replace("sn.dplayer82.site", "sn.hotlinger.com")
-            .replace("sn.dplayer.site",   "sn.hotlinger.com")
+                finalUrl = finalUrl
+                    .replace("sn.dplayer74.site", "sn.hotlinger.com")
+                    .replace("sn.dplayer82.site", "sn.hotlinger.com")
+                    .replace("sn.dplayer.site",   "sn.hotlinger.com")
 
-        runCatching { loadExtractor(finalUrl, data, subtitleCallback, callback) }
-        return true
+                if (loadExtractor(finalUrl, data, subtitleCallback, callback)) found = true
+            }
+        }
+        return found
     }
 }
