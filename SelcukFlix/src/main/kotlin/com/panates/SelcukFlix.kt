@@ -4,6 +4,8 @@ import android.util.Base64
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.lagradost.cloudstream3.*
+import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
+import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 import com.lagradost.cloudstream3.fixUrl
 import com.lagradost.cloudstream3.fixUrlNull
 import com.lagradost.cloudstream3.network.CloudflareKiller
@@ -11,6 +13,7 @@ import com.lagradost.cloudstream3.utils.*
 import okhttp3.Interceptor
 import okhttp3.Response
 import org.jsoup.Jsoup
+import java.util.Calendar
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
@@ -24,6 +27,7 @@ class SelcukFlix : MainAPI() {
     override val hasMainPage          = true
     override var lang                 = "tr"
     override val hasQuickSearch       = false
+    override val hasChromecastSupport = true
     override val hasDownloadSupport   = true
     override val supportedTypes       = setOf(TvType.Movie, TvType.TvSeries)
 
@@ -51,8 +55,37 @@ class SelcukFlix : MainAPI() {
     }
 
     override val mainPage = mainPageOf(
-        "$mainUrl/film-izle"    to "Yeni Eklenen Filmler",
-        "$mainUrl/dizi-izle"    to "Yeni Diziler",
+        ""   to "Yeni Eklenen Filmler",
+        "49" to "Aile Filmleri",
+        "44" to "Animasyon Filmleri",
+        "59" to "Aksiyon Filmleri",
+        "66" to "Bilim Kurgu Filmleri",
+        "48" to "Dram Filmleri",
+        "61" to "Fantastik Filmleri",
+        "68" to "Gerilim Filmleri",
+        "51" to "Gizem Filmleri",
+        "63" to "Korku Filmleri",
+        "45" to "Komedi Filmleri",
+        "65" to "Romantik Filmleri",
+        "46" to "Suç Filmleri",
+        "69" to "Savaş Filmleri",
+        "78" to "Western Filmleri",
+
+        ""   to "Yeni Eklenen Diziler",
+        "15" to "Aile Dizileri",
+        "17" to "Animasyon Dizileri",
+        "9"  to "Aksiyon Dizileri",
+        "5"  to "Bilim Kurgu Dizileri",
+        "2"  to "Dram Dizileri",
+        "12" to "Fantastik Dizileri",
+        "18" to "Gerilim Dizileri",
+        "3"  to "Gizem Dizileri",
+        "8"  to "Korku Dizileri",
+        "4"  to "Komedi Dizileri",
+        "7"  to "Romantik Dizileri",
+        "1"  to "Suç Dizileri",
+        "26" to "Savaş Dizileri",
+        "11" to "Western Dizileri",
     )
 
     private fun decryptAES(encryptedData: String): String? {
@@ -93,46 +126,59 @@ class SelcukFlix : MainAPI() {
     }
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val data  = request.data
+        val year = Calendar.getInstance().get(Calendar.YEAR)
+        val endpoint = if (request.name.contains("Dizi")) "findSeries" else "findMovies"
+        val url = "$mainUrl/api/bg/$endpoint" +
+            "?releaseYearStart=1900&releaseYearEnd=$year&imdbPointMin=1&imdbPointMax=10" +
+            "&categoryIdsComma=${request.data}&countryIdsComma=&orderType=date_desc&languageId=-1" +
+            "&currentPage=$page&currentPageCount=12&queryStr=&categorySlugsComma=&countryCodesComma="
+
+        val response = app.post(
+            url = url,
+            headers = mapOf(
+                "User-Agent"       to "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
+                "Accept"           to "application/json, text/plain, */*",
+                "Accept-Language"  to "en-US,en;q=0.5",
+                "X-Requested-With" to "XMLHttpRequest",
+                "Sec-Fetch-Site"   to "same-origin",
+                "Sec-Fetch-Mode"   to "cors",
+                "Sec-Fetch-Dest"   to "empty",
+                "Referer"          to "$mainUrl/"
+            ),
+            referer     = "$mainUrl/",
+            interceptor = interceptor
+        ).text
+
+        val encrypted = runCatching { slcJacksonMapper.readTree(response)?.get("response")?.asText() }.getOrNull()
+        val decoded = encrypted?.takeIf { it.isNotBlank() }?.let { decryptAES(it) } ?: return newHomePageResponse(request.name, emptyList())
+        val root = runCatching { slcJacksonMapper.readTree(decoded) }.getOrNull() ?: return newHomePageResponse(request.name, emptyList())
+
         val items = mutableListOf<SearchResponse>()
-
-        val url = if (page > 1) "$data?page=$page" else data
-        val doc = app.get(url, interceptor = interceptor).document
-
-        val isSeries = data.contains("/dizi-izle") || data.contains("/dizi/")
-        val isMovie  = data.contains("/film-izle") || data.contains("/film/")
-
-        val cardSelector = when {
-            isSeries -> "a[href*=/dizi/]"
-            isMovie  -> "a[href*=/film/]"
-            else     -> "a[href*=/film/], a[href*=/dizi/]"
-        }
-
-        doc.select(cardSelector).forEach { el ->
-            val href  = fixUrlNull(el.attr("href")) ?: return@forEach
-            if (href == "$mainUrl/film-izle"
-                || href == "$mainUrl/dizi-izle"
-                || href == "$mainUrl/seri-filmler") return@forEach
-
-            val img   = el.selectFirst("img")
-            val title = el.selectFirst("h2,h3")?.text()
-                ?: img?.attr("alt")?.replace(Regex("\\d+\\.\\s*(Sezon|Bölüm)|izle", RegexOption.IGNORE_CASE), "")?.trim()
-                ?: return@forEach
-            if (title.isBlank()) return@forEach
-
-            val poster = fixPosterUrl(
-                img?.attr("data-src")?.takeIf { it.isNotBlank() } ?: img?.attr("src")
-            )
+        root.get("result")?.forEach { item: JsonNode ->
+            val title = item.get("original_title")?.asText()?.takeIf { it.isNotBlank() && it != "null" } ?: return@forEach
+            val slug = item.get("used_slug")?.asText()?.takeIf { it.isNotBlank() } ?: return@forEach
+            val href = fixUrlNull(slug) ?: return@forEach
+            val poster = fixPosterUrl(item.get("poster_url")?.asText())
+            val rating = item.get("imdb_point")?.takeIf { !it.isNull }?.asDouble()?.toString()
 
             if (href.contains("/dizi/")) {
-                items.add(newTvSeriesSearchResponse(title, href.substringBefore("/sezon"), TvType.TvSeries) { posterUrl = poster })
+                items.add(newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
+                    posterUrl = poster
+                    score = rating?.let { runCatching { Score.from10(it) }.getOrNull() }
+                })
             } else {
-                items.add(newMovieSearchResponse(title, href, TvType.Movie) { posterUrl = poster })
+                items.add(newMovieSearchResponse(title, href, TvType.Movie) {
+                    posterUrl = poster
+                    score = rating?.let { runCatching { Score.from10(it) }.getOrNull() }
+                })
             }
         }
 
-        return newHomePageResponse(request.name, items.distinctBy { it.url }, hasNext = items.isNotEmpty())
+        val hasNext = root.get("pagination")?.get("hasMore")?.asBoolean() ?: items.isNotEmpty()
+        return newHomePageResponse(request.name, items.distinctBy { it.url }, hasNext = hasNext)
     }
+
+    override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
 
     override suspend fun search(query: String): List<SearchResponse> {
         val results = mutableListOf<SearchResponse>()
@@ -210,7 +256,11 @@ class SelcukFlix : MainAPI() {
         var bgPoster    : String? = null
         var description : String? = null
         var year        : Int?    = null
+        var duration    : Int?    = null
+        var rating      : String? = null
+        var trailer     : String? = null
         var tags        : List<String>? = null
+        var actors      : List<Actor>? = null
         val episodes    = mutableListOf<Episode>()
 
         val secureDataRaw = extractSecureData(html)
@@ -223,7 +273,17 @@ class SelcukFlix : MainAPI() {
                     val item: JsonNode? = json.get("contentItem")
                     if (item != null) {
                         val origTitle = item.get("original_title")?.asText()
-                        if (!origTitle.isNullOrBlank() && origTitle != "null" && title.isBlank()) title = origTitle
+                        val cultTitle = item.get("culture_title")?.asText()
+                            ?.takeIf { it.isNotBlank() && it != "null" }
+                        if (!origTitle.isNullOrBlank() && origTitle != "null") {
+                            title = if (cultTitle != null && cultTitle != origTitle && title.isBlank()) {
+                                "$origTitle - $cultTitle"
+                            } else if (title.isBlank()) {
+                                origTitle
+                            } else {
+                                title
+                            }
+                        }
 
                         val pUrl = item.get("poster_url")?.asText()
                         if (!pUrl.isNullOrBlank() && pUrl != "null") poster = pUrl
@@ -239,10 +299,41 @@ class SelcukFlix : MainAPI() {
                         val yearNode = item.get("release_year")
                         if (yearNode != null && !yearNode.isNull) year = yearNode.asInt().takeIf { it > 0 }
 
+                        val durNode = item.get("total_minutes")
+                        if (durNode != null && !durNode.isNull) duration = durNode.asInt().takeIf { it > 0 }
+
+                        val ratingNode = item.get("imdb_point")
+                        if (ratingNode != null && !ratingNode.isNull) {
+                            rating = runCatching { ratingNode.asDouble().toString() }.getOrNull()
+                        }
+
                         val cats = item.get("categories")?.asText()
                         if (!cats.isNullOrBlank() && cats != "null") {
                             tags = cats.split(",").map { it.trim() }.filter { it.isNotBlank() }
                         }
+                    }
+
+                    val relatedNode: JsonNode? = json.get("RelatedResults")
+                    if (relatedNode != null) {
+                        actors = relatedNode.get("getMovieCastsById")
+                            ?.get("result")
+                            ?.mapNotNull { cast ->
+                                val name = cast.get("name")?.asText()
+                                    ?: cast.get("actor_name")?.asText()
+                                    ?: return@mapNotNull null
+                                if (name.isBlank() || name == "null") return@mapNotNull null
+                                val image = cast.get("cast_image")?.asText()
+                                    ?.takeIf { it.isNotBlank() && it != "null" }
+                                    ?.let { fixPosterUrl(it) }
+                                Actor(name, image)
+                            }?.takeIf { it.isNotEmpty() }
+
+                        trailer = relatedNode.get("getContentTrailers")
+                            ?.get("result")
+                            ?.get(0)
+                            ?.get("raw_url")
+                            ?.asText()
+                            ?.takeIf { it.isNotBlank() && it != "null" }
                     }
 
                     if (isSeries) {
@@ -295,6 +386,10 @@ class SelcukFlix : MainAPI() {
                 plot                = description
                 this.year           = year
                 this.tags           = tags
+                this.duration       = duration
+                this.score          = rating?.let { runCatching { Score.from10(it) }.getOrNull() }
+                addActors(actors)
+                if (!trailer.isNullOrBlank()) addTrailer(trailer)
             }
         } else {
             newMovieLoadResponse(title, url, TvType.Movie, url) {
@@ -303,6 +398,10 @@ class SelcukFlix : MainAPI() {
                 plot                = description
                 this.year           = year
                 this.tags           = tags
+                this.duration       = duration
+                this.score          = rating?.let { runCatching { Score.from10(it) }.getOrNull() }
+                addActors(actors)
+                if (!trailer.isNullOrBlank()) addTrailer(trailer)
             }
         }
     }
