@@ -54,38 +54,14 @@ class SelcukFlix : MainAPI() {
         }
     }
 
+    // data formatı: "orderType|categoryIdsComma" (categoryIds boş = tüm içerikler).
+    // Site ana sayfasındaki 4 bloğu yansıtır; tür satırları kaldırıldı (29 → 5 istek).
     override val mainPage = mainPageOf(
-        ""   to "Yeni Eklenen Filmler",
-        "49" to "Aile Filmleri",
-        "44" to "Animasyon Filmleri",
-        "59" to "Aksiyon Filmleri",
-        "66" to "Bilim Kurgu Filmleri",
-        "48" to "Dram Filmleri",
-        "61" to "Fantastik Filmleri",
-        "68" to "Gerilim Filmleri",
-        "51" to "Gizem Filmleri",
-        "63" to "Korku Filmleri",
-        "45" to "Komedi Filmleri",
-        "65" to "Romantik Filmleri",
-        "46" to "Suç Filmleri",
-        "69" to "Savaş Filmleri",
-        "78" to "Western Filmleri",
-
-        ""   to "Yeni Eklenen Diziler",
-        "15" to "Aile Dizileri",
-        "17" to "Animasyon Dizileri",
-        "9"  to "Aksiyon Dizileri",
-        "5"  to "Bilim Kurgu Dizileri",
-        "2"  to "Dram Dizileri",
-        "12" to "Fantastik Dizileri",
-        "18" to "Gerilim Dizileri",
-        "3"  to "Gizem Dizileri",
-        "8"  to "Korku Dizileri",
-        "4"  to "Komedi Dizileri",
-        "7"  to "Romantik Dizileri",
-        "1"  to "Suç Dizileri",
-        "26" to "Savaş Dizileri",
-        "11" to "Western Dizileri",
+        "date_desc|"    to "Yeni Eklenen Filmler",
+        "date_desc|"    to "Yeni Eklenen Diziler",
+        "imdb_desc|"   to "IMDb Top Filmler",
+        "imdb_desc|"   to "IMDb Top Diziler",
+        "comment_desc|" to "Popüler Diziler",
     )
 
     private fun decryptAES(encryptedData: String): String? {
@@ -128,9 +104,12 @@ class SelcukFlix : MainAPI() {
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val year = Calendar.getInstance().get(Calendar.YEAR)
         val endpoint = if (request.name.contains("Dizi")) "findSeries" else "findMovies"
+        val (orderType, categoryIds) = request.data.split("|", limit = 2).let {
+            it[0] to it.getOrElse(1) { "" }
+        }
         val url = "$mainUrl/api/bg/$endpoint" +
             "?releaseYearStart=1900&releaseYearEnd=$year&imdbPointMin=1&imdbPointMax=10" +
-            "&categoryIdsComma=${request.data}&countryIdsComma=&orderType=date_desc&languageId=-1" +
+            "&categoryIdsComma=$categoryIds&countryIdsComma=&orderType=$orderType&languageId=-1" +
             "&currentPage=$page&currentPageCount=12&queryStr=&categorySlugsComma=&countryCodesComma="
 
         val response = app.post(
