@@ -1,10 +1,12 @@
 # Progress — TestPlugins
 
-## Status at last review (2026-09-29, HEAD `4478f00`)
+## Status at last review (2026-10-04, HEAD `5f05052`)
 
-- 11 modules, all `status = 1` (Ok) in their `cloudstream {}` blocks.
-- HEAD == `fork/master` (both pushed); CI run `36623018180` success; `builds` branch publishes
-  `DiziBOX v9` (39221 bytes) and `DiziPal v30` — verified via GitHub API.
+- 13 modules (new: **Anizium v1**, `status = 3` Beta, TvType Anime); rest unchanged.
+- HEAD == `fork/master` (pushed, CI `37211987526` success): DiziPal v31 (`5f05052`).
+  Last pushed state = `7d4d3ab`, CI run `36903143263` success, `builds` branch publishes
+  12 modules incl. `SelcukFlix v4` (45142 bytes) — verified via GitHub API.
+- `memory-bank/` is now tracked (user committed it in `0f06e40 "deneme"`).
 - Last successful pattern: `./gradlew make makePluginsJson` produces artifacts; CI republishes
   the `builds` branch on push to `master`.
 
@@ -17,9 +19,18 @@
   parsing, actor photos from the *oyuncu listesi* block.
 - **Dizilla (v26)** — hero image as background poster with poster fallback.
 - **SezonlukDizi (v12)** — self-contained `DzenSez` extractor (no reliance on another plugin).
-- **DiziPal (v30)** — mainUrl moved to canonical `dizipal1584.com` after SSL/diagnosis run.
+- **DiziPal (v31)** — domain rotated again: `dizipal1584.com` TLS-reset (dead), new canonical `dizipal1586.com` (verified live + `rel=canonical`; `1585` 301s to it, `1587/1588` unregistered). Full 13-domain health check 2026-10-04: all other mainUrls HTTP 200.
 - **InatBox (v16)**, **Animecix (v6)**, **DiziFilm (v3)**, **FullHDFilm (v3)**,
   **DiziBal (v2)** — building and marked Ok.
+- **SelcukFlix (v4)** — API-based module (`selcukflix.com/api/bg/`), `status = 3`
+  (Beta), Movie+TvSeries, self-contained `SlcContentX` extractor; v2 = all sources,
+  v3 = nik-style category homepage + load extras; v4 = homepage trimmed 29 → 5 rows
+  (`date_desc`/`imdb_desc`/`comment_desc` via `"orderType|categoryIds"` row data).
+- **Anizium (v1)** — NEW anime provider via `api.anizium.co` (+ `Cf-Control` header):
+  4 `/page/home` rows, search with `not_displayed` pagination, load via `/anime/get`
+  (movie = single Film episode), `loadLinks` servers 1 (mp4) + 2 (hls) `plan=standart`,
+  tr/en/ar/es vtt subtitles. `status = 3` (Beta). Locally built (`Anizium.cs3` 18938
+  bytes), **not pushed, awaiting approval**. Risk: `Cf-Control` token rotation kills it.
 - **DiziBOX (v9)** — Cloudflare challenge detection rewritten after live diagnosis (v7);
   homepage trimmed 26 → 5 rows with 150 ms sequential delay (v8); search switched to
   AJAX `dwls_search` (+XRW header, Jackson parse) with POST/GET fallbacks + `getMainPage`

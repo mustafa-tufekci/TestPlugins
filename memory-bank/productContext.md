@@ -30,7 +30,7 @@ ships those fixes.
 | HDFilmCehennemi | 36 | 1 | Obfuscated player, splice-family decoding, subtitle tracks |
 | HDFilmCehennemi2 | 10 | 1 | New template, vidload player, actor photos |
 | Dizilla | 26 | 1 | Hero image background + poster fallback |
-| DiziPal | 30 | 1 | mainUrl = canonical `dizipal1584.com` (numbered domains rotate) |
+| DiziPal | 31 | 1 | mainUrl = `dizipal1586.com` (rotated 2026-10-04; numbered domains rotate, 1584 dead) |
 | SezonlukDizi | 12 | 1 | Self-contained `DzenSez` extractor |
 | InatBox | 16 | 1 | Requires kotlinx-coroutines dependency |
 | Animecix | 6 | 1 | |
@@ -38,3 +38,5 @@ ships those fixes.
 | DiziFilm | 3 | 1 | |
 | FullHDFilm | 3 | 1 | |
 | DiziBal | 2 | 1 | |
+| SelcukFlix | 4 | 3 | API-based (`selcukflix.com/api/bg/`), 5 homepage rows (date/imdb/comment_desc), extractor `SlcContentX`/`SlcHotlinger` |
+| Anizium | 1 | 3 | Anime API (`api.anizium.co` + `Cf-Control` header), servers 1 (mp4) + 2 (hls), tr/en/ar/es vtt subtitles |

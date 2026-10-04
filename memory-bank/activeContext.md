@@ -7,8 +7,15 @@ template + vidload player), and the older **HDFilmCehennemi** (obfuscated player
 
 ## Recent changes (see also progress.md)
 
+- `feat(anizium): add Anizium anime provider via api.anizium.co (v1)` — `43c9b53` (pushed, CI green).
+- `feat(selcukflix): trim homepage to 5 rows with sort orders (v4)` — `7d4d3ab` (pushed, CI green).
+- `deneme` — `0f06e40`: user committed `memory-bank/*.md` → bank files are now **tracked** (rule change: bank updates will show as normal diffs).
+- `feat(SelcukFlix): nik-style category homepage and load extras (v3)` — `33b620e` (pushed, CI green).
+- `fix(SelcukFlix): try all episode/movie sources instead of first only (v2)` — `00a4e5d` (pushed, CI green).
+- `feat(SelcukFlix): initial port from Kekik reference (v1)` — `d325895` (pushed, CI green).
 - `feat(dizibox): ajax dwls_search with fallbacks, homepage hardening (v9)` — `4478f00` (pushed, CI green).
 - `feat(dizibox): trim homepage to 5 rows, 150ms delay (v8)` — `37b742e` (pushed, CI green).
+- `fix(dizipal): switch to rotated domain dizipal1586.com (v31)` — `5f05052` (pushed, CI green).
 - `fix(dizipal): switch to canonical domain dizipal1584.com (v30)` — `145bb3c` (pushed, CI green).
 - `fix(dizibox): detect current cloudflare challenge page (v7)` — `f3c8e4f` (pushed, CI green).
 - `feat(hdfilmcehennemi2): actor photos from oyuncu listesi block (v10)` — `b65c4c5`.
@@ -18,9 +25,10 @@ template + vidload player), and the older **HDFilmCehennemi** (obfuscated player
 - `fix(hdfilmcehennemi): decode new splice-family player obfuscation (v35)`.
 - `docs: add AGENTS.md with build/workflow rules and compile gotchas`.
 
-**State:** HEAD = `4478f00` == `fork/master`, **pushed**; CI run `36623018180` success;
-`builds` branch verified (`plugins.json` → DiziBOX 9, DiziPal 30; `DiziBOX.cs3` 39221 bytes).
-Earlier runs `36474780487` (v8) and `36472085668` (v7) also success.
+**State:** HEAD = `5f05052` == `fork/master`, **pushed**; CI run `37211987526` success;
+Last pushed = `7d4d3ab`; CI run `36903143263` success; `builds` branch publishes 12 modules
+incl. `SelcukFlix v4` (`SelcukFlix.cs3` 45142 bytes).
+Earlier: `0f06e40` + SelcukFlix v3/v2/v1 runs all green.
 `origin/master` (upstream) is unrelated and intentionally not synced.
 
 ## DiziPal SSL error (2026-09-28) — `CertPathValidatorException: Trust anchor …`
@@ -94,6 +102,33 @@ Earlier runs `36474780487` (v8) and `36472085668` (v7) also success.
 - Builds: `:DiziBOX:assembleDebug` + `make makePluginsJson` → SUCCESS; `plugins.json` →
   `('DiziBOX', 9)`; `DiziBOX.cs3` 39221 bytes. Commit `4478f00` (local, awaiting push).
 
+
+## SelcukFlix — new module by user (2026-09-30, v1→v3, all pushed + CI green)
+
+- `d325895` v1: initial port from Kekik reference — `SelcukFlix.kt` (MainAPI,
+  `mainUrl = https://selcukflix.com`, API-based: `$mainUrl/api/bg/$endpoint` + search
+  `$mainUrl/api/bg/searchcontent?searchterm=`), `SelcukFlixModels.kt` (19 `Slc*` data
+  classes), `SelcukFlixPlugin.kt`, extractor `SlcContentXExtractor.kt`
+  (`SlcContentX` + `SlcHotlinger`). `status = 3` (Beta), Movie+TvSeries.
+- `00a4e5d` v2: try all episode/movie sources instead of first only.
+- `33b620e` v3: nik-style category homepage + load extras.
+- Verified, not built locally: all 4 pushes CI-success; `builds`/`plugins.json` lists
+  `SelcukFlix v3`; all `Slc*`/`SelcukFlix` class names unique across modules (no
+  `com.panates` collision); `settings.gradle.kts` auto-includes the module.
+
+## SelcukFlix homepage trim (2026-10-01) — v4
+
+- User: homepage with per-genre rows (29 sequential API POSTs) loads forever.
+- Live site homepage has only 4 content blocks: Popüler Diziler, Güncel Bölümler (tabbed),
+  Trend Filmler, Son Eklenen Filmler (tabbed). Trend lists are SSR (`getTrendSeries`);
+  bg API has no trend endpoint — verified orderTypes on /kesfet: `date_desc`,
+  `imdb_desc`, `comment_desc` (+ presumed `imdb_asc`); `findMovies` + `imdb_desc` /
+  `comment_desc` verified 200 with encrypted `response` payload.
+- Shipped: 29 → 5 rows (Yeni Eklenen Filmler/Diziler `date_desc`, IMDb Top Film/Dizi
+  `imdb_desc`, Popüler Diziler `comment_desc`); row `data` format is now
+  `"orderType|categoryIdsComma"`, parsed in `getMainPage`. Version 3 → 4.
+- Builds: `:SelcukFlix:assembleDebug` + `make makePluginsJson` → SUCCESS; `plugins.json`
+  → `('SelcukFlix', 4)`; `SelcukFlix.cs3` 45142 bytes. Commit `7d4d3ab` (local, awaiting push).
 
 ## Next steps
 
