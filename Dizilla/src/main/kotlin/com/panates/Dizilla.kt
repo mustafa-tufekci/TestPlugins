@@ -243,7 +243,7 @@ class Dizilla : MainAPI() {
             val iframe = Jsoup.parse(html).selectFirst("iframe")?.attr("src")?.trim()
             if (iframe.isNullOrBlank()) continue
             val iframeUrl = if (iframe.startsWith("//")) "https:${iframe}" else fixUrl(iframe)
-            loadExtractor(iframeUrl, "${mainUrl}/", subtitleCallback, callback)
+            loadExtractor(iframeUrl, data, subtitleCallback, callback)
             found = true
         }
         return found

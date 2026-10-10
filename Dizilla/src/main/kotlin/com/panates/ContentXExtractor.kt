@@ -35,7 +35,7 @@ open class ContentX : ExtractorApi() {
         }
 
         // 1) Eski format: iframe HTML'ine gömülü altyazılar (fallback)
-        Regex(""""file":"((?:\\\\\"|[^"])+)","label":"((?:\\\\\"|[^"])+)"""").findAll(iSource).forEach {
+        Regex(""""file":"((?:\\\"|[^"])+)","label":"((?:\\\"|[^"])+)"""").findAll(iSource).forEach {
             val (subUrlRaw, subLangRaw) = it.destructured
             addSub(unescapeTr(subLangRaw), subUrlRaw)
         }
@@ -103,7 +103,8 @@ open class ContentX : ExtractorApi() {
     private fun fixSubUrl(raw: String, pageUrl: String): String? {
         val u = raw.replace("\\/", "/").replace("\\u0026", "&").replace("\\", "").trim()
         if (u.isBlank()) return null
-        if (u.startsWith("http")) return u
+        if (u.startsWith("https://")) return u
+        if (u.startsWith("http://")) return "https://" + u.removePrefix("http://")
         if (u.startsWith("//")) return "https:$u"
         if (u.startsWith("/")) {
             val origin = Regex("""^(https?://[^/]+)""").find(pageUrl)?.groupValues?.get(1) ?: return null
