@@ -22,7 +22,7 @@ private const val SLC_AES_KEY = "9bYMCNQiWsXIYFWYAu7EkdsSbmGBTyUI"
 private val slcJacksonMapper = ObjectMapper()
 
 class SelcukFlix : MainAPI() {
-    override var mainUrl              = "https://selcukflix.com"
+    override var mainUrl              = "https://selcukflix.app"
     override var name                 = "SelcukFlix"
     override val hasMainPage          = true
     override var lang                 = "tr"
