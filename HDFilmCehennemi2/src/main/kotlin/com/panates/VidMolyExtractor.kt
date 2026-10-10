@@ -9,7 +9,7 @@ import com.lagradost.cloudstream3.utils.Qualities
 
 class VidMolyExtractor : ExtractorApi() {
     override val name = "VidMoly"
-    override val mainUrl = "https://vidmoly.net"
+    override val mainUrl = "https://vidmoly.biz"
     override val requiresReferer = true
 
     override suspend fun getUrl(
