@@ -36,7 +36,7 @@ open class SlcContentX : ExtractorApi() {
         }
 
         // 1) Eski format: iframe HTML'ine gömülü altyazılar (fallback)
-        Regex(""""file":"((?:\\\\\"|[^"])+)","label":"((?:\\\\\"|[^"])+)"""").findAll(iSource).forEach {
+        Regex(""""file":"((?:\\\"|[^"])+)","label":"((?:\\\"|[^"])+)"""").findAll(iSource).forEach {
             val (subUrlRaw, subLangRaw) = it.destructured
 
             addSub(unescapeTr(subLangRaw), subUrlRaw)
@@ -49,6 +49,8 @@ open class SlcContentX : ExtractorApi() {
 
         // 3) Yeni player akışı: altyazılar track.php üzerinden ayrıca yükleniyor
         runCatching { fetchTrackSubs(iExtract, url, extRef.ifBlank { url }) { lang, raw -> addSub(lang, raw) } }
+
+        Log.d("SelcukFlix", "subtitle » ${subPairs.map { it.second }}")
 
         subPairs.forEach { (subLang, subUrl) ->
             subtitleCallback.invoke(SubtitleFile(lang = subLang, url = subUrl))
@@ -103,7 +105,8 @@ open class SlcContentX : ExtractorApi() {
     private fun fixSubUrl(raw: String, pageUrl: String): String? {
         val u = raw.replace("\\/", "/").replace("\\u0026", "&").replace("\\", "").trim()
         if (u.isBlank()) return null
-        if (u.startsWith("http")) return u
+        if (u.startsWith("https://")) return u
+        if (u.startsWith("http://")) return "https://" + u.removePrefix("http://")
         if (u.startsWith("//")) return "https:$u"
         if (u.startsWith("/")) {
             val origin = Regex("""^(https?://[^/]+)""").find(pageUrl)?.groupValues?.get(1) ?: return null
