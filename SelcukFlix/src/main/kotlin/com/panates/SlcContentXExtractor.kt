@@ -52,8 +52,14 @@ open class SlcContentX : ExtractorApi() {
 
         Log.d("SelcukFlix", "subtitle » ${subPairs.map { it.second }}")
 
+        // Altyazı CDN'i başlıksız isteğe 403 veriyor; video ile aynı başlıkları ekle
+        val subHeaders = mapOf(
+            "Referer" to url,
+            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Norton/124.0.0.0"
+        )
+
         subPairs.forEach { (subLang, subUrl) ->
-            subtitleCallback.invoke(SubtitleFile(lang = subLang, url = subUrl))
+            subtitleCallback.invoke(SubtitleFile(subLang, subUrl).apply { headers = subHeaders })
         }
 
         val vidExtract = Regex("""file":"([^"]+)""").find(vidSource)?.groups?.get(1)?.value ?: throw ErrorLoadingException("vidExtract is null")
