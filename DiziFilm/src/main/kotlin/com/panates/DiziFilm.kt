@@ -293,6 +293,82 @@ class DiziFilm : MainAPI() {
 
     // ── Extractors ──────────────────────────────────────────────────────
 
+    /**
+     * Fetches an HLS master playlist and emits one link per variant
+     * (BANDWIDTH/RESOLUTION/NAME → quality + label). Returns false when the
+     * playlist has no variants, so callers can fall back to the master URL.
+     */
+    private suspend fun emitHlsVariants(
+        masterUrl: String,
+        source: String,
+        namePrefix: String,
+        referer: String,
+        origin: String,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
+        return try {
+            val master = app.get(
+                masterUrl,
+                headers = mapOf(
+                    "User-Agent" to defaultHeaders["User-Agent"]!!,
+                    "Referer" to referer,
+                    "Origin" to origin
+                )
+            ).text
+            if (!master.contains("#EXT-X-STREAM-INF")) return false
+            var emitted = false
+            val lines = master.lines()
+            for (i in lines.indices) {
+                val tag = lines[i].trim()
+                if (!tag.startsWith("#EXT-X-STREAM-INF")) continue
+                val uri = lines.getOrNull(i + 1)?.trim().orEmpty()
+                if (uri.isBlank() || uri.startsWith("#")) continue
+                val height = Regex("RESOLUTION=(\\d+)x(\\d+)").find(tag)
+                    ?.groupValues?.get(2)?.toIntOrNull()
+                val tagName = Regex("NAME=\"([^\"]+)\"").find(tag)?.groupValues?.get(1)
+                val quality = when {
+                    (height ?: 0) >= 1080 -> Qualities.P1080.value
+                    (height ?: 0) >= 720 -> Qualities.P720.value
+                    (height ?: 0) >= 480 -> Qualities.P480.value
+                    (height ?: 0) > 0 -> Qualities.P360.value
+                    else -> Qualities.Unknown.value
+                }
+                val label = buildString {
+                    if (!tagName.isNullOrBlank()) append(tagName)
+                    if ((height ?: 0) > 0) {
+                        if (isNotEmpty()) append(" ")
+                        append("${height}p")
+                    }
+                    if (isEmpty()) append("varyant")
+                }
+                val absolute = try {
+                    java.net.URL(java.net.URL(masterUrl), uri).toString()
+                } catch (_: Exception) {
+                    uri
+                }
+                callback(
+                    ExtractorLink(
+                        source = source,
+                        name = "$namePrefix ($label)",
+                        url = absolute,
+                        referer = referer,
+                        quality = quality,
+                        type = ExtractorLinkType.M3U8,
+                        headers = mapOf(
+                            "Referer" to referer,
+                            "Origin" to origin,
+                            "User-Agent" to defaultHeaders["User-Agent"]!!
+                        )
+                    )
+                )
+                emitted = true
+            }
+            emitted
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     private suspend fun extractDirectEmbed(
         embedUrl: String,
         referer: String,
@@ -352,21 +428,26 @@ class DiziFilm : MainAPI() {
                 }
             }
 
-            callback(
-                ExtractorLink(
-                    source = "Vidmixi",
-                    name = "DiziFilm (Vidmixi HLS)",
-                    url = streamUrl,
-                    referer = "$origin/",
-                    quality = Qualities.P1080.value,
-                    type = ExtractorLinkType.M3U8,
-                    headers = mapOf(
-                        "Referer" to "$origin/",
-                        "Origin" to origin,
-                        "User-Agent" to defaultHeaders["User-Agent"]!!
+            val expanded = emitHlsVariants(
+                streamUrl, "Vidmixi", "DiziFilm Vidmixi", "$origin/", origin, callback
+            )
+            if (!expanded) {
+                callback(
+                    ExtractorLink(
+                        source = "Vidmixi",
+                        name = "DiziFilm (Vidmixi HLS)",
+                        url = streamUrl,
+                        referer = "$origin/",
+                        quality = Qualities.P1080.value,
+                        type = ExtractorLinkType.M3U8,
+                        headers = mapOf(
+                            "Referer" to "$origin/",
+                            "Origin" to origin,
+                            "User-Agent" to defaultHeaders["User-Agent"]!!
+                        )
                     )
                 )
-            )
+            }
             true
         } catch (_: Exception) {
             false
@@ -399,21 +480,27 @@ class DiziFilm : MainAPI() {
             val streamUrl = json.optString("securedLink").takeIf { it.isNotBlank() }
                 ?: json.optString("videoSource").takeIf { it.isNotBlank() } ?: return false
 
-            callback(
-                ExtractorLink(
-                    source = "Vidlop",
-                    name = "DiziFilm (Vidlop HLS)",
-                    url = streamUrl.replace("\\/", "/"),
-                    referer = pageUrl,
-                    quality = Qualities.P1080.value,
-                    type = ExtractorLinkType.M3U8,
-                    headers = mapOf(
-                        "Referer" to pageUrl,
-                        "Origin" to vidlopOrigin,
-                        "User-Agent" to defaultHeaders["User-Agent"]!!
+            val expanded = emitHlsVariants(
+                streamUrl.replace("\\/", "/"), "Vidlop", "DiziFilm Vidlop",
+                pageUrl, vidlopOrigin, callback
+            )
+            if (!expanded) {
+                callback(
+                    ExtractorLink(
+                        source = "Vidlop",
+                        name = "DiziFilm (Vidlop HLS)",
+                        url = streamUrl.replace("\\/", "/"),
+                        referer = pageUrl,
+                        quality = Qualities.P1080.value,
+                        type = ExtractorLinkType.M3U8,
+                        headers = mapOf(
+                            "Referer" to pageUrl,
+                            "Origin" to vidlopOrigin,
+                            "User-Agent" to defaultHeaders["User-Agent"]!!
+                        )
                     )
                 )
-            )
+            }
             true
         } catch (_: Exception) {
             false
