@@ -9,5 +9,7 @@ class SelcukFlixPlugin: Plugin() {
     override fun load(context: Context) {
         registerMainAPI(SelcukFlix())
         registerExtractorAPI(SlcHotlinger())
+        registerExtractorAPI(SlcPichive())
+        registerExtractorAPI(SlcFourPichive())
     }
 }

@@ -157,3 +157,13 @@ class SlcHotlinger : SlcContentX() {
     override var name    = "SlcHotlinger"
     override var mainUrl = "https://hotlinger.com"
 }
+
+class SlcPichive : SlcContentX() {
+    override var name    = "SlcPichive"
+    override var mainUrl = "https://pichive.online"
+}
+
+class SlcFourPichive : SlcContentX() {
+    override var name    = "SlcFourPichive"
+    override var mainUrl = "https://four.pichive.online"
+}
