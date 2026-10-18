@@ -45,7 +45,7 @@
 - Molystream payload no longer ships subtitles (`tracks: [null, null]`) — subtitles
   unavailable on that source; reported, deliberately out of scope for v7.
 - `README.md` still upstream boilerplate (references `ExampleProvider`).
-- Stray root files `t.vtt`, `t2.vtt` from subtitle debugging are uncommitted leftovers.
+- Stray root files `t.vtt`, `t2.vtt` from subtitle debugging were removed (`4eb7833`).
 - Memory bank created 2026-09-26 — first population of these files, no historical changelog
   beyond git history.
 

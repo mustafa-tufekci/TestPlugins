@@ -61,4 +61,5 @@ then confirm the new entry in `plugins.json` on the `builds` branch.
 - `panates-logo.png/svg` → repo icon referenced by `repo.json`.
 - `README.md` is upstream template boilerplate (mentions a nonexistent `ExampleProvider`) —
   trust the gradle files instead.
-- Stray `t.vtt` / `t2.vtt` at repo root are leftovers from subtitle URL testing.
+- Stray `t.vtt` / `t2.vtt` at repo root were subtitle URL testing leftovers; removed in
+  `4eb7833` (accidentally committed with HDFilmCehennemi2 v9).
