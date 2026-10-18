@@ -3,7 +3,7 @@
 ## Status at last review (2026-10-04, HEAD `5f05052`)
 
 - 13 modules (new: **Anizium v1**, `status = 3` Beta, TvType Anime); rest unchanged.
-- HEAD == `fork/master` (pushed, CI `37211987526` success): DiziPal v31 (`5f05052`).
+- HEAD == `fork/master` (pushed, CI `39157358196` success): DiziPal v33 (`f42d224`).
   Last pushed state = `7d4d3ab`, CI run `36903143263` success, `builds` branch publishes
   12 modules incl. `SelcukFlix v4` (45142 bytes) — verified via GitHub API.
 - `memory-bank/` is now tracked (user committed it in `0f06e40 "deneme"`).
@@ -19,7 +19,9 @@
   parsing, actor photos from the *oyuncu listesi* block.
 - **Dizilla (v26)** — hero image as background poster with poster fallback.
 - **SezonlukDizi (v12)** — self-contained `DzenSez` extractor (no reliance on another plugin).
-- **DiziPal (v31)** — domain rotated again: `dizipal1584.com` TLS-reset (dead), new canonical `dizipal1586.com` (verified live + `rel=canonical`; `1585` 301s to it, `1587/1588` unregistered). Full 13-domain health check 2026-10-04: all other mainUrls HTTP 200.
+- **DiziPal (v33)** — rotation chain: 1584 dead → v31 `1586` → v32 `1588` → v33 `1590`
+  (`f42d224`). Site announces its **next** address `dizipal1591.com` (not yet live on
+  2026-10-18); expect another rotation soon.
 - **InatBox (v16)**, **Animecix (v6)**, **DiziFilm (v3)**, **FullHDFilm (v3)**,
   **DiziBal (v2)** — building and marked Ok.
 - **SelcukFlix (v4)** — API-based module (`selcukflix.com/api/bg/`), `status = 3`

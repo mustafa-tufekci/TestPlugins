@@ -30,7 +30,7 @@ ships those fixes.
 | HDFilmCehennemi | 36 | 1 | Obfuscated player, splice-family decoding, subtitle tracks |
 | HDFilmCehennemi2 | 10 | 1 | New template, vidload player, actor photos |
 | Dizilla | 26 | 1 | Hero image background + poster fallback |
-| DiziPal | 31 | 1 | mainUrl = `dizipal1586.com` (rotated 2026-10-04; numbered domains rotate, 1584 dead) |
+| DiziPal | 33 | 1 | mainUrl = `dizipal1590.com` (rotated 2026-10-18 via 1588→1590; site announces NEXT address `dizipal1591.com`) |
 | SezonlukDizi | 12 | 1 | Self-contained `DzenSez` extractor |
 | InatBox | 16 | 1 | Requires kotlinx-coroutines dependency |
 | Animecix | 6 | 1 | |
