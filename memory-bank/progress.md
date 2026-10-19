@@ -2,10 +2,11 @@
 
 ## Status at last review (2026-10-19)
 
-- 16 modules, all building: `Animecix (v6)`, `Anizium (v1)`, `BelgeselX (v3)`, `CizgiMax (v2)`,
-  `DiziBal (v2)`, `DiziBOX (v9)`, `DiziFilm (v4)`, `Dizilla (v30)`, `DiziPal (v35)`,
+- 15 modules, all building: `Animecix (v6)`, `Anizium (v1)`, `BelgeselX (v3)`, `CizgiMax (v2)`,
+  `DiziBal (v2)`, `DiziFilm (v4)`, `Dizilla (v30)`, `DiziPal (v35)`,
   `FullHDFilm (v3)`, `HDFilmCehennemi (v36)`, `HDFilmCehennemi2 (v11)`, `InatBox (v16)`,
   `SelcukFlix (v9)`, `SezonlukDizi (v12)`, **Youtube (v1)**.
+- **DiziBOX**: Removed completely from repository on user request.
 - New **Youtube v1** plugin added (ported and improved from `recloudstream/extensions` with upstream
   `loadLinks` URL formatting bug fix; integrates NewPipeExtractor at compile time and leverages
   built-in Cloudstream YouTube extractors).
@@ -37,17 +38,10 @@
   (movie = single Film episode), `loadLinks` servers 1 (mp4) + 2 (hls) `plan=standart`,
   tr/en/ar/es vtt subtitles. `status = 3` (Beta). Locally built (`Anizium.cs3` 18938
   bytes), **not pushed, awaiting approval**. Risk: `Cf-Control` token rotation kills it.
-- **DiziBOX (v9)** — Cloudflare challenge detection rewritten after live diagnosis (v7);
-  homepage trimmed 26 → 5 rows with 150 ms sequential delay (v8); search switched to
-  AJAX `dwls_search` (+XRW header, Jackson parse) with POST/GET fallbacks + `getMainPage`
-  page-1 canonicalization and `cacheTime = 60` (v9, ported from active `feroxx` fork).
-  Full selector + player chain and both search paths verified against `dizibox.live`.
 
 ## What's left / open
 
 - No automated tests exist; verification is compile + manual playback in the Cloudstream app.
-- DiziBOX v7/v8/v9 are compiled but **not yet played back in the app** — needs a manual check
-  after push (search results + rows + m3u8 with the new UA header).
 - Molystream payload no longer ships subtitles (`tracks: [null, null]`) — subtitles
   unavailable on that source; reported, deliberately out of scope for v7.
 - `README.md` still upstream boilerplate (references `ExampleProvider`).

@@ -37,7 +37,6 @@ ships those fixes.
 | SezonlukDizi | 12 | 1 | Self-contained `DzenSez` extractor |
 | InatBox | 16 | 1 | Requires kotlinx-coroutines dependency |
 | Animecix | 6 | 1 | |
-| DiziBOX | 9 | 1 | CF managed-challenge detection (`Just a moment...`), AJAX dwls_search (+XRW) with POST/GET fallback, 5 homepage rows (150ms, page-1 canonical, cacheTime 60), UA in stream headers |
 | DiziFilm | 4 | 1 | |
 | FullHDFilm | 3 | 1 | |
 | DiziBal | 2 | 1 | |
