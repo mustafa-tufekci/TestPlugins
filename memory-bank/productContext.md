@@ -31,6 +31,9 @@ ships those fixes.
 | HDFilmCehennemi2 | 10 | 1 | New template, vidload player, actor photos |
 | Dizilla | 26 | 1 | Hero image background + poster fallback |
 | DiziPal | 33 | 1 | mainUrl = `dizipal1590.com` (rotated 2026-10-18 via 1588→1590; site announces NEXT address `dizipal1591.com`) |
+| Dizilla | 30 | 1 | Self-contained Pichive extractors |
+| BelgeselX | 1 | 3 | belgeselx.com documentary provider (Beta); jwplayer `/video/data/*.php` sources + iframe fallback |
+| CizgiMax | 1 | 3 | cizgimax.online cartoon/anime provider (Beta); atob `servers` JSON → VidMoly iframe / byse stream → SibNet fallback; Jackson (tryParseJson yavru JVM11 sorununa karşı) |
 | SezonlukDizi | 12 | 1 | Self-contained `DzenSez` extractor |
 | InatBox | 16 | 1 | Requires kotlinx-coroutines dependency |
 | Animecix | 6 | 1 | |

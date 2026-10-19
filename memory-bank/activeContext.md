@@ -7,6 +7,7 @@ template + vidload player), and the older **HDFilmCehennemi** (obfuscated player
 
 ## Recent changes (see also progress.md)
 
+- `feat(plugins): add BelgeselX (belgeselx.com) and CizgiMax (cizgimax.online) providers (v1)` — latest commit `2f04985` (local, **awaiting push approval**).
 - `feat(anizium): add Anizium anime provider via api.anizium.co (v1)` — `43c9b53` (pushed, CI green).
 - `feat(selcukflix): trim homepage to 5 rows with sort orders (v4)` — `7d4d3ab` (pushed, CI green).
 - `deneme` — `0f06e40`: user committed `memory-bank/*.md` → bank files are now **tracked** (rule change: bank updates will show as normal diffs).
@@ -25,7 +26,7 @@ template + vidload player), and the older **HDFilmCehennemi** (obfuscated player
 - `fix(hdfilmcehennemi): decode new splice-family player obfuscation (v35)`.
 - `docs: add AGENTS.md with build/workflow rules and compile gotchas`.
 
-**State:** HEAD = `5f05052` == `fork/master`, **pushed**; CI run `37211987526` success;
+**State:** HEAD = `2f04985` = `fork/master` + 1 (BelgeselX + CizgiMax v1 local, **awaiting push approval**).
 Last pushed = `7d4d3ab`; CI run `36903143263` success; `builds` branch publishes 12 modules
 incl. `SelcukFlix v4` (`SelcukFlix.cs3` 45142 bytes).
 Earlier: `0f06e40` + SelcukFlix v3/v2/v1 runs all green.

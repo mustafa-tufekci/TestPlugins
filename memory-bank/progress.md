@@ -1,9 +1,11 @@
 # Progress — TestPlugins
 
-## Status at last review (2026-10-04, HEAD `5f05052`)
+## Status at last review (2026-10-18, HEAD `2f04985`)
 
-- 13 modules (new: **Anizium v1**, `status = 3` Beta, TvType Anime); rest unchanged.
-- HEAD == `fork/master` (pushed, CI `39157358196` success): DiziPal v33 (`f42d224`).
+- 15 modules, all building; new **BelgeselX v1** + **CizgiMax v1** (both Beta,
+  ported from BTVault into com.panates; Cmx* data-class prefixes; Jackson instead of
+  inline tryParseJson per jvmTarget-1.8 rule).
+- HEAD = `fork/master` + 1 (**not pushed, awaiting approval**): BelgeselX/CizgiMax v1 (`2f04985`).
   Last pushed state = `7d4d3ab`, CI run `36903143263` success, `builds` branch publishes
   12 modules incl. `SelcukFlix v4` (45142 bytes) — verified via GitHub API.
 - `memory-bank/` is now tracked (user committed it in `0f06e40 "deneme"`).
