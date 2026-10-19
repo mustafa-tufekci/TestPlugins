@@ -17,6 +17,7 @@ template + vidload player), and the older **HDFilmCehennemi** (obfuscated player
 - `feat(dizibox): ajax dwls_search with fallbacks, homepage hardening (v9)` — `4478f00` (pushed, CI green).
 - `feat(dizibox): trim homepage to 5 rows, 150ms delay (v8)` — `37b742e` (pushed, CI green).
 - `fix(dizipal): switch to rotated domain dizipal1586.com (v31)` — `5f05052` (pushed, CI green).
+- `fix(dizipal): parse iframe-embedded captions with auth headers; rotate domain to dizipal1591.com (v34)` — `6c1836d` (local; awaiting push approval together with BelgeselX/CizgiMax `2f04985`).
 - `fix(dizipal): switch to canonical domain dizipal1584.com (v30)` — `145bb3c` (pushed, CI green).
 - `fix(dizibox): detect current cloudflare challenge page (v7)` — `f3c8e4f` (pushed, CI green).
 - `feat(hdfilmcehennemi2): actor photos from oyuncu listesi block (v10)` — `b65c4c5`.
@@ -26,9 +27,8 @@ template + vidload player), and the older **HDFilmCehennemi** (obfuscated player
 - `fix(hdfilmcehennemi): decode new splice-family player obfuscation (v35)`.
 - `docs: add AGENTS.md with build/workflow rules and compile gotchas`.
 
-**State:** HEAD = `2f04985` = `fork/master` + 1 (BelgeselX + CizgiMax v1 local, **awaiting push approval**).
-Last pushed = `7d4d3ab`; CI run `36903143263` success; `builds` branch publishes 12 modules
-incl. `SelcukFlix v4` (`SelcukFlix.cs3` 45142 bytes).
+**State:** HEAD = `6c1836d` = `fork/master` + 3 (DiziPal v34 subtitle+domain fix, BelgeselX + CizgiMax v1, docs — all local, **awaiting push approval**).
+Last pushed CI run `39157358196` success; `builds` publishes 13 modules (DiziPal 33).
 Earlier: `0f06e40` + SelcukFlix v3/v2/v1 runs all green.
 `origin/master` (upstream) is unrelated and intentionally not synced.
 

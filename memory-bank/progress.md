@@ -21,7 +21,8 @@
   parsing, actor photos from the *oyuncu listesi* block.
 - **Dizilla (v26)** — hero image as background poster with poster fallback.
 - **SezonlukDizi (v12)** — self-contained `DzenSez` extractor (no reliance on another plugin).
-- **DiziPal (v33)** — rotation chain: 1584 dead → v31 `1586` → v32 `1588` → v33 `1590`
+- **DiziPal (v34)** — rotation chain: 1584 dead → v31 `1586` → v32 `1588` → v33 `1590` → v34 `1591`.
+  Subtitle fix (v34): DPlayer hosts embed subs in iframe HTML as JS array (`{"file":"…vtt?sp=3","label":"T\u00fcrk\u00e7e","kind":"captions"}`), NOT in source2.json (no `tracks` key at all) and NOT in master.m3u8 (only AUDIO groups). Sub CDN 404s without Referer → `SubtitleFile.headers` = Referer(absIframe)+UA. Pattern ported from SelcukFlix v9.
   (`f42d224`). Site announces its **next** address `dizipal1591.com` (not yet live on
   2026-10-18); expect another rotation soon.
 - **InatBox (v16)**, **Animecix (v6)**, **DiziFilm (v3)**, **FullHDFilm (v3)**,
