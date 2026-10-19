@@ -13,13 +13,13 @@ import com.lagradost.cloudstream3.utils.*
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.core.type.TypeReference
 import com.lagradost.cloudstream3.network.CloudflareKiller
-import okhttp3.Interceptor
-import okhttp3.Response
 import java.net.URLEncoder
 
 data class CmxServer(
     val type: String? = null,
     val streamUrl: String? = null,
+    /** iframe servers carry their route here (/oynat/?t=...), not streamUrl */
+    val src: String? = null,
     val label: String? = null,
     val embedId: Int? = null,
     val videoId: String? = null,
@@ -44,19 +44,9 @@ data class CmxCaption(
 )
 
 class CizgiMax : MainAPI() {
+    // Only engages on actual Cloudflare challenges — reading the challenge-free
+    // response body inside a custom interceptor corrupts it (body already consumed).
     private val cloudflareKiller by lazy { CloudflareKiller() }
-    private val interceptor by lazy { CloudflareInterceptor(cloudflareKiller) }
-
-    class CloudflareInterceptor(private val cloudflareKiller: CloudflareKiller) : Interceptor {
-        override fun intercept(chain: Interceptor.Chain): Response {
-            val request = chain.request()
-            val response = chain.proceed(request)
-            if (response.body?.string()?.contains("Just a moment") == true) {
-                return cloudflareKiller.intercept(chain)
-            }
-            return response
-        }
-    }
 
     override var mainUrl        = "https://cizgimax.online"
     override var name           = "CizgiMax"
@@ -79,7 +69,7 @@ class CizgiMax : MainAPI() {
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val sep  = if (request.data.contains("?")) "&" else "?"
-        val home = app.get("$mainUrl${request.data}$sep page=$page".replace(" ", ""), interceptor = interceptor)
+        val home = app.get("$mainUrl${request.data}$sep page=$page".replace(" ", ""), interceptor = cloudflareKiller)
             .document
             .select("div.film-item")
             .mapNotNull { it.toSearchResult() }
@@ -106,7 +96,7 @@ class CizgiMax : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val encoded = URLEncoder.encode(query, "UTF-8")
-        return app.get("$mainUrl/ara/?q=$encoded", interceptor = interceptor)
+        return app.get("$mainUrl/ara/?q=$encoded", interceptor = cloudflareKiller)
             .document
             .select("div.film-list div.film-item")
             .mapNotNull { it.toSearchResult() }
@@ -115,7 +105,7 @@ class CizgiMax : MainAPI() {
     override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
 
     override suspend fun load(url: String): LoadResponse? {
-        val document = app.get(url, interceptor = interceptor).document
+        val document = app.get(url, interceptor = cloudflareKiller).document
 
         val title       = document.selectFirst("div.anime-head-titles h1")?.text()?.trim()?.ifBlank { null }
             ?: document.selectFirst("h1")?.text()?.trim()?.ifBlank { null }
@@ -164,7 +154,7 @@ class CizgiMax : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit,
     ): Boolean {
-        val html = app.get(data, interceptor = interceptor).text
+        val html = app.get(data, interceptor = cloudflareKiller).text
 
         // Server list base64-embedded: var servers = JSON.parse(atob("..."))
         val servers = Regex("""var\s+servers\s*=\s*JSON\.parse\(atob\("([^"]+)"\)\)""")
@@ -175,61 +165,66 @@ class CizgiMax : MainAPI() {
             ?: emptyList()
 
         for (server in servers) {
-            val streamUrl = server.streamUrl ?: continue
-            val resolve = runCatching {
-                val resp = app.get(fixUrl(streamUrl), referer = data, interceptor = interceptor).text
-                ObjectMapper().readValue(resp, CmxStream::class.java)
-            }.getOrNull()
+            val route = server.streamUrl ?: server.src ?: continue
 
-            val qualities = resolve?.urls.orEmpty().filter { !it.url.isNullOrBlank() }
-            for (quality in qualities) {
-                val link = quality.url ?: continue
-                callback.invoke(
-                    newExtractorLink(
-                        source = server.label ?: name,
-                        name   = "${server.label ?: name} ${quality.label ?: ""}".trim(),
-                        url    = fixUrl(link),
-                        type   = ExtractorLinkType.M3U8
-                    ) {
-                        this.headers = mapOf("Referer" to "$mainUrl/")
-                        this.quality = Qualities.Unknown.value
-                    }
-                )
-            }
-            if (qualities.isNotEmpty()) continue
+            // byse servers: /api/stream sequence -> json {url, urls[], captions}
+            if (server.type.equals("byse", true)) {
+                val resolve = runCatching {
+                    val resp = app.get(fixUrl(route), referer = data, interceptor = cloudflareKiller).text
+                    ObjectMapper().readValue(resp, CmxStream::class.java)
+                }.getOrNull() ?: continue
 
-            val direct = resolve?.url
-            if (!direct.isNullOrBlank()) {
-                callback.invoke(
-                    newExtractorLink(
-                        source = server.label ?: name,
-                        name   = server.label ?: name,
-                        url    = fixUrl(direct),
-                        type   = if (direct.contains(".m3u8")) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
-                    ) {
-                        this.headers = mapOf("Referer" to "$mainUrl/")
-                        this.quality = Qualities.Unknown.value
-                    }
-                )
+                val qualities = resolve?.urls.orEmpty().filter { !it.url.isNullOrBlank() }
+                for (quality in qualities) {
+                    val link = quality.url ?: continue
+                    callback.invoke(
+                        newExtractorLink(
+                            source = server.label ?: name,
+                            name   = "${server.label ?: name} ${quality.label ?: ""}".trim(),
+                            url    = fixUrl(link),
+                            type   = ExtractorLinkType.M3U8
+                        ) {
+                            this.headers = mapOf("Referer" to "$mainUrl/")
+                            this.quality = Qualities.Unknown.value
+                        }
+                    )
+                }
+                if (qualities.isNotEmpty()) continue
+
+                val direct = resolve?.url
+                if (!direct.isNullOrBlank()) {
+                    callback.invoke(
+                        newExtractorLink(
+                            source = server.label ?: name,
+                            name   = server.label ?: name,
+                            url    = fixUrl(direct),
+                            type   = if (direct.contains(".m3u8")) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
+                        ) {
+                            this.headers = mapOf("Referer" to "$mainUrl/")
+                            this.quality = Qualities.Unknown.value
+                        }
+                    )
+                }
                 continue
             }
 
-            // SibNet embedded video address
-            val videoId = server.videoId
-            if (server.type.equals("sibnet", true) && !videoId.isNullOrBlank()) {
-                loadExtractor(
-                    "https://video.sibnet.ru/shares/video.php?video_id=$videoId",
-                    "$mainUrl/",
-                    subtitleCallback,
-                    callback
-                )
+            // iframe servers: /oynat/?t=<jwt> 302-redirects to the embed host
+            // (vidmoly, sibnet, ...). Resolve the redirect and hand the embed
+            // URL to the extractor registry.
+            try {
+                val resp = app.get(fixUrl(route), referer = data, interceptor = cloudflareKiller)
+                val embedUrl = resp.url
+                if (fixUrl(route) == embedUrl || embedUrl == null) continue
+                loadExtractor(embedUrl, "$mainUrl/", subtitleCallback, callback)
+            } catch (_: Exception) {
+                // embed unreachable — try next server
             }
         }
 
         // Classic extractor chain for direct iframes on the page
         for (frame in Jsoup.parse(html).select("iframe[src]")) {
             val src = frame.attr("src").trim()
-            if (src.isBlank()) continue
+            if (src.isBlank() || src.contains("/oynat/") || !src.startsWith("http")) continue
             loadExtractor(fixUrl(src), "$mainUrl/", subtitleCallback, callback)
         }
 

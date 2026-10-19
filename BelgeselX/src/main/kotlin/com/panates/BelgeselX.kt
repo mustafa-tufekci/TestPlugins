@@ -176,6 +176,7 @@ class BelgeselX : MainAPI() {
 
             newEpisode("$base?epid=$id") {
                 this.name    = group[5].trim()
+                // capturing groups: 6=sezon, 7=bölüm (hit/tarih are non-capturing)
                 this.season  = group[6].toIntOrNull() ?: 1
                 this.episode = group[7].toIntOrNull() ?: (index + 1)
             }
@@ -221,8 +222,11 @@ class BelgeselX : MainAPI() {
                             url    = link,
                             type   = ExtractorLinkType.VIDEO
                         ) {
-                            this.referer = "$mainUrl/"
-                            this.quality = getQualityFromName(label)
+                            // NO Referer: the final googlevideo.com hop rejects
+                            // forwarded Referer (403) — direct curl proves it.
+                            this.referer = ""
+                            this.quality = if (label.equals("FULL", true)) Qualities.P1080.value
+                                           else getQualityFromName(label)
                         }
                     )
                     found = true
