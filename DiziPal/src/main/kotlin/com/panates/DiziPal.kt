@@ -306,7 +306,10 @@ class DiziPal : MainAPI() {
     private fun decodeJsonString(raw: String?): String? {
         val s = raw ?: return null
         if (!s.contains('\\')) return s
-        return try { objectMapper.readValue(s) } catch (_: Exception) { s }
+        return try {
+            // Çıplak "T\u00fc..." geçersiz JSON'dur; tırnak içine alıp decode et.
+            objectMapper.readValue("\"$s\"")
+        } catch (_: Exception) { s }
     }
 
     private fun decryptPlayerPayload(cipherB64: String, ivHex: String, saltHex: String): String? {
