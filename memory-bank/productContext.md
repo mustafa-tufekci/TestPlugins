@@ -30,7 +30,7 @@ ships those fixes.
 | HDFilmCehennemi | 36 | 1 | Obfuscated player, splice-family decoding, subtitle tracks |
 | HDFilmCehennemi2 | 10 | 1 | New template, vidload player, actor photos |
 | Dizilla | 26 | 1 | Hero image background + poster fallback |
-| DiziPal | 34 | 1 | mainUrl = `dizipal1591.com` (v34). Subs: iframe-embedded captions array (`kind:"captions"`) + Referer/UA `SubtitleFile.headers` — source2 JSON has no subs. Rotation 1584→1586→1588→1590→1591 |
+| DiziPal | 35 | 1 | mainUrl = `dizipal1591.com` (v34). Subs: iframe-embedded captions array (`kind:"captions"`) + Referer/UA `SubtitleFile.headers` — source2 JSON has no subs. v35: label unicode escapes decoded (wrap-in-quotes JSON parse). Rotation 1584→1586→1588→1590→1591 |
 | Dizilla | 30 | 1 | Self-contained Pichive extractors |
 | BelgeselX | 1 | 3 | belgeselx.com documentary provider (Beta); jwplayer `/video/data/*.php` sources + iframe fallback |
 | CizgiMax | 1 | 3 | cizgimax.online cartoon/anime provider (Beta); atob `servers` JSON → VidMoly iframe / byse stream → SibNet fallback; Jackson (tryParseJson yavru JVM11 sorununa karşı) |

@@ -17,6 +17,7 @@ template + vidload player), and the older **HDFilmCehennemi** (obfuscated player
 - `feat(dizibox): ajax dwls_search with fallbacks, homepage hardening (v9)` — `4478f00` (pushed, CI green).
 - `feat(dizibox): trim homepage to 5 rows, 150ms delay (v8)` — `37b742e` (pushed, CI green).
 - `fix(dizipal): switch to rotated domain dizipal1586.com (v31)` — `5f05052` (pushed, CI green).
+- `fix(dizipal): decode unicode escapes in subtitle labels (v35)` — `65957bb` (local; awaiting push approval).
 - `fix(dizipal): parse iframe-embedded captions with auth headers; rotate domain to dizipal1591.com (v34)` — `6c1836d` (pushed, CI green).
 - `feat(plugins): add BelgeselX (belgeselx.com) and CizgiMax (cizgimax.online) providers (v1)` — `2f04985` (pushed, CI green).
 - `fix(dizipal): switch to canonical domain dizipal1584.com (v30)` — `145bb3c` (pushed, CI green).
@@ -28,9 +29,8 @@ template + vidload player), and the older **HDFilmCehennemi** (obfuscated player
 - `fix(hdfilmcehennemi): decode new splice-family player obfuscation (v35)`.
 - `docs: add AGENTS.md with build/workflow rules and compile gotchas`.
 
-**State:** HEAD = `01449cc` == `fork/master`, **pushed**; CI run `39297293073` success;
-`builds` publishes **15 modules** incl. DiziPal 34, BelgeselX 1, CizgiMax 1.
-One docs-only commit may follow on next push.
+**State:** HEAD = `65957bb` = `fork/master` + 2 (DiziPal v35 label-encoding fix local + docs `a4b1837` — **awaiting push approval**).
+Last pushed CI run `39297293073` success; `builds` publishes 15 modules (DiziPal 34).
 Earlier: `0f06e40` + SelcukFlix v3/v2/v1 runs all green.
 `origin/master` (upstream) is unrelated and intentionally not synced.
 
