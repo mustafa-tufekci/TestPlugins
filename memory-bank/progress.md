@@ -1,16 +1,15 @@
 # Progress — TestPlugins
 
-## Status at last review (2026-10-19, HEAD `01449cc`)
+## Status at last review (2026-10-19)
 
-- 15 modules, all building; new **BelgeselX v1** + **CizgiMax v1** (both Beta,
-  ported from BTVault into com.panates; Cmx* data-class prefixes; Jackson instead of
-  inline tryParseJson per jvmTarget-1.8 rule).
-- HEAD == `fork/master` (pushed, CI `39297293073` success): DiziPal v34 (`6c1836d`)
-  + BelgeselX/CizgiMax v1 (`2f04985`). `builds` verified: 15 modules, DiziPal.cs3 /
-  BelgeselX.cs3 / CizgiMax.cs3 present.
-  Last pushed state = `7d4d3ab`, CI run `36903143263` success, `builds` branch publishes
-  12 modules incl. `SelcukFlix v4` (45142 bytes) — verified via GitHub API.
-- `memory-bank/` is now tracked (user committed it in `0f06e40 "deneme"`).
+- 16 modules, all building: `Animecix (v6)`, `Anizium (v1)`, `BelgeselX (v3)`, `CizgiMax (v2)`,
+  `DiziBal (v2)`, `DiziBOX (v9)`, `DiziFilm (v4)`, `Dizilla (v30)`, `DiziPal (v35)`,
+  `FullHDFilm (v3)`, `HDFilmCehennemi (v36)`, `HDFilmCehennemi2 (v11)`, `InatBox (v16)`,
+  `SelcukFlix (v9)`, `SezonlukDizi (v12)`, **Youtube (v1)**.
+- New **Youtube v1** plugin added (ported and improved from `recloudstream/extensions` with upstream
+  `loadLinks` URL formatting bug fix; integrates NewPipeExtractor at compile time and leverages
+  built-in Cloudstream YouTube extractors).
+- **BelgeselX v3**: drops dead empty-cid jw links, sira=1 retry fallback for series, defers YouTube mirrors.
 - Last successful pattern: `./gradlew make makePluginsJson` produces artifacts; CI republishes
   the `builds` branch on push to `master`.
 

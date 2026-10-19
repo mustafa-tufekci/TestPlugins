@@ -7,6 +7,9 @@ template + vidload player), and the older **HDFilmCehennemi** (obfuscated player
 
 ## Recent changes (see also progress.md)
 
+- `feat(Youtube): add YouTube provider plugin with search, channels, playlists, kiosks and link extractor (v1)`
+- `fix(BelgeselX): drop dead empty-cid jw links, defer YouTube mirrors to last resort, sira=1 retry (v3)`
+- `docs: CloudStreamHub BelgeselX/CizgiMax comparison findings`
 - `feat(plugins): add BelgeselX (belgeselx.com) and CizgiMax (cizgimax.online) providers (v1)` — latest commit `2f04985` (local, **awaiting push approval**).
 - `feat(anizium): add Anizium anime provider via api.anizium.co (v1)` — `43c9b53` (pushed, CI green).
 - `feat(selcukflix): trim homepage to 5 rows with sort orders (v4)` — `7d4d3ab` (pushed, CI green).

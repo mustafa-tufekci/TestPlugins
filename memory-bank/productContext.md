@@ -32,14 +32,15 @@ ships those fixes.
 | Dizilla | 26 | 1 | Hero image background + poster fallback |
 | DiziPal | 35 | 1 | mainUrl = `dizipal1591.com` (v34). Subs: iframe-embedded captions array (`kind:"captions"`) + Referer/UA `SubtitleFile.headers` — source2 JSON has no subs. v35: label unicode escapes decoded (wrap-in-quotes JSON parse). Rotation 1584→1586→1588→1590→1591 |
 | Dizilla | 30 | 1 | Self-contained Pichive extractors |
-| BelgeselX | 1 | 3 | belgeselx.com documentary provider (Beta); jwplayer `/video/data/*.php` sources + iframe fallback |
-| CizgiMax | 1 | 3 | cizgimax.online cartoon/anime provider (Beta); atob `servers` JSON → VidMoly iframe / byse stream → SibNet fallback; Jackson (tryParseJson yavru JVM11 sorununa karşı) |
+| BelgeselX | 3 | 3 | belgeselx.com documentary provider (Beta); jwplayer `/video/data/*.php` sources + iframe fallback; v3: drop empty cid= jw links, defer YouTube mirrors, sira=1 retry |
+| CizgiMax | 2 | 3 | cizgimax.online cartoon/anime provider (Beta); atob `servers` JSON → VidMoly iframe / byse stream → SibNet fallback; Jackson (tryParseJson yavru JVM11 sorununa karşı) |
 | SezonlukDizi | 12 | 1 | Self-contained `DzenSez` extractor |
 | InatBox | 16 | 1 | Requires kotlinx-coroutines dependency |
 | Animecix | 6 | 1 | |
 | DiziBOX | 9 | 1 | CF managed-challenge detection (`Just a moment...`), AJAX dwls_search (+XRW) with POST/GET fallback, 5 homepage rows (150ms, page-1 canonical, cacheTime 60), UA in stream headers |
-| DiziFilm | 3 | 1 | |
+| DiziFilm | 4 | 1 | |
 | FullHDFilm | 3 | 1 | |
 | DiziBal | 2 | 1 | |
-| SelcukFlix | 4 | 3 | API-based (`selcukflix.com/api/bg/`), 5 homepage rows (date/imdb/comment_desc), extractor `SlcContentX`/`SlcHotlinger` |
+| SelcukFlix | 9 | 3 | API-based (`selcukflix.com/api/bg/`), 5 homepage rows (date/imdb/comment_desc), extractor `SlcContentX`/`SlcHotlinger` |
 | Anizium | 1 | 3 | Anime API (`api.anizium.co` + `Cf-Control` header), servers 1 (mp4) + 2 (hls), tr/en/ar/es vtt subtitles |
+| Youtube | 1 | 1 | YouTube provider (videos, channels, playlists, live, kiosks & NewPipe integration) |
