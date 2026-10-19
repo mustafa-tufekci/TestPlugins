@@ -5,11 +5,9 @@
 - 15 modules, all building: `Animecix (v6)`, `Anizium (v1)`, `BelgeselX (v3)`, `CizgiMax (v2)`,
   `DiziBal (v2)`, `DiziFilm (v4)`, `Dizilla (v30)`, `DiziPal (v35)`,
   `FullHDFilm (v3)`, `HDFilmCehennemi (v36)`, `HDFilmCehennemi2 (v11)`, `InatBox (v16)`,
-  `SelcukFlix (v9)`, `SezonlukDizi (v12)`, **Youtube (v1)**.
+  `SelcukFlix (v9)`, `SezonlukDizi (v12)`, **Youtube (v2)**.
 - **DiziBOX**: Removed completely from repository on user request.
-- New **Youtube v1** plugin added (ported and improved from `recloudstream/extensions` with upstream
-  `loadLinks` URL formatting bug fix; integrates NewPipeExtractor at compile time and leverages
-  built-in Cloudstream YouTube extractors).
+- **Youtube v2**: Added Turkish localization (`Localization("tr", "TR")`, `ContentCountry("TR")`, `language = "tr"`, Turkish kiosk headers Trendler, Müzik, Oyun, Filmler & Diziler, Podcast'ler, Canlı Yayınlar) on `NewPipe` and extractors so the homepage and search display Turkish content by default. Ported and improved from `recloudstream/extensions` with upstream `loadLinks` URL formatting bug fix.
 - **BelgeselX v3**: drops dead empty-cid jw links, sira=1 retry fallback for series, defers YouTube mirrors.
 - Last successful pattern: `./gradlew make makePluginsJson` produces artifacts; CI republishes
   the `builds` branch on push to `master`.

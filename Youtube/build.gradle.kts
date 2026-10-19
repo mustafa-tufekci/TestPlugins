@@ -1,4 +1,4 @@
-version = 1
+version = 2
 
 cloudstream {
     description = "YouTube - Video, kanal, oynatma listesi ve canlı yayınlar"
@@ -6,7 +6,7 @@ cloudstream {
     status = 1
     tvTypes = listOf("Other", "Live", "TvSeries")
     iconUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/YouTube_full-color_icon_%282017%29.svg/3840px-YouTube_full-color_icon_%282017%29.svg.png"
-    language = "en"
+    language = "tr"
 }
 
 dependencies {

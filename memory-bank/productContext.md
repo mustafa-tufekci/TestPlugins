@@ -42,4 +42,4 @@ ships those fixes.
 | DiziBal | 2 | 1 | |
 | SelcukFlix | 9 | 3 | API-based (`selcukflix.com/api/bg/`), 5 homepage rows (date/imdb/comment_desc), extractor `SlcContentX`/`SlcHotlinger` |
 | Anizium | 1 | 3 | Anime API (`api.anizium.co` + `Cf-Control` header), servers 1 (mp4) + 2 (hls), tr/en/ar/es vtt subtitles |
-| Youtube | 1 | 1 | YouTube provider (videos, channels, playlists, live, kiosks & NewPipe integration) |
+| Youtube | 2 | 1 | YouTube provider (Turkish localization TR/tr, videos, channels, playlists, live, kiosks & NewPipe integration) |

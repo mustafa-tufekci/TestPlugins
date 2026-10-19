@@ -7,6 +7,7 @@ template + vidload player), and the older **HDFilmCehennemi** (obfuscated player
 
 ## Recent changes (see also progress.md)
 
+- `feat(Youtube): force Turkish localization and regional content on homepage/search (v2)`
 - `remove(DiziBOX): completely remove DiziBOX plugin from repo`
 - `feat(Youtube): add YouTube provider plugin with search, channels, playlists, kiosks and link extractor (v1)`
 - `fix(BelgeselX): drop dead empty-cid jw links, defer YouTube mirrors to last resort, sira=1 retry (v3)`
