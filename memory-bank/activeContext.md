@@ -156,3 +156,6 @@ Earlier: `0f06e40` + SelcukFlix v3/v2/v1 runs all green.
   `build.gradle.kts` — no registration step.
 - Because all modules share package `com.panates`, adding a class may break *another*
   module's compile; a full `./gradlew make` is the only safe check after adding top-level types.
+
+## CloudStreamHub comparison (2026-10-19)
+"nik-cloudstream" does not exist on GitHub; user clarified → Emre-Kahveci/CloudStreamHub (cloned to /tmp/opencode/hub, last commit 2026-10-15). Live-site probes: hub BelgeselX episode selectors (px-ep-row/diziGetir on series doc) match NOTHING → all documentaries load as movies without episodes; hub still sends Referer on googlevideo MP4s (our v1 403 bug). Hub CizgiMax rows /animeler /cizgi-diziler /cizgi-filmler all 404, WP selectors (.poster-box etc.) 0 matches on live (site uses div.film-item), /?s= search returns whole homepage; hub has no atob servers parsing. Ours (v2) correct on all probed criteria. Borrowables: StreamValidator preflight, BoundedParallelResolver.
