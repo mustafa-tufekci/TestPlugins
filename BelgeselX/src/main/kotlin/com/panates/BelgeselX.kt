@@ -203,44 +203,68 @@ class BelgeselX : MainAPI() {
         val ics = listOf(target.groupValues[2], target.groupValues[3], target.groupValues[4])
 
         var found = false
+        var ytFallback: String? = null
 
         for (index in 0..2) {
             val file = SRC_MAP[ics[index]] ?: "default"
             val src  = "$mainUrl/video/data/$file.php?id=$id&sira=${index + 1}"
-            val page = runCatching { app.get(src, referer = watch).text }.getOrNull() ?: continue
+            var page = runCatching { app.get(src, referer = watch).text }.getOrNull() ?: continue
 
             // 1) jwplayer sources: file:"<mp4>", label:"720p"
             val sources = JW_SOURCE.findAll(page).map { it.groupValues[1].trim() to it.groupValues[2].trim() }
-                .filter { it.first.startsWith("http") }.toList()
+                .filter { it.first.startsWith("http") && !it.first.endsWith("cid=") }.toList()
 
-            if (sources.isNotEmpty()) {
-                for ((link, label) in sources) {
-                    callback(
-                        newExtractorLink(
-                            source = "BelgeselX",
-                            name   = if (label.isEmpty()) "BelgeselX" else "BelgeselX $label",
-                            url    = link,
-                            type   = ExtractorLinkType.VIDEO
-                        ) {
-                            // NO Referer: the final googlevideo.com hop rejects
-                            // forwarded Referer (403) — direct curl proves it.
-                            this.referer = ""
-                            this.quality = if (label.equals("FULL", true)) Qualities.P1080.value
-                                           else getQualityFromName(label)
-                        }
-                    )
-                    found = true
+            // dead-episode fallback: some data pages only serve alternating sira slots
+            if (sources.isEmpty()) {
+                val retry = "$mainUrl/video/data/$file.php?id=$id&sira=1"
+                val page1 = runCatching { app.get(retry, referer = watch).text }.getOrNull()
+                if (page1 != null && page1 != page) {
+                    page = page1
                 }
-                continue
             }
+            val jw2 = JW_SOURCE.findAll(page).map { it.groupValues[1].trim() to it.groupValues[2].trim() }
+                .filter { it.first.startsWith("http") && !it.first.endsWith("cid=") }.toList()
 
-            // 2) iframe player (dailymotion / ok.ru / yadi.sk / drive)
+            for ((link, label) in jw2) {
+                callback(
+                    newExtractorLink(
+                        source = "BelgeselX",
+                        name   = if (label.isEmpty()) "BelgeselX" else "BelgeselX $label",
+                        url    = link,
+                        type   = ExtractorLinkType.VIDEO
+                    ) {
+                        // NO Referer: the final googlevideo.com hop rejects
+                        // forwarded Referer (403) — direct curl proves it.
+                        this.referer = ""
+                        this.quality = if (label.equals("FULL", true)) Qualities.P1080.value
+                                       else getQualityFromName(label)
+                    }
+                )
+                found = true
+            }
+            if (jw2.isNotEmpty()) continue
+
+            // 2) iframe player (dailymotion / ok.ru / youtube / drive)
             val iframe = WRAP_IFRAME.findAll(page).map { it.groupValues[1].trim() }
                 .firstOrNull { it.startsWith("http") && AD_HOSTS.none { ad -> it.contains(ad) } }
                 ?: continue
 
+            // YouTube mirrors are the site's last resort for albums whose own
+            // video died; Cloudstream routes them to the app's YoutubeExtractor
+            // ("YouTube" source). That resolution is unreliable, so YouTube
+            // candidates are deferred: only used if nothing else was found.
+            if (iframe.contains("youtube.com") || iframe.contains("youtu.be")) {
+                if (ytFallback == null) ytFallback = iframe
+                continue
+            }
+
             val fixed = fixUrlNull(iframe) ?: continue
             if (loadExtractor(fixed, src, subtitleCallback, callback)) found = true
+        }
+
+        // last resort: let the app's YouTube extractor try the mirror
+        if (!found && ytFallback != null) {
+            if (loadExtractor(ytFallback, "$mainUrl/", subtitleCallback, callback)) found = true
         }
 
         return found
