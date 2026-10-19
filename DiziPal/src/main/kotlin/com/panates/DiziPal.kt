@@ -39,7 +39,7 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 class DiziPal : MainAPI() {
-    override var mainUrl = "https://dizipal1590.com"
+    override var mainUrl = "https://dizipal1591.com"
     override var name = "DiziPal"
     override val hasMainPage = true
     override var lang = "tr"
@@ -226,7 +226,6 @@ class DiziPal : MainAPI() {
         val blob = Regex("""openPlayer\('([^']+)'""").find(iframeHtml)?.groupValues?.get(1)
             ?: return false
         val host = URI(absIframe).host ?: return false
-
         val sourceJson = app.get("https://${host}/source2.php?v=${blob}", referer = absIframe).text
         val root = try {
             objectMapper.readTree(sourceJson)
@@ -239,10 +238,36 @@ class DiziPal : MainAPI() {
             ?: return false
         val master = file.replace("m.php", "master.m3u8")
 
+        // Altyazılar source2 JSON'unda değil, iframe HTML'inin içine gömülü JS dizisinde:
+        // [{"file":".../translateden.vtt?sp=3","label":"T\u00fcrk\u00e7e","kind":"captions","lang":"tr"}, ...]
         val subtitles = mutableListOf<Pair<String, String>>()
-        collectSubtitles(root, subtitles)
+
+        fun addSub(lang: String?, raw: String?) {
+            val fixed = (raw ?: return)
+                .replace("\\/", "/")
+                .replace("\\u0026", "&")
+                .trim()
+            if (!fixed.contains(".vtt")) return
+            if (subtitles.none { it.second == fixed }) {
+                subtitles.add((decodeJsonString(lang).orEmpty().ifBlank { "Altyazı" }) to fixed)
+            }
+        }
+
+        // 1) iframe HTML'i içine gömülü altyazı dizisi (captions kind)
+        Regex(""""file"\s*:\s*"((?:\\.|[^"\\])+)"\s*,\s*"label"\s*:\s*"((?:\\.|[^"\\])+)"\s*,\s*"kind"\s*:\s*"captions"""")
+            .findAll(iframeHtml)
+            .forEach { addSub(it.groupValues[2], it.groupValues[1]) }
+
+        // 2) source2 JSON'u (eski format / gelecekteki hostlar için aktif kalsın)
+        runCatching { root?.let { collectSubtitles(it, subtitles) } }
+
+        // Altyazı CDN'i başlıksız isteğe 404 döndürüyor; video ile aynı başlıkları ekle
+        val subHeaders = mapOf(
+            "Referer" to absIframe,
+            "User-Agent" to USER_AGENT
+        )
         subtitles.forEach { (lang, url) ->
-            subtitleCallback.invoke(SubtitleFile(lang = lang, url = url))
+            subtitleCallback.invoke(SubtitleFile(lang, url).apply { headers = subHeaders })
         }
 
         callback.invoke(
@@ -269,12 +294,19 @@ class DiziPal : MainAPI() {
                 val lang = node.path("label").asText(null)
                     ?: node.path("language").asText(null)
                     ?: "Altyazı"
-                out.add(lang to file)
+                if (out.none { it.second == file }) out.add(lang to file)
             }
             node.forEach { collectSubtitles(it, out) }
         } else if (node.isArray) {
             node.forEach { collectSubtitles(it, out) }
         }
+    }
+
+    /** "T\u00fcrk\u00e7e" gibi JSON kaçış dizilerini çözer. */
+    private fun decodeJsonString(raw: String?): String? {
+        val s = raw ?: return null
+        if (!s.contains('\\')) return s
+        return try { objectMapper.readValue(s) } catch (_: Exception) { s }
     }
 
     private fun decryptPlayerPayload(cipherB64: String, ivHex: String, saltHex: String): String? {
