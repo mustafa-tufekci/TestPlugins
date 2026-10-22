@@ -173,3 +173,12 @@ class SlcFourPichive : SlcContentX() {
     override var name    = "SlcFourPichive"
     override var mainUrl = "https://four.pichive.online"
 }
+
+// Movie iframes are served from sn.dplayer*.site and rewritten in loadLinks to
+// sn.hotlinger.com. Without a registered extractor for that host loadExtractor
+// never matches (matching is url.startsWith(schemaless mainUrl)), so movie
+// sources silently produced nothing while series (four.pichive) kept working.
+class SlcSnHotlinger : SlcContentX() {
+    override var name    = "SlcSnHotlinger"
+    override var mainUrl = "https://sn.hotlinger.com"
+}

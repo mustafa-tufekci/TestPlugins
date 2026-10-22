@@ -11,5 +11,6 @@ class SelcukFlixPlugin: Plugin() {
         registerExtractorAPI(SlcHotlinger())
         registerExtractorAPI(SlcPichive())
         registerExtractorAPI(SlcFourPichive())
+        registerExtractorAPI(SlcSnHotlinger())
     }
 }
