@@ -9,5 +9,6 @@ class PanatesPlugin : Plugin() {
     override fun load(context: Context) {
         registerMainAPI(SezonlukDizi())
         registerExtractorAPI(DzenSez())
+        registerExtractorAPI(FilemoonSez())
     }
 }
