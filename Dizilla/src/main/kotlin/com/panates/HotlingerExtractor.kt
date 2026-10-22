@@ -31,3 +31,23 @@ class FourPichive : ContentX() {
     override var name    = "FourPichive"
     override var mainUrl = "https://four.pichive.online"
 }
+
+class Filese : ContentX() {
+    override var name    = "Filese"
+    override var mainUrl = "https://filese.me"
+}
+
+class FourFilese : ContentX() {
+    override var name    = "FourFilese"
+    override var mainUrl = "https://four.filese.me"
+}
+
+class Okvip : ContentX() {
+    override var name    = "Okvip"
+    override var mainUrl = "https://okvip.cab"
+}
+
+class FourOkvip : ContentX() {
+    override var name    = "FourOkvip"
+    override var mainUrl = "https://four.okvip.cab"
+}
