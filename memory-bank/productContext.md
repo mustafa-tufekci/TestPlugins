@@ -31,7 +31,8 @@ ships those fixes.
 | HDFilmCehennemi2 | 10 | 1 | New template, vidload player, actor photos |
 | Dizilla | 26 | 1 | Hero image background + poster fallback |
 | DiziPal | 35 | 1 | mainUrl = `dizipal1591.com` (v34). Subs: iframe-embedded captions array (`kind:"captions"`) + Referer/UA `SubtitleFile.headers` — source2 JSON has no subs. v35: label unicode escapes decoded (wrap-in-quotes JSON parse). Rotation 1584→1586→1588→1590→1591 |
-| Dizilla | 30 | 1 | Self-contained Pichive extractors |
+| Dizilla | 31 | 1 | Next.js App Router / Turbopack migration: Schema.org TVSeries JSON-LD, clean search /ara?q=, embedded sources JSON, Pichive/Filese/Okvip extractors |
+| CanliTV | 1 | 1 | Live TV & Sports: 20+ verified HLS channels (TRT Spor 1-2, TRT Spor Yıldız, tabii Spor 1-6 UEFA, TRT 1, TV8, Show TV, Kanal D, NOW TV, TRT Haber/Belgesel/2/World/Çocuk/Müzik, Kral FM, Power Türk) + Sporekrani live match scraper |
 | BelgeselX | 3 | 3 | belgeselx.com documentary provider (Beta); jwplayer `/video/data/*.php` sources + iframe fallback; v3: drop empty cid= jw links, defer YouTube mirrors, sira=1 retry |
 | CizgiMax | 2 | 3 | cizgimax.online cartoon/anime provider (Beta); atob `servers` JSON → VidMoly iframe / byse stream → SibNet fallback; Jackson (tryParseJson yavru JVM11 sorununa karşı) |
 | SezonlukDizi | 12 | 1 | Self-contained `DzenSez` extractor |

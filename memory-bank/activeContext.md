@@ -2,11 +2,12 @@
 
 ## Current focus
 
-Maintenance of the two Turkish film providers, most recently **HDFilmCehennemi2** (new
-template + vidload player), and the older **HDFilmCehennemi** (obfuscated player).
+Fixing Dizilla (v31) following Next.js App Router / Turbopack migration, and adding the new CanliTV (v1) live TV & sports provider plugin.
 
 ## Recent changes (see also progress.md)
 
+- `fix(Dizilla): adapt to site redesign with Schema.org JSON-LD and clean search/loadLinks (v31)`
+- `feat(CanliTV): add CanliTV live sports and TV channels plugin with Sporekrani schedule (v1)`
 - `feat(Youtube): force Turkish localization and regional content on homepage/search (v2)`
 - `remove(DiziBOX): completely remove DiziBOX plugin from repo`
 - `feat(Youtube): add YouTube provider plugin with search, channels, playlists, kiosks and link extractor (v1)`

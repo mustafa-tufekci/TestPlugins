@@ -1,11 +1,13 @@
 # Progress — TestPlugins
 
-## Status at last review (2026-10-19)
+## Status at last review (2026-10-22)
 
-- 15 modules, all building: `Animecix (v6)`, `Anizium (v1)`, `BelgeselX (v3)`, `CizgiMax (v2)`,
-  `DiziBal (v2)`, `DiziFilm (v4)`, `Dizilla (v30)`, `DiziPal (v35)`,
+- 16 modules, all building: `Animecix (v6)`, `Anizium (v1)`, `BelgeselX (v3)`, **CanliTV (v1)**, `CizgiMax (v2)`,
+  `DiziBal (v2)`, `DiziFilm (v4)`, **Dizilla (v31)**, `DiziPal (v35)`,
   `FullHDFilm (v3)`, `HDFilmCehennemi (v36)`, `HDFilmCehennemi2 (v11)`, `InatBox (v16)`,
-  `SelcukFlix (v9)`, `SezonlukDizi (v12)`, **Youtube (v2)**.
+  `SelcukFlix (v9)`, `SezonlukDizi (v12)`, `Youtube (v2)`.
+- **Dizilla (v31)**: Fixed site redesign (Next.js App Router / Turbopack migration). Replaced legacy `__NEXT_DATA__` and AES decryption with Schema.org `TVSeries` JSON-LD parsing, updated search to clean `/ara?q=`, parsed Next.js embedded `sources` JSON, registered `Filese`, `FourFilese`, `Okvip`, `FourOkvip` extractors.
+- **CanliTV (v1)**: New live TV & sports plugin with 20+ verified HLS channels (TRT Spor 1-2, TRT Spor Yıldız, tabii Spor 1-6 UEFA, TRT 1, TV8, Show TV, Kanal D, NOW TV dynamic m3u8 resolver, TRT Haber, TRT Belgesel, TRT 2, TRT World, TRT Çocuk, TRT Müzik, Kral FM, Power Türk) plus dynamic `Sporekrani` match schedule scraper mapping to live channel streams.
 - **DiziBOX**: Removed completely from repository on user request.
 - **Youtube v2**: Added Turkish localization (`Localization("tr", "TR")`, `ContentCountry("TR")`, `language = "tr"`, Turkish kiosk headers Trendler, Müzik, Oyun, Filmler & Diziler, Podcast'ler, Canlı Yayınlar) on `NewPipe` and extractors so the homepage and search display Turkish content by default. Ported and improved from `recloudstream/extensions` with upstream `loadLinks` URL formatting bug fix.
 - **BelgeselX v3**: drops dead empty-cid jw links, sira=1 retry fallback for series, defers YouTube mirrors.
