@@ -314,7 +314,9 @@ class SezonlukDizi : MainAPI() {
     // ── Private Helpers ──────────────────────────────────────────────────
 
     private fun renameLink(link: ExtractorLink, newName: String): ExtractorLink = ExtractorLink(
-        source = link.source ?: newName,
+        // source must be the label too: the player groups links by source, keeping the
+        // extractor's generic name would merge Altyazı/Dublaj entries of the same host.
+        source = newName,
         name = newName,
         url = link.url ?: "",
         referer = link.referer ?: mainUrl,
