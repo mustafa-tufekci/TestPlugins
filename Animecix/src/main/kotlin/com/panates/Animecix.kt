@@ -24,14 +24,16 @@ class Animecix : MainAPI() {
             "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
         )
 
-        /** Search/homepage results are the only place where a title's name/poster is exposed. */
-        private val metaCache = java.util.concurrent.ConcurrentHashMap<Int, AcxMeta>()
-
         private val tauHeaders = mapOf(
             "User-Agent" to defaultHeaders["User-Agent"]!!,
             "Referer" to "$TAU_VIDEO_URL/",
             "Origin" to TAU_VIDEO_URL
         )
+
+        /** Search/homepage results are the only place where a title's name/poster is exposed. */
+        private val metaCache = java.util.concurrent.ConcurrentHashMap<Int, AcxMeta>()
+
+        data class AcxMeta(val name: String, val poster: String?, val year: Int?, val movie: Boolean)
     }
 
     // ── Search ──────────────────────────────────────────────────────────
@@ -55,12 +57,7 @@ class Animecix : MainAPI() {
                 val title = result.name ?: return@mapNotNull null
                 val posterUrl = result.poster?.let { fixUrl(it) }
                 val type = result.titleType ?: result.type ?: ""
-                metaCache[id] = AcxMeta(
-                    title,
-                    posterUrl,
-                    result.year,
-                    type.contains("movie", ignoreCase = true) || type.contains("film", ignoreCase = true)
-                )
+                metaCache[id] = AcxMeta(title, posterUrl, result.year, type.contains("movie", ignoreCase = true) || type.contains("film", ignoreCase = true))
 
                 if (type.contains("movie", ignoreCase = true)) {
                     newMovieSearchResponse(title, "$mainUrl/anime/$id", TvType.Movie) {
@@ -141,7 +138,6 @@ class Animecix : MainAPI() {
                     val id = result.id ?: return@mapNotNull null
                     val title = result.name ?: return@mapNotNull null
                     val posterUrl = result.poster?.let { fixUrl(it) }
-                    metaCache[id] = AcxMeta(title, posterUrl, result.year, false)
                     newTvSeriesSearchResponse(title, "$mainUrl/anime/$id", TvType.TvSeries) {
                         this.posterUrl = posterUrl
                         this.year = result.year
@@ -184,6 +180,7 @@ class Animecix : MainAPI() {
 
         val firstSeasonVideos = firstSeasonResponse?.videos ?: emptyList()
         val titleDetails = firstSeasonVideos.firstOrNull()?.title
+
         val cached = metaCache[titleId.toIntOrNull() ?: -1]
 
         val name = titleDetails?.name
@@ -246,13 +243,12 @@ class Animecix : MainAPI() {
                 }
 
                 for ((idx, video) in videos.withIndex()) {
+                    val epNum = video.episodeNum ?: (idx + 1)
+                    val sNum = video.seasonNum ?: s
                     // A season request also echoes rows from other seasons whose episode
                     // number is null; those used to become bogus entries like
                     // "2. Sezon 363. Bölüm" inside season 1.
                     if (video.seasonNum != null && video.seasonNum != s) continue
-
-                    val epNum = video.episodeNum ?: (idx + 1)
-                    val sNum = video.seasonNum ?: s
                     val epData = buildEpData(titleId, sNum, epNum)
 
                     // Episode title: video.description holds the episode name (e.g. "Zulüm", "Ryomen Sukuna")
@@ -267,8 +263,6 @@ class Animecix : MainAPI() {
 
                     // Episode thumbnail: video.thumbnail contains the TMDB preview image
                     val epThumbnail = video.thumbnail?.let { fixUrl(it) } ?: posterUrl
-
-                    if (episodes.any { it.season == sNum && it.episode == epNum }) continue
 
                     episodes.add(newEpisode(epData) {
                         this.name = epName
@@ -296,17 +290,6 @@ class Animecix : MainAPI() {
                 this.tags = genres
             }
         }
-    }
-
-    /** /secure/videos keeps movie sources (their season_num/episode_num are null). */
-    private suspend fun fetchTitleVideos(titleId: String): List<VideoSource>? = try {
-        app.get(
-            "$apiUrl/secure/videos",
-            params = mapOf("titleId" to titleId, "season" to "1", "episode" to "1"),
-            headers = defaultHeaders
-        ).parsedSafe<VideosResponse>()?.pagination?.data
-    } catch (_: Exception) {
-        null
     }
 
     // ── Load Links ──────────────────────────────────────────────────────
@@ -375,11 +358,6 @@ class Animecix : MainAPI() {
             } catch (_: Exception) {
                 null
             }
-        }
-
-        // Fallback 3: /secure/videos — movies only expose their sources there
-        if (videos.isNullOrEmpty()) {
-            videos = fetchTitleVideos(titleId)
         }
 
         if (videos.isNullOrEmpty()) return false
@@ -571,6 +549,18 @@ class Animecix : MainAPI() {
         }
     }
 
+    private suspend fun fetchTitleVideos(titleId: String): List<RelatedVideo>? {
+        return try {
+            app.get(
+                "$apiUrl/secure/videos",
+                params = mapOf("titleId" to titleId),
+                headers = defaultHeaders
+            ).parsedSafe<RelatedVideosResponse>()?.videos
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     // ── Data Classes ────────────────────────────────────────────────────
 
     data class GuestListItem(
@@ -662,14 +652,6 @@ class Animecix : MainAPI() {
         @JsonProperty("videos") val videos: List<VideoSource>?
     )
 
-    data class VideosPagination(
-        @JsonProperty("data") val data: List<VideoSource>?
-    )
-
-    data class VideosResponse(
-        @JsonProperty("pagination") val pagination: VideosPagination?
-    )
-
     data class TauVideoUrl(
         @JsonProperty("url") val url: String?,
         @JsonProperty("label") val label: String?,
@@ -680,11 +662,3 @@ class Animecix : MainAPI() {
         @JsonProperty("urls") val urls: List<TauVideoUrl>?
     )
 }
-
-/** Name/poster/year seen while browsing; /secure/titles cannot be queried per id. */
-private data class AcxMeta(
-    val name: String,
-    val poster: String?,
-    val year: Int?,
-    val movie: Boolean
-)
