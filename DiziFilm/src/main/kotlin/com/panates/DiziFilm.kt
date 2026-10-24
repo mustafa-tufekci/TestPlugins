@@ -119,7 +119,9 @@ class DiziFilm : MainAPI() {
             val title = item.optString("title").takeIf { it.isNotBlank() }
                 ?: item.optString("original_title").takeIf { it.isNotBlank() } ?: continue
             val posterUrl = item.optString("poster_url").takeIf { it.isNotBlank() }?.let { fixUrl(it) }
-            val contentType = item.optString("content_type")
+            val contentType = item.optString("content_type").lowercase()
+            // The API also returns actor/director hits; they have no /film/ or /dizi/ page.
+            if (contentType != "movie" && contentType != "series") continue
             val year = item.optInt("year", 0).takeIf { it > 0 }
 
             if (contentType == "movie") {
@@ -157,7 +159,11 @@ class DiziFilm : MainAPI() {
 
         val plot = extractPlot(doc, rscPayload)
 
-        val year = Regex("""(20\d\d|19\d\d)""").find(html)?.groupValues?.get(1)?.toIntOrNull()
+        // Never scan the whole document: Turbopack chunk names such as 69eb1918829d4e8e.js
+        // contain digit runs that used to be parsed as the release year (1918).
+        val year = Regex(""""datePublished"\s*:\s*"(\d{4})""").find(html)?.groupValues?.get(1)?.toIntOrNull()
+            ?: Regex("""(?:yayın|yapım|vizyon)\D{0,12}((?:19|20)\d{2})""", RegexOption.IGNORE_CASE)
+                .find(html)?.groupValues?.get(1)?.toIntOrNull()
 
         val scoreText = Regex("""(?:imdb_rating|tmdb_rating)["']?\s*:\s*(\d+(?:\.\d+)?)""").find(rscPayload)?.groupValues?.get(1)
             ?: Regex("""(\d+(?:\.\d+)?)\s*(?:/10|IMDb)""").find(html)?.groupValues?.get(1)
@@ -386,6 +392,18 @@ class DiziFilm : MainAPI() {
         return url.contains("vidmixi.com") || Regex("""/embed/[0-9a-f]{16,}""", RegexOption.IGNORE_CASE).containsMatchIn(url)
     }
 
+    /** True when the URL really serves a WebVTT/SRT track (Vidmixi /Subtitle is a dead stub). */
+    private suspend fun isPlayableSubtitle(url: String, referer: String): Boolean = runCatching {
+        val body = app.get(
+            url,
+            headers = mapOf(
+                "User-Agent" to defaultHeaders["User-Agent"]!!,
+                "Referer" to referer
+            )
+        ).text
+        body.contains("-->")
+    }.getOrDefault(false)
+
     private suspend fun extractVidmixi(
         embedUrl: String,
         referer: String,
@@ -419,6 +437,9 @@ class DiziFilm : MainAPI() {
                     if (subFile.startsWith("/")) subFile = "$origin$subFile"
                     val subLabel = subObj.optString("label").takeIf { it.isNotBlank() }
                         ?: subObj.optString("language").takeIf { it.isNotBlank() } ?: "Türkçe"
+                    // Vidmixi's /Subtitle endpoint answers 200 with a tiny HTML comment instead of
+                    // a track, which makes the player show an empty subtitle. Probe before emitting.
+                    if (!isPlayableSubtitle(subFile, "$origin/")) continue
                     subtitleCallback(
                         SubtitleFile(
                             lang = unescapeUnicode(subLabel),
