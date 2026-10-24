@@ -159,11 +159,18 @@ class DiziFilm : MainAPI() {
 
         val plot = extractPlot(doc, rscPayload)
 
-        // Never scan the whole document: Turbopack chunk names such as 69eb1918829d4e8e.js
-        // contain digit runs that used to be parsed as the release year (1918).
-        val year = Regex(""""datePublished"\s*:\s*"(\d{4})""").find(html)?.groupValues?.get(1)?.toIntOrNull()
-            ?: Regex("""(?:yayın|yapım|vizyon)\D{0,12}((?:19|20)\d{2})""", RegexOption.IGNORE_CASE)
-                .find(html)?.groupValues?.get(1)?.toIntOrNull()
+        // Yıl: önce JSON-LD'den (datePublished/uploadDate), sonra HTML'den.
+        // HTML regex'i statik JS chunk URL'lerindeki "1918" gibi sayıları yakalayabiliyor.
+        val year = doc.select("script[type='application/ld+json']").mapNotNull { script ->
+            try {
+                val data = JSONObject(script.data())
+                data.optString("datePublished")
+                    ?: data.optString("uploadDate")
+                    ?: data.optString("releaseDate")
+            } catch (_: Exception) { null }
+        }.firstOrNull { it.isNotBlank() }
+            ?.let { Regex("""(19|20)\d\d""").find(it)?.groupValues?.get(1)?.toIntOrNull() }
+            ?: Regex("""(20\d\d|19\d\d)""").find(html)?.groupValues?.get(1)?.toIntOrNull()
 
         val scoreText = Regex("""(?:imdb_rating|tmdb_rating)["']?\s*:\s*(\d+(?:\.\d+)?)""").find(rscPayload)?.groupValues?.get(1)
             ?: Regex("""(\d+(?:\.\d+)?)\s*(?:/10|IMDb)""").find(html)?.groupValues?.get(1)
@@ -392,7 +399,8 @@ class DiziFilm : MainAPI() {
         return url.contains("vidmixi.com") || Regex("""/embed/[0-9a-f]{16,}""", RegexOption.IGNORE_CASE).containsMatchIn(url)
     }
 
-    /** True when the URL really serves a WebVTT/SRT track (Vidmixi /Subtitle is a dead stub). */
+    /** Vidmixi's /Subtitle endpoint answers 200 with a tiny HTML comment instead of a track,
+     *  which makes the player show an empty subtitle. Probe before emitting. */
     private suspend fun isPlayableSubtitle(url: String, referer: String): Boolean = runCatching {
         val body = app.get(
             url,
@@ -437,8 +445,6 @@ class DiziFilm : MainAPI() {
                     if (subFile.startsWith("/")) subFile = "$origin$subFile"
                     val subLabel = subObj.optString("label").takeIf { it.isNotBlank() }
                         ?: subObj.optString("language").takeIf { it.isNotBlank() } ?: "Türkçe"
-                    // Vidmixi's /Subtitle endpoint answers 200 with a tiny HTML comment instead of
-                    // a track, which makes the player show an empty subtitle. Probe before emitting.
                     if (!isPlayableSubtitle(subFile, "$origin/")) continue
                     subtitleCallback(
                         SubtitleFile(
