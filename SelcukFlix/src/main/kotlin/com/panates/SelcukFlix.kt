@@ -189,13 +189,24 @@ class SelcukFlix : MainAPI() {
                         val title  = item.get("object_name")?.asText() ?: return@forEach
                         val slug   = item.get("used_slug")?.asText() ?: return@forEach
                         val poster = fixPosterUrl(item.get("object_poster_url")?.asText())
-                        val type   = item.get("type")?.asText() ?: ""
+                        // The API names this field used_type ("Movies" / "Series"); reading "type"
+                        // returned null and every hit was labelled a TV series.
+                        val type   = (item.get("used_type") ?: item.get("type"))?.asText() ?: ""
+                        val year   = item.get("object_release_year")?.asText()?.take(4)?.toIntOrNull()
                         val href   = fixUrl(slug)
+                        val isMovie = type.equals("Movies", true) || type.equals("Movie", true) ||
+                            slug.startsWith("film/") || slug.contains("/film/")
                         if (!href.contains("/seri-filmler/")) {
-                            if (type == "Movies") {
-                                results.add(newMovieSearchResponse(title, href, TvType.Movie) { posterUrl = poster })
+                            if (isMovie) {
+                                results.add(newMovieSearchResponse(title, href, TvType.Movie) {
+                                    posterUrl = poster
+                                    this.year = year
+                                })
                             } else {
-                                results.add(newTvSeriesSearchResponse(title, href, TvType.TvSeries) { posterUrl = poster })
+                                results.add(newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
+                                    posterUrl = poster
+                                    this.year = year
+                                })
                             }
                         }
                     }
