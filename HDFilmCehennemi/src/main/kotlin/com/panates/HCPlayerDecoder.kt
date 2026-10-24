@@ -2,7 +2,7 @@ package com.panates
 
 import android.util.Base64
 
-fun hdcDecodePlayer(payload: String, separator: String): String? {
+fun hdcDecodePlayer(payload: String, separator: String, hostname: String = ""): String? {
     return try {
         val raw = payload.split(separator)
         if (raw.size < 3) return null
@@ -12,9 +12,10 @@ fun hdcDecodePlayer(payload: String, separator: String): String? {
         val i2 = 8 + (n % 5)
         if (i1 >= chunks.size || i2 >= chunks.size) return null
         val chunkA = chunks.removeAt(i2)
-        val chunkB = chunks.removeAt(i1)
+        // The page salts the second chunk with document.location.hostname before using it.
+        val chunkB = chunks.removeAt(i1) + hostname
         var s = chunks.joinToString("")
-        if (chunkA.length > 2048) s = s.reversed()
+        if (chunkB.length > 4096) s = hdcAtob(s)
         var k = 0
         var z = 0
         for (i in chunkB.indices) {
@@ -44,7 +45,7 @@ fun hdcDecodePlayer(payload: String, separator: String): String? {
                 }
             }
         }
-        if (chunkB.length > 4096) s = hdcAtob(s)
+        if (chunkA.length > 2048) s = s.reversed()
         val len = s.length
         if (len < 2) return null
         val swaps = IntArray(len)
@@ -86,13 +87,13 @@ internal fun hdcSlugFromEmbedUrl(url: String): String? =
 private val HDC_SPLIT_CALL =
     Regex("""=\s*[A-Za-z0-9_$]+\("([^"]*)"\.split\("([^"]+)"\)\)""")
 
-internal fun hdcSelectStreamUrl(text: String, slug: String?): String? {
+internal fun hdcSelectStreamUrl(text: String, slug: String?, hostname: String = ""): String? {
     var fallback: String? = null
     for (match in HDC_SPLIT_CALL.findAll(text)) {
         val payload = match.groupValues[1].replace("\\/", "/")
         val separator = match.groupValues[2]
         if (payload.isEmpty() || separator.isEmpty()) continue
-        val url = hdcDecodePlayer(payload, separator) ?: continue
+        val url = hdcDecodePlayer(payload, separator, hostname) ?: continue
         if (!hdcPlausibleStreamUrl(url)) continue
         if (slug != null && url.contains(slug)) return url
         if (fallback == null) fallback = url

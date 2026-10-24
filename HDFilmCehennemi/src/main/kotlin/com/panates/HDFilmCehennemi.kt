@@ -316,8 +316,12 @@ class HDFilmCehennemi : MainAPI() {
                     referer = data
                 ).text
                 Log.d("HDCH", "Found videoID: $videoID")
-                var iframe = Regex("""data-src=\\"([^"]+)""").find(apiGet)?.groupValues?.get(1)!!
-                    .replace("\\", "")
+                val rawIframe = Regex("""data-src=\\"([^"]+)""").find(apiGet)?.groupValues?.get(1)
+                if (rawIframe.isNullOrBlank()) {
+                    Log.d("HDCH", "no iframe for $videoID ($source)")
+                    return@forEach
+                }
+                var iframe = rawIframe.replace("\\", "")
                 Log.d("HDCH", "iframe » $iframe")
                 iframe = iframe.replace("{rapidrame_id}", "")
                 Log.d("HDCH", "iframe » $iframe")

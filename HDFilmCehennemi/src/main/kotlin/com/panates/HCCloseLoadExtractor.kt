@@ -38,7 +38,8 @@ open class HCCloseLoadExtractor : ExtractorApi() {
 
         val haystack = iSource.text + "\n" + (unpacked ?: "")
         val slug = hdcSlugFromEmbedUrl(url)
-        val streamUrl = hdcSelectStreamUrl(haystack, slug)
+        val host = url.substringAfter("://", "").substringBefore("/").substringBefore(":")
+        val streamUrl = hdcSelectStreamUrl(haystack, slug, host)
         if (streamUrl != null) {
             emitLink(callback, streamUrl)
             return
