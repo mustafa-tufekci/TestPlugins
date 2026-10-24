@@ -324,13 +324,6 @@ class HDFilmCehennemi2 : MainAPI() {
         }
     }
 
-    /** Turns a JS string literal (`\\u0022`, `\\/`) back into plain JSON text. */
-    private fun vidloadUnescape(value: String): String {
-        var out = value.replace("\\u0022", "\"").replace("\\u0027", "'")
-        repeat(3) { out = out.replace("\\/", "/") }
-        return out.replace("\\\\", "\\")
-    }
-
     private suspend fun resolveVidload(
         iframeUrl: String,
         label: String,
@@ -350,7 +343,7 @@ class HDFilmCehennemi2 : MainAPI() {
             ?.let { runCatching { ObjectMapper().readTree(vidloadUnescape(it)) }.getOrNull() }
 
         val stream = config?.path("file")?.asText(null)?.trim()?.takeIf { it.startsWith("http") }
-            ?: Regex(""""?file"?\s*:\s*"(https?://[^"]+\.m3u8[^"]*)"""").find(normalized)?.groupValues?.get(1)
+            ?: Regex("""file:\s*"(https?://[^"]+\.m3u8[^"]*)"""").find(normalized)?.groupValues?.get(1)
             ?: return
 
         callback.invoke(
@@ -366,6 +359,8 @@ class HDFilmCehennemi2 : MainAPI() {
         )
 
         val seen = mutableSetOf<String>()
+
+        // Subtitles from parsed config tracks
         config?.path("tracks")?.forEach { node ->
             val url = node.path("file").asText(null)?.trim() ?: return@forEach
             if (!url.contains(".vtt") || !seen.add(url)) return@forEach
@@ -393,6 +388,13 @@ class HDFilmCehennemi2 : MainAPI() {
                 if (seen.add(url)) subtitleCallback.invoke(SubtitleFile(subtitleLabel(url), url))
             }
         }
+    }
+
+    /** Turns a JS string literal (`\u0022`, `\/`) back into plain JSON text. */
+    private fun vidloadUnescape(value: String): String {
+        var out = value.replace("\\u0022", "\"").replace("\\u0027", "'")
+        repeat(3) { out = out.replace("\\/", "/") }
+        return out.replace("\\\\", "\\")
     }
 
     override suspend fun loadLinks(
