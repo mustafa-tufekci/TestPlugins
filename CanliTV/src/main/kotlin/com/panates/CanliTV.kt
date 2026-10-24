@@ -34,8 +34,6 @@ class CanliTV : MainAPI() {
         "tabii" to "tabii Spor (UEFA)",
         "ulusal" to "Ulusal Kanallar",
         "haber" to "Haber & Belgesel",
-        "eglence" to "Eğlence & Müzik",
-        "dini" to "Dini Kanallar",
         "radyo" to "Radyo & Müzik",
         "sporekrani" to "Günün Maçları (Spor Ekranı)"
     )
