@@ -83,7 +83,7 @@ class Anizium : MainAPI() {
         val score = get("imdb_point")?.takeIf { it.isNumber }?.asDouble()
             ?.let { runCatching { Score.from10(it) }.getOrNull() }
         val year = get("release_year")?.asText()?.take(4)?.toIntOrNull()
-            ?: get("created")?.asText()?.take(4)?.toIntOrNull()
+            ?: epochYear(get("created"))
         return if (get("type")?.asText().equals("movie", ignoreCase = true)) {
             newMovieSearchResponse(title, href, TvType.Movie) {
                 this.posterUrl = poster
@@ -150,7 +150,12 @@ class Anizium : MainAPI() {
         val poster = data.get("poster")?.asText()?.takeIf { it.isNotBlank() && it != "null" }
         val plot = data.get("overview")?.asText()?.takeIf { it.isNotBlank() }
         val year = data.get("release_year")?.asText()?.take(4)?.toIntOrNull()
-        val tags = data.get("genre")?.mapNotNull { it.asText()?.takeIf { g -> g.isNotBlank() } }
+            ?: epochYear(data.get("created"))
+        // genre entries are objects: [{"ID":"57593","name":"Gerilim"}, ...]
+        val tags = data.get("genre")?.mapNotNull { g ->
+            (g.get("name") ?: g.get("title"))?.asText()?.trim()?.takeIf { it.isNotBlank() }
+                ?: g.asText()?.trim()?.takeIf { it.isNotBlank() }
+        }
         val score = data.get("imdb_point")?.takeIf { it.isNumber }?.asDouble()
             ?.let { runCatching { Score.from10(it) }.getOrNull() }
         val isMovie = data.get("type")?.asText().equals("movie", ignoreCase = true)
@@ -288,5 +293,15 @@ class Anizium : MainAPI() {
             }
         }
         return found
+    }
+
+    /** Anizium's `created` is an epoch in milliseconds; taking the first 4 digits gave 1792. */
+    private fun epochYear(node: com.fasterxml.jackson.databind.JsonNode?): Int? {
+        val raw = node?.asText()?.trim()?.takeIf { it.isNotBlank() } ?: return null
+        val millis = raw.toLongOrNull() ?: return raw.take(4).toIntOrNull()
+        val year = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")).apply {
+            timeInMillis = millis
+        }.get(java.util.Calendar.YEAR)
+        return year.takeIf { it in 1900..2100 }
     }
 }
