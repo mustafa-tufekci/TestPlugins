@@ -35,65 +35,55 @@ class DiziBal : MainAPI() {
             return newHomePageResponse(allPages)
         }
 
-        // Parse each section with an h2 heading and a row of content cards
-        val sections = doc.select("section, div.container-site > div")
-        for (sec in sections) {
-            // Ignore hero slider / carousel section
-            if (sec.hasClass("group/slider") ||
-                sec.attr("role") == "region" ||
-                sec.attr("aria-roledescription") == "kaydırıcı" ||
-                sec.attr("aria-label").contains("Öne çıkan", ignoreCase = true) ||
-                sec.selectFirst("[aria-roledescription='kaydırıcı'], .group\\/slider") != null) {
-                continue
-            }
+        // Site is an SPA (Alpine.js + Vite): content is in Schema.org JSON-LD ItemList(s)
+        val jsonLdScripts = doc.select("script[type=application/ld+json]")
+        for (script in jsonLdScripts) {
+            val jsonText = script.html().trim()
+            if (jsonText.isBlank()) continue
+            try {
+                val jsonObj = org.json.JSONObject(jsonText)
+                val graph = jsonObj.optJSONArray("@graph") ?: continue
+                for (i in 0 until graph.length()) {
+                    val node = graph.optJSONObject(i) ?: continue
+                    if (node.optString("@type") != "ItemList") continue
+                    val listName = node.optString("name").takeIf { it.isNotBlank() } ?: "İçerik"
+                    val items = node.optJSONArray("itemListElement") ?: continue
 
-            // Real content sections use h2.section-title
-            val titleEl = sec.selectFirst("h2.section-title, h2") ?: continue
-            if (titleEl.hasClass("text-display-sm") || titleEl.hasClass("sr-only")) continue
-            val rawTitle = titleEl.text().trim()
-            if (rawTitle.isBlank() || rawTitle.equals("DiziBal", ignoreCase = true)) continue
+                    val pageItems = mutableListOf<SearchResponse>()
+                    for (j in 0 until items.length()) {
+                        val item = items.optJSONObject(j) ?: continue
+                        val title = item.optString("name").trim()
+                        val url = item.optString("url").trim()
+                        val image = item.optString("image").trim()
+                        if (title.isBlank() || url.isBlank()) continue
 
-            val cards = sec.select("a[href*='/series/'], a[href*='/movie/'], a[href*='/anime/']")
-            val items = cards.mapNotNull { a ->
-                val href = a.attr("href")
-                if (href.isBlank() || href.contains("/season/") || href.contains("/episode/")) return@mapNotNull null
+                        val fullUrl = fixUrl(url)
+                        val poster = image.takeIf { it.isNotBlank() }?.let { fixUrl(it) }
 
-                val img = a.selectFirst("img")
-                val poster = img?.attr("src")?.takeIf { it.isNotBlank() }
-                    ?: img?.attr("srcset")?.split(" ")?.firstOrNull()?.takeIf { it.isNotBlank() }
-
-                val rawName = img?.attr("alt")?.takeIf { it.isNotBlank() }
-                    ?: a.selectFirst("p.font-semibold, h3, h4")?.text()
-                    ?: a.text()
-
-                val title = cleanTitle(rawName)
-                if (title.isBlank()) return@mapNotNull null
-
-                val ratingRaw = a.selectFirst(".badge-rating, [class*='badge-rating']")?.text()?.trim()
-                val cardScore = ratingRaw?.let {
-                    Regex("""(\d+(?:\.\d+)?)""").find(it)?.groupValues?.get(1)?.toDoubleOrNull()
-                }
-
-                val fullUrl = fixUrl(href)
-                when {
-                    fullUrl.contains("/movie/") -> newMovieSearchResponse(title, fullUrl, TvType.Movie) {
-                        this.posterUrl = poster?.let { fixUrl(it) }
-                        if (cardScore != null) this.score = Score.from10(cardScore)
+                        when {
+                            fullUrl.contains("/movie/") -> pageItems.add(
+                                newMovieSearchResponse(title, fullUrl, TvType.Movie) {
+                                    this.posterUrl = poster
+                                }
+                            )
+                            fullUrl.contains("/anime/") -> pageItems.add(
+                                newTvSeriesSearchResponse(title, fullUrl, TvType.Anime) {
+                                    this.posterUrl = poster
+                                }
+                            )
+                            else -> pageItems.add(
+                                newTvSeriesSearchResponse(title, fullUrl, TvType.TvSeries) {
+                                    this.posterUrl = poster
+                                }
+                            )
+                        }
                     }
-                    fullUrl.contains("/anime/") -> newTvSeriesSearchResponse(title, fullUrl, TvType.Anime) {
-                        this.posterUrl = poster?.let { fixUrl(it) }
-                        if (cardScore != null) this.score = Score.from10(cardScore)
-                    }
-                    else -> newTvSeriesSearchResponse(title, fullUrl, TvType.TvSeries) {
-                        this.posterUrl = poster?.let { fixUrl(it) }
-                        if (cardScore != null) this.score = Score.from10(cardScore)
+
+                    if (pageItems.isNotEmpty()) {
+                        allPages.add(HomePageList(listName, pageItems.distinctBy { it.url }))
                     }
                 }
-            }.distinctBy { it.url }
-
-            if (items.isNotEmpty()) {
-                allPages.add(HomePageList(rawTitle, items))
-            }
+            } catch (_: Exception) {}
         }
 
         return newHomePageResponse(allPages)
@@ -102,52 +92,68 @@ class DiziBal : MainAPI() {
     // ── Search ──────────────────────────────────────────────────────────
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val searchUrl = "$mainUrl/ara?q=${URLEncoder.encode(query.trim(), "UTF-8")}"
+        val searchUrl = "$mainUrl/ara/oneri?q=${URLEncoder.encode(query.trim(), "UTF-8")}"
 
-        val doc = try {
-            app.get(searchUrl, headers = defaultHeaders).document
+        val responseText = try {
+            app.get(searchUrl, headers = defaultHeaders).text
         } catch (_: Exception) {
             return emptyList()
         }
 
-        val cards = doc.select("a[href*='/movie/'], a[href*='/series/'], a[href*='/anime/']")
+        val results = mutableListOf<SearchResponse>()
 
-        return cards.mapNotNull { a ->
-            val href = a.attr("href")
-            if (href.isBlank() || href.contains("/season/") || href.contains("/episode/")) return@mapNotNull null
+        try {
+            val json = org.json.JSONObject(responseText)
 
-            val img = a.selectFirst("img")
-            val poster = img?.attr("src")?.takeIf { it.isNotBlank() }
-                ?: img?.attr("srcset")?.split(" ")?.firstOrNull()?.takeIf { it.isNotBlank() }
+            // Movies
+            val movies = json.optJSONArray("movies")
+            if (movies != null) {
+                for (i in 0 until movies.length()) {
+                    val item = movies.optJSONObject(i) ?: continue
+                    val title = item.optString("title").trim()
+                    val url = item.optString("url").trim()
+                    val poster = item.optString("poster").trim()
+                    if (title.isBlank() || url.isBlank()) continue
 
-            val rawName = img?.attr("alt")?.takeIf { it.isNotBlank() }
-                ?: a.selectFirst("h3, h4, p.font-semibold")?.text()
-                ?: a.text()
-
-            val title = cleanTitle(rawName)
-            if (title.isBlank()) return@mapNotNull null
-
-            val ratingRaw = a.selectFirst(".badge-rating, [class*='badge-rating']")?.text()?.trim()
-            val cardScore = ratingRaw?.let {
-                Regex("""(\d+(?:\.\d+)?)""").find(it)?.groupValues?.get(1)?.toDoubleOrNull()
-            }
-
-            val fullUrl = fixUrl(href)
-            when {
-                fullUrl.contains("/movie/") -> newMovieSearchResponse(title, fullUrl, TvType.Movie) {
-                    this.posterUrl = poster?.let { fixUrl(it) }
-                    if (cardScore != null) this.score = Score.from10(cardScore)
-                }
-                fullUrl.contains("/anime/") -> newTvSeriesSearchResponse(title, fullUrl, TvType.Anime) {
-                    this.posterUrl = poster?.let { fixUrl(it) }
-                    if (cardScore != null) this.score = Score.from10(cardScore)
-                }
-                else -> newTvSeriesSearchResponse(title, fullUrl, TvType.TvSeries) {
-                    this.posterUrl = poster?.let { fixUrl(it) }
-                    if (cardScore != null) this.score = Score.from10(cardScore)
+                    val fullUrl = fixUrl(url)
+                    results.add(
+                        newMovieSearchResponse(title, fullUrl, TvType.Movie) {
+                            this.posterUrl = poster.takeIf { it.isNotBlank() }?.let { fixUrl(it) }
+                        }
+                    )
                 }
             }
-        }.distinctBy { it.url }
+
+            // Series
+            val series = json.optJSONArray("series")
+            if (series != null) {
+                for (i in 0 until series.length()) {
+                    val item = series.optJSONObject(i) ?: continue
+                    val title = item.optString("title").trim()
+                    val url = item.optString("url").trim()
+                    val poster = item.optString("poster").trim()
+                    if (title.isBlank() || url.isBlank()) continue
+
+                    val fullUrl = fixUrl(url)
+                    val tvType = if (fullUrl.contains("/anime/")) TvType.Anime else TvType.TvSeries
+                    if (tvType == TvType.Anime) {
+                        results.add(
+                            newTvSeriesSearchResponse(title, fullUrl, TvType.Anime) {
+                                this.posterUrl = poster.takeIf { it.isNotBlank() }?.let { fixUrl(it) }
+                            }
+                        )
+                    } else {
+                        results.add(
+                            newTvSeriesSearchResponse(title, fullUrl, TvType.TvSeries) {
+                                this.posterUrl = poster.takeIf { it.isNotBlank() }?.let { fixUrl(it) }
+                            }
+                        )
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+
+        return results.distinctBy { it.url }
     }
 
     // ── Load Details ────────────────────────────────────────────────────
