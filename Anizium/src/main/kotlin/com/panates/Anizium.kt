@@ -150,8 +150,6 @@ class Anizium : MainAPI() {
         val poster = data.get("poster")?.asText()?.takeIf { it.isNotBlank() && it != "null" }
         val plot = data.get("overview")?.asText()?.takeIf { it.isNotBlank() }
         val year = data.get("release_year")?.asText()?.take(4)?.toIntOrNull()
-            ?: epochYear(data.get("created"))
-        // genre entries are objects: [{"ID":"57593","name":"Gerilim"}, ...]
         val tags = data.get("genre")?.mapNotNull { g ->
             (g.get("name") ?: g.get("title"))?.asText()?.trim()?.takeIf { it.isNotBlank() }
                 ?: g.asText()?.trim()?.takeIf { it.isNotBlank() }
@@ -296,7 +294,7 @@ class Anizium : MainAPI() {
     }
 
     /** Anizium's `created` is an epoch in milliseconds; taking the first 4 digits gave 1792. */
-    private fun epochYear(node: com.fasterxml.jackson.databind.JsonNode?): Int? {
+    private fun epochYear(node: JsonNode?): Int? {
         val raw = node?.asText()?.trim()?.takeIf { it.isNotBlank() } ?: return null
         val millis = raw.toLongOrNull() ?: return raw.take(4).toIntOrNull()
         val year = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")).apply {
