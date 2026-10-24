@@ -1,11 +1,13 @@
 # Progress — TestPlugins
 
-## Status at last review (2026-10-22)
+## Status at last review (2026-10-24)
 
 - 16 modules, all building: `Animecix (v6)`, `Anizium (v1)`, `BelgeselX (v3)`, **CanliTV (v1)**, `CizgiMax (v2)`,
-  `DiziBal (v2)`, `DiziFilm (v4)`, **Dizilla (v31)**, `DiziPal (v35)`,
+  `DiziBal (v2)`, `DiziFilm (v4)`, **Dizilla (v31)**, `DiziPal (v37)`,
   `FullHDFilm (v3)`, `HDFilmCehennemi (v36)`, `HDFilmCehennemi2 (v11)`, `InatBox (v16)`,
   `SelcukFlix (v10)`, `SezonlukDizi (v15)`, `Youtube (v2)`.
+- `./gradlew make makePluginsJson --dry-run` passes cleanly with Java 17 + Android SDK; all targets resolve.
+- **cloudstream-builder verification (2026-10-24)**: all 16 provider sources probed end-to-end. Results below.
 - **Dizilla (v31)**: Fixed site redesign (Next.js App Router / Turbopack migration). Replaced legacy `__NEXT_DATA__` and AES decryption with Schema.org `TVSeries` JSON-LD parsing, updated search to clean `/ara?q=`, parsed Next.js embedded `sources` JSON, registered `Filese`, `FourFilese`, `Okvip`, `FourOkvip` extractors.
 - **CanliTV (v1)**: New live TV & sports plugin with 20+ verified HLS channels (TRT Spor 1-2, TRT Spor Yıldız, tabii Spor 1-6 UEFA, TRT 1, TV8, Show TV, Kanal D, NOW TV dynamic m3u8 resolver, TRT Haber, TRT Belgesel, TRT 2, TRT World, TRT Çocuk, TRT Müzik, Kral FM, Power Türk) plus dynamic `Sporekrani` match schedule scraper mapping to live channel streams.
 - **DiziBOX**: Removed completely from repository on user request.
@@ -62,6 +64,31 @@ API-based module (`selcukflix.app/api/bg/`), `status = 3`
   (movie = single Film episode), `loadLinks` servers 1 (mp4) + 2 (hls) `plan=standart`,
   tr/en/ar/es vtt subtitles. `status = 3` (Beta). Locally built (`Anizium.cs3` 18938
   bytes), **not pushed, awaiting approval**. Risk: `Cf-Control` token rotation kills it.
+
+## cloudstream-builder verification results (2026-10-24)
+
+All 16 provider sources were probed against live sites. Status key: ✅ fully verified end-to-end, ⚠️ code OK but external block, 🛠️ build only.
+
+| # | Module | Site | Verification | Result |
+|---|--------|------|--------------|--------|
+| 1 | Animecix | animecix.tv | /secure/homepage/lists-guests, /secure/search/bleach, /secure/episode-videos-points → Tau Video embeds + Sibnet | ✅ |
+| 2 | Anizium | api.anizium.co | /page/home with Cf-Control header → 447KB JSON | ✅ (Beta) |
+| 3 | BelgeselX | belgeselx.com | Homepage cats, Google CSE search, diziGetir episodes, /video/data/new5.php YouTube embed | ✅ (Beta) |
+| 4 | CanliTV | canlitv.local + sporekrani.com | 20+ HLS channels (TRT Spor, tabii Spor UEFA, national channels) 200 m3u8; Sporekrani 206 matches | ✅ |
+| 5 | CizgiMax | cizgimax.online | Homepage 250 cards, /ara?q=, 157 episodes, atob servers → Dublaj Sibnet | ✅ (Beta) |
+| 6 | DiziBal | dizibal.org | Homepage 60 cards, /ara?q=matrix, /series/season/episode, data-pv → pilavyerplay m3u8 + 4 subs | ✅ |
+| 7 | DiziFilm | dizifilmizle.to | Homepage 61 cards, Next.js RSC flight payload, vidmixi.com embed with bePlayer | ✅ |
+| 8 | Dizilla | dizilla.now | Homepage + category, /ara?q=breaking, Next.js Schema.org TVSeries (62 eps), four.pichive.online m3u8 | ✅ |
+| 9 | DiziPal | dizipal1592.com | RSC flight → enc+k (PBKDF2-HMAC-SHA512 + AES-256-CBC) → four.dplayer82.site iframe → openPlayer token → source2.php → m.php HLS master | ✅ |
+| 10 | FullHDFilm | fullhdfilmizlesene.now | Homepage 56 cards, /arama/matrix, scx rot13+base64 → rapidvid.org → cdnimg4410.shop m3u8 + subs | ✅ |
+| 11 | HDFilmCehennemi | hdfilmcehennemi.nl | Homepage pagination API, search, video embeds, Rapidrame eval(IIFE) unpacked → s230.rapidrame.com master.m3u8 | ✅ |
+| 12 | HDFilmCehennemi2 | hdfilmcehennemi2.biz | Next.js /api/search, videoPlayerData JSON-LD, resolveVidload → haccodavayup.shop m3u8, VidMolyExtractor | ✅ |
+| 13 | InatBox | diziboxen.help / sprboxs.bar / 4k.filmizleeeee.cfd | Cloudflare 403 error code 1006 (ip_banned) on all domains — IP-level block, code + signing (HMAC-SHA256 with HMK) intact | ⚠️ |
+| 14 | SelcukFlix | selcukflix.app | AES-256-CBC encrypted API, __NEXT_DATA__ secureData, pichive/four.pichive/hotlinger/sn.hotlinger iframes, SlcContentX extractor | ✅ |
+| 15 | SezonlukDizi | sezonlukdizi.cc | ASP.NET AJAX endpoints, arama/search, dataAlternatif/dataEmbed, FilemoonSez Byse PoW + AES-GCM, bysejikuar.com m3u8 | ✅ |
+| 16 | Youtube | youtube.com | NewPipeExtractor v0.25.2, Turkish localization (tr/TR), kiosks: Trendler, Müzik, Oyun, Filmler&Diziler, Podcast, Canlı | 🛠️ |
+
+**Build**: `./gradlew make makePluginsJson` → SUCCESS, all 16 `.cs3` artifacts + `plugins.json` produced.
 
 ## What's left / open
 

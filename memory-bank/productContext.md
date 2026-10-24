@@ -28,19 +28,18 @@ ships those fixes.
 | Module | Version | Status | Notes |
 |---|---|---|---|
 | HDFilmCehennemi | 36 | 1 | Obfuscated player, splice-family decoding, subtitle tracks |
-| HDFilmCehennemi2 | 10 | 1 | New template, vidload player, actor photos |
-| Dizilla | 26 | 1 | Hero image background + poster fallback |
-| DiziPal | 35 | 1 | mainUrl = `dizipal1591.com` (v34). Subs: iframe-embedded captions array (`kind:"captions"`) + Referer/UA `SubtitleFile.headers` — source2 JSON has no subs. v35: label unicode escapes decoded (wrap-in-quotes JSON parse). Rotation 1584→1586→1588→1590→1591 |
-| Dizilla | 31 | 1 | Next.js App Router / Turbopack migration: Schema.org TVSeries JSON-LD, clean search /ara?q=, embedded sources JSON, Pichive/Filese/Okvip extractors |
+| HDFilmCehennemi2 | 11 | 1 | New template, vidload player, actor photos, VidMolyExtractor |
+| Dizilla | 31 | 1 | Next.js App Router / Turbopack: Schema.org TVSeries JSON-LD, clean search /ara?q=, Pichive/FourPichive/Filese/Okvip extractors |
+| DiziPal | 37 | 1 | mainUrl = `dizipal1592.com`. RSC flight → enc+k (PBKDF2-HMAC-SHA512 + AES-256-CBC) → four.dplayer82.site iframe → openPlayer token → source2.php → m.php HLS master. Bundled `DpContentX` extractor family (`DpContentX`, `DpHotlinger`, `DpPichive`, `DpFourPichive`, `DpSnHotlinger`) |
 | CanliTV | 1 | 1 | Live TV & Sports: 20+ verified HLS channels (TRT Spor 1-2, TRT Spor Yıldız, tabii Spor 1-6 UEFA, TRT 1, TV8, Show TV, Kanal D, NOW TV, TRT Haber/Belgesel/2/World/Çocuk/Müzik, Kral FM, Power Türk) + Sporekrani live match scraper |
-| BelgeselX | 3 | 3 | belgeselx.com documentary provider (Beta); jwplayer `/video/data/*.php` sources + iframe fallback; v3: drop empty cid= jw links, defer YouTube mirrors, sira=1 retry |
-| CizgiMax | 2 | 3 | cizgimax.online cartoon/anime provider (Beta); atob `servers` JSON → VidMoly iframe / byse stream → SibNet fallback; Jackson (tryParseJson yavru JVM11 sorununa karşı) |
+| BelgeselX | 3 | 3 | belgeselx.com documentary provider (Beta); jwplayer `/video/data/*.php` sources + iframe fallback |
+| CizgiMax | 2 | 3 | cizgimax.online cartoon/anime provider (Beta); atob `servers` JSON → Dublaj Sibnet |
 | SezonlukDizi | 15 | 1 | Self-contained `DzenSez` + `FilemoonSez` (Byse PoW+AES-GCM); mainPage'de "Son Bölümler", trailer, arama fallback |
-| InatBox | 16 | 1 | Requires kotlinx-coroutines dependency |
-| Animecix | 6 | 1 | |
-| DiziFilm | 4 | 1 | |
-| FullHDFilm | 3 | 1 | |
-| DiziBal | 2 | 1 | |
-| SelcukFlix | 10 | 3 | API-based (`selcukflix.app/api/bg/`), 5 homepage rows (date/imdb/comment_desc), extractor `SlcContentX`/`SlcHotlinger`/`SlcPichive`/`SlcFourPichive`/`SlcSnHotlinger` (v10: sn.* movie iframe fix) |
+| InatBox | 16 | 1 | Code + HMAC-SHA256 signing intact; Cloudflare 403 error 1006 IP ban on all domains (diziboxen.help, sprboxs.bar, 4k.filmizleeeee.cfd) — external block |
+| Animecix | 6 | 1 | animecix.tv secure API, Tau Video + Sibnet video links |
+| DiziFilm | 4 | 1 | dizifilmizle.to Next.js RSC flight payload, vidmixi.com embed with bePlayer |
+| FullHDFilm | 3 | 1 | fullhdfilmizlesene.now scx rot13+base64 → rapidvid.org m3u8 + subs |
+| DiziBal | 2 | 1 | dizibal.org data-pv → pilavyerplay m3u8 + 4 subtitle tracks |
+| SelcukFlix | 10 | 3 | API-based (`selcukflix.app/api/bg/`), AES-256-CBC encrypted, 5 homepage rows, `SlcContentX`/`SlcHotlinger`/`SlcPichive`/`SlcFourPichive`/`SlcSnHotlinger` extractors |
 | Anizium | 1 | 3 | Anime API (`api.anizium.co` + `Cf-Control` header), servers 1 (mp4) + 2 (hls), tr/en/ar/es vtt subtitles |
 | Youtube | 2 | 1 | YouTube provider (Turkish localization TR/tr, videos, channels, playlists, live, kiosks & NewPipe integration) |

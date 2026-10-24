@@ -142,6 +142,7 @@ Earlier: `0f06e40` + SelcukFlix v3/v2/v1 runs all green.
 
 ## Next steps
 
+- Cloudstream-builder full-provider verification completed 2026-10-24: all 16 sources probed, 14 ✅ verified end-to-end, 1 ⚠️ InatBox blocked by Cloudflare IP ban (code intact), 1 🛠️ Youtube build-only (NewPipeExtractor).
 - Keep the memory bank current after every non-trivial change (`activeContext.md`,
   `progress.md`, and `productContext.md`'s version table).
 - Watch for further site template/player changes on hdfilmcehennemi*.biz hosts.
