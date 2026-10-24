@@ -324,6 +324,13 @@ class HDFilmCehennemi2 : MainAPI() {
         }
     }
 
+    /** Turns a JS string literal (`\\u0022`, `\\/`) back into plain JSON text. */
+    private fun vidloadUnescape(value: String): String {
+        var out = value.replace("\\u0022", "\"").replace("\\u0027", "'")
+        repeat(3) { out = out.replace("\\/", "/") }
+        return out.replace("\\\\", "\\")
+    }
+
     private suspend fun resolveVidload(
         iframeUrl: String,
         label: String,
@@ -334,7 +341,16 @@ class HDFilmCehennemi2 : MainAPI() {
             app.get(iframeUrl, referer = mainUrl).text
         }.getOrNull() ?: return
 
-        val stream = Regex("""file:\s*"(https?://[^"]+\.m3u8[^"]*)"""").find(page)?.groupValues?.get(1)
+        // Vidload now ships the jwplayer config as an escaped JSON string:
+        //   jwplayer('player').setup(JSON.parse('{\u0022file\u0022:\u0022https:\\\/\\\/...m3u8\u0022,...}'))
+        // so the old `file:"..."` regex never matched. Decode the literal first.
+        val normalized = vidloadUnescape(page)
+        val config = Regex("""setup\(JSON\.parse\('(.*?)'\)\)""", RegexOption.DOT_MATCHES_ALL)
+            .find(page)?.groupValues?.get(1)
+            ?.let { runCatching { ObjectMapper().readTree(vidloadUnescape(it)) }.getOrNull() }
+
+        val stream = config?.path("file")?.asText(null)?.trim()?.takeIf { it.startsWith("http") }
+            ?: Regex(""""?file"?\s*:\s*"(https?://[^"]+\.m3u8[^"]*)"""").find(normalized)?.groupValues?.get(1)
             ?: return
 
         callback.invoke(
@@ -350,7 +366,15 @@ class HDFilmCehennemi2 : MainAPI() {
         )
 
         val seen = mutableSetOf<String>()
-        val tracksJson = Regex("""Tracks\s*=\s*(\[[\s\S]*?\])""").find(page)?.groupValues?.get(1)
+        config?.path("tracks")?.forEach { node ->
+            val url = node.path("file").asText(null)?.trim() ?: return@forEach
+            if (!url.contains(".vtt") || !seen.add(url)) return@forEach
+            val name = node.path("label").asText(null)
+                ?: node.path("srclang").asText(null)
+                ?: subtitleLabel(url)
+            subtitleCallback.invoke(SubtitleFile(name, url))
+        }
+        val tracksJson = Regex("""Tracks\s*=\s*(\[[\s\S]*?\])""").find(normalized)?.groupValues?.get(1)
         if (tracksJson != null) {
             runCatching {
                 ObjectMapper().readTree(tracksJson).forEach { node ->
@@ -364,7 +388,7 @@ class HDFilmCehennemi2 : MainAPI() {
             }
         }
         if (seen.isEmpty()) {
-            Regex(""""file"\s*:\s*"(https?://[^"]+\.vtt[^"]*)"""").findAll(page).forEach { match ->
+            Regex(""""file"\s*:\s*"(https?://[^"]+\.vtt[^"]*)"""").findAll(normalized).forEach { match ->
                 val url = match.groupValues[1]
                 if (seen.add(url)) subtitleCallback.invoke(SubtitleFile(subtitleLabel(url), url))
             }
