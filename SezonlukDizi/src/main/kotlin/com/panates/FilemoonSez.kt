@@ -87,21 +87,45 @@ class FilemoonSez : ExtractorApi() {
 
             val sources = plain.path("sources")
             if (sources.isArray) {
-                sources.forEach { source ->
-                    val srcUrl = source.path("url").asText(null) ?: return@forEach
-                    if (srcUrl.isBlank()) return@forEach
+                // Skill invariant: one master per server/audio variant. Byse normally returns a
+                // single master; if it ever lists separate qualities we keep only the best one
+                // per mime type instead of publishing 1080p/720p/480p as separate sources.
+                val picked = sources.mapNotNull { source ->
+                    val srcUrl = source.path("url").asText(null)?.takeIf { it.isNotBlank() }
+                        ?: return@mapNotNull null
                     val label = source.path("label").asText("Byse")
-                    val height = Regex("\\d+").find(label)?.value?.toIntOrNull() ?: 0
-                    val quality = if (height > 0) height else Qualities.Unknown.value
+                    val height = source.path("height").asInt(0).takeIf { it > 0 }
+                        ?: Regex("\\d+").find(label)?.value?.toIntOrNull()
+                        ?: 0
+                    ByseSource(
+                        mime = source.path("mime_type").asText("application/vnd.apple.mpegurl"),
+                        url = srcUrl,
+                        label = label,
+                        height = height
+                    )
+                }
+                    .groupBy { it.mime }
+                    .mapNotNull { (_, list) -> list.maxByOrNull { it.height } }
+                    .sortedByDescending { it.height }
+
+                picked.forEach { src ->
                     callback.invoke(
                         newExtractorLink(
                             source = "Byse",
-                            name = label,
-                            url = srcUrl,
-                            type = ExtractorLinkType.M3U8
+                            name = src.label,
+                            url = src.url,
+                            type = if (src.url.contains(".mp4", ignoreCase = true)) {
+                                ExtractorLinkType.VIDEO
+                            } else {
+                                ExtractorLinkType.M3U8
+                            }
                         ) {
-                            this.quality = quality
-                            this.headers = mapOf("User-Agent" to PLAYER_UA)
+                            this.referer = "https://sezonlukdizi.cc/"
+                            this.quality = if (src.height > 0) src.height else Qualities.Unknown.value
+                            this.headers = mapOf(
+                                "User-Agent" to PLAYER_UA,
+                                "Referer" to "https://sezonlukdizi.cc/"
+                            )
                         }
                     )
                 }
@@ -197,16 +221,15 @@ class FilemoonSez : ExtractorApi() {
         return k
     }
 
-    private fun grHash(data: ByteArray): IntArray {
-        val e = intArrayOf(1779033703, -1150833019, 1013904242, -1521486534) // 1779033703, 3144134277, 1013904242, 2773480762 (mod 2^32)
-        for (b in data) {
-            e[0] += b.toInt() and 0xFF
+    private fun grHash(data: ByteArray, length: Int, e: IntArray, table: IntArray, out: IntArray) {
+        System.arraycopy(SEED, 0, e, 0, 4)
+        for (idx in 0 until length) {
+            e[0] += data[idx].toInt() and 0xFF
             e[0] = rotl(e[0], 7)
             mixRound(e)
         }
         repeat(8) { mixRound(e) }
 
-        val table = IntArray(512)
         for (i in 0 until 512) {
             mixRound(e)
             table[i] = e[0] xor e[2]
@@ -223,7 +246,6 @@ class FilemoonSez : ExtractorApi() {
             }
         }
 
-        val out = IntArray(8)
         for (i in 0 until 8) {
             mixRound(e)
             var s = e[0]
@@ -236,31 +258,58 @@ class FilemoonSez : ExtractorApi() {
             }
             out[i] = s xor e[2]
         }
-        return out
     }
 
     private fun solvePow(nonce: String, difficulty: Int): String? {
         if (difficulty <= 0) return "0"
         val prefix = (nonce + ":").toByteArray(Charsets.ISO_8859_1)
+        val prefixLen = prefix.size
+
+        // Scratch buffers are reused across iterations: ~65k hashes per challenge would
+        // otherwise allocate a 512-word table per attempt (~150 MB of garbage).
+        val buffer = ByteArray(prefixLen + 16)
+        System.arraycopy(prefix, 0, buffer, 0, prefixLen)
+        val e = IntArray(4)
+        val table = IntArray(512)
+        val out = IntArray(8)
+
         val startedAt = System.currentTimeMillis()
         var i = 0
-        var buffer = ByteArray(prefix.size + 16)
-        System.arraycopy(prefix, 0, buffer, 0, prefix.size)
         while (System.currentTimeMillis() - startedAt < powTimeoutMs) {
-            val digits = i.toString()
-            val len = prefix.size + digits.length
-            if (buffer.size < len) {
-                buffer = ByteArray(len + 8)
-            }
-            digits.toByteArray(Charsets.ISO_8859_1).copyInto(buffer, prefix.size)
-            val hash = grHash(buffer.copyOf(len))
-            if (zeroBits(hash) >= difficulty) return digits
+            val len = prefixLen + writeInt(buffer, prefixLen, i)
+            grHash(buffer, len, e, table, out)
+            if (zeroBits(out) >= difficulty) return i.toString()
             i++
         }
         return null
     }
 
+    /** Writes [value] as ASCII decimal digits into [target] at [offset], returns the digit count. */
+    private fun writeInt(target: ByteArray, offset: Int, value: Int): Int {
+        if (value == 0) {
+            target[offset] = '0'.code.toByte()
+            return 1
+        }
+        var digits = 0
+        var v = value
+        while (v > 0) {
+            digits++
+            v /= 10
+        }
+        var pos = offset + digits - 1
+        v = value
+        while (v > 0) {
+            target[pos--] = ('0'.code + v % 10).toByte()
+            v /= 10
+        }
+        return digits
+    }
+
+    private data class ByseSource(val mime: String, val url: String, val label: String, val height: Int)
+
     companion object {
         private const val PLAYER_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+        /** 1779033703, 3144134277, 1013904242, 2773480762 (mod 2^32). */
+        private val SEED = intArrayOf(1779033703, -1150833019, 1013904242, -1521486534)
     }
 }

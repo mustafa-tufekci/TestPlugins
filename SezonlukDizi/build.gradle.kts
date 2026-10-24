@@ -1,4 +1,4 @@
-    version = 14
+    version = 15
 
 cloudstream {
     description = "sezonlukdizi.cc - Turkish series with subtitles and dubbed"

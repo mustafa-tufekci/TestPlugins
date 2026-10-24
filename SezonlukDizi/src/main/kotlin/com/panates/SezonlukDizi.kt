@@ -1,17 +1,21 @@
 package com.panates
 
 import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
+import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import com.lagradost.cloudstream3.utils.JsUnpacker
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.loadExtractor
 import com.lagradost.cloudstream3.utils.newExtractorLink
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.jsoup.Jsoup
 
 class SezonlukDizi : MainAPI() {
@@ -27,6 +31,8 @@ class SezonlukDizi : MainAPI() {
     )
 
     override val mainPage = mainPageOf(
+        // Sentinelled endpoint: getMainPage() POSTs an empty body (site requires Content-Length: 0)
+        "$mainUrl/ajax/dataDefaultSonCikan.asp?d=1&k=0&s=" to "Son Bölümler",
         "$mainUrl/diziler.asp?siralama_tipi=id&s=" to "Son Eklenenler",
         "$mainUrl/diziler.asp?siralama_tipi=id&tur=mini&s=" to "Mini Diziler",
         "$mainUrl/diziler.asp?siralama_tipi=id&kat=2&s=" to "Yerli Diziler",
@@ -40,6 +46,10 @@ class SezonlukDizi : MainAPI() {
     // ── Main Page ────────────────────────────────────────────────────────
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+        if (request.data.contains("dataDefaultSonCikan")) {
+            return newHomePageResponse(request.name, parseLatestEpisodes(page))
+        }
+
         val doc = try {
             app.get("${request.data}${page}").document
         } catch (_: Exception) {
@@ -47,6 +57,60 @@ class SezonlukDizi : MainAPI() {
         }
 
         return newHomePageResponse(request.name, parseShowCards(doc))
+    }
+
+    // ── Latest Episodes ("Son Bölümler") ─────────────────────────────────
+
+    /**
+     * POST /ajax/dataDefaultSonCikan.asp?d=1&k=0&s=<page> — the site only serves pages 1..5,
+     * 15 cards each. Each card is an episode, so it links to the series detail page and
+     * carries "Series - 2.Sezon 6.Bölüm" as its title (MainAPI has no episode-search response).
+     */
+    private suspend fun parseLatestEpisodes(page: Int): List<SearchResponse> {
+        if (page < 1 || page > 5) return emptyList()
+
+        val html = try {
+            app.post(
+                "$mainUrl/ajax/dataDefaultSonCikan.asp?d=1&k=0&s=$page",
+                headers = mapOf(
+                    "X-Requested-With" to "XMLHttpRequest",
+                    "Referer" to "$mainUrl/"
+                ),
+                requestBody = ByteArray(0).toRequestBody("application/x-www-form-urlencoded".toMediaType())
+            ).text
+        } catch (_: Exception) {
+            return emptyList()
+        }
+
+        val doc = Jsoup.parse(html)
+        return doc.select("div.ui.card.golgever").mapNotNull { card ->
+            val link = card.selectFirst("a[href]") ?: return@mapNotNull null
+            val href = link.attr("href")
+            // /mobland/2-sezon-6-bolum.html -> slug "mobland" -> series page
+            val slug = Regex("""/?([^/]+)/\d+-sezon-\d+-bolum\.html""")
+                .find(href)?.groupValues?.get(1) ?: return@mapNotNull null
+
+            val seriesTitle = card.selectFirst("div.box-title span.title")?.text()?.trim()
+                ?.takeIf { it.isNotBlank() }
+                ?: link.attr("title").removeSuffix(" izle").trim().takeIf { it.isNotBlank() }
+                ?: return@mapNotNull null
+
+            val seep = card.selectFirst("div.box-title span.seep")?.text()?.trim().orEmpty()
+            val title = if (seep.isBlank()) seriesTitle else "$seriesTitle - $seep"
+
+            val posterUrl = card.selectFirst("img")?.let { img ->
+                val src = img.attr("data-src").ifEmpty { img.attr("src") }
+                when {
+                    src.isBlank() || src.startsWith("data:") -> null
+                    src.startsWith("/") -> "$mainUrl$src"
+                    else -> src
+                }
+            }
+
+            newTvSeriesSearchResponse(title, "$mainUrl/diziler/$slug.html", TvType.TvSeries) {
+                this.posterUrl = posterUrl
+            }
+        }
     }
 
     // ── Card Parser ──────────────────────────────────────────────────────
@@ -97,6 +161,23 @@ class SezonlukDizi : MainAPI() {
     // ── Search ───────────────────────────────────────────────────────────
 
     override suspend fun search(query: String): List<SearchResponse> {
+        val trimmed = query.trim()
+        if (trimmed.isEmpty()) return emptyList()
+
+        // The site's search only matches short phrases: 4+ words return nothing
+        // ("regular show the lost tapes" -> empty, "regular show" -> results).
+        var results = searchOnce(trimmed)
+        if (results.isEmpty()) {
+            val words = trimmed.split(Regex("\\s+"))
+            for (n in minOf(words.size - 1, 3) downTo 1) {
+                results = searchOnce(words.take(n).joinToString(" "))
+                if (results.isNotEmpty()) break
+            }
+        }
+        return results
+    }
+
+    private suspend fun searchOnce(query: String): List<SearchResponse> {
         return try {
             val response = app.post(
                 "$mainUrl/ajax/arama.asp",
@@ -212,7 +293,17 @@ class SezonlukDizi : MainAPI() {
             } catch (_: Exception) {}
         }
 
-        return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
+        // Trailer: the series JSON-LD may nest the VideoObject under "@graph",
+        // e.g. {"@graph":[{"@type":"TVSeries","trailer":[{"embedUrl":...}]}]}
+        val trailerUrl = runCatching {
+            doc.select("script[type=application/ld+json]")
+                .mapNotNull { script -> script.data().takeIf { it.contains("\"trailer\"") } }
+                .firstOrNull()
+                ?.let { ObjectMapper().readTree(it) }
+                ?.let { findTrailerUrl(it) }
+        }.getOrNull()
+
+        val response = newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
             this.posterUrl = posterUrl
             this.plot = plot
             this.year = year
@@ -227,6 +318,12 @@ class SezonlukDizi : MainAPI() {
             }
             addActors(actors)
         }
+
+        if (!trailerUrl.isNullOrBlank()) {
+            runCatching { response.addTrailer(trailerUrl) }
+        }
+
+        return response
     }
 
     // ── Load Links ───────────────────────────────────────────────────────
@@ -312,6 +409,26 @@ class SezonlukDizi : MainAPI() {
     }
 
     // ── Private Helpers ──────────────────────────────────────────────────
+
+    /** Walks the JSON-LD tree (including "@graph") for the first non-empty `trailer` array. */
+    private fun findTrailerUrl(root: JsonNode): String? {
+        val queue = ArrayDeque<JsonNode>()
+        queue.add(root)
+        while (queue.isNotEmpty()) {
+            val node = queue.removeFirst()
+            if (node.isObject) {
+                val trailer = node.path("trailer")
+                if (trailer.isArray && trailer.size() > 0) {
+                    val item = trailer.first()
+                    val url = item.path("embedUrl").asText(null)?.takeIf { it.isNotBlank() }
+                        ?: item.path("url").asText(null)?.takeIf { it.isNotBlank() }
+                    if (!url.isNullOrBlank()) return url
+                }
+            }
+            node.forEach { queue.add(it) }
+        }
+        return null
+    }
 
     private fun renameLink(link: ExtractorLink, newName: String): ExtractorLink = ExtractorLink(
         // source must be the label too: the player groups links by source, keeping the

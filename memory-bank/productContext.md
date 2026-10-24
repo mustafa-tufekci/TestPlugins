@@ -35,7 +35,7 @@ ships those fixes.
 | CanliTV | 1 | 1 | Live TV & Sports: 20+ verified HLS channels (TRT Spor 1-2, TRT Spor Yıldız, tabii Spor 1-6 UEFA, TRT 1, TV8, Show TV, Kanal D, NOW TV, TRT Haber/Belgesel/2/World/Çocuk/Müzik, Kral FM, Power Türk) + Sporekrani live match scraper |
 | BelgeselX | 3 | 3 | belgeselx.com documentary provider (Beta); jwplayer `/video/data/*.php` sources + iframe fallback; v3: drop empty cid= jw links, defer YouTube mirrors, sira=1 retry |
 | CizgiMax | 2 | 3 | cizgimax.online cartoon/anime provider (Beta); atob `servers` JSON → VidMoly iframe / byse stream → SibNet fallback; Jackson (tryParseJson yavru JVM11 sorununa karşı) |
-| SezonlukDizi | 12 | 1 | Self-contained `DzenSez` extractor |
+| SezonlukDizi | 15 | 1 | Self-contained `DzenSez` + `FilemoonSez` (Byse PoW+AES-GCM); mainPage'de "Son Bölümler", trailer, arama fallback |
 | InatBox | 16 | 1 | Requires kotlinx-coroutines dependency |
 | Animecix | 6 | 1 | |
 | DiziFilm | 4 | 1 | |
