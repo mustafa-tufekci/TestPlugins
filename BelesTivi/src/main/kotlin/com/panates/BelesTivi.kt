@@ -34,36 +34,6 @@ class BelesTivi : MainAPI() {
         private const val TAG = "BelesTivi"
         private const val CACHE_TTL_MS = 10 * 60 * 1000L // 10 minutes
 
-        // YouTube channel name → category mapping
-        private val YOUTUBE_CATEGORY_MAP = mapOf(
-            "trt haber" to "HABER",
-            "cnn turk" to "HABER",
-            "ntv" to "HABER",
-            "a haber" to "HABER",
-            "haber turk" to "HABER",
-            "halk tv" to "HABER",
-            "sozcu tv" to "HABER",
-            "sözcü tv" to "HABER",
-            "tgrt haber" to "HABER",
-            "flash haber" to "HABER",
-            "haber global" to "HABER",
-            "tv 100" to "HABER",
-            "bloomberg ht" to "HABER",
-            "bengu turk" to "HABER",
-            "bengü türk" to "HABER",
-            "krt tv" to "HABER",
-            "ulusal kanal" to "HABER",
-            "ulke tv" to "HABER",
-            "ülke tv" to "HABER",
-            "eko turk" to "HABER",
-            "24 tv" to "HABER",
-            "a spor" to "Spor",
-            "ht spor" to "Spor",
-            "tv net" to "HABER",
-            "bein spor haber" to "Spor",
-            "cnbc-e" to "HABER",
-            "cnbce" to "HABER"
-        )
 
         // Embedded channels from Beleş TiVi APK (not in M3U playlist)
         private val EMBEDDED_CHANNELS = listOf(
