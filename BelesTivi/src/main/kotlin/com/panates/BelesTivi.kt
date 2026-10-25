@@ -233,6 +233,8 @@ class BelesTivi : MainAPI() {
             }
     }
 
+    override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
+
     override suspend fun load(url: String): LoadResponse {
         if (url.contains("/kanal/")) {
             val kanalId = URLDecoder.decode(url.substringAfterLast("/kanal/").substringBefore("?"), "UTF-8")
