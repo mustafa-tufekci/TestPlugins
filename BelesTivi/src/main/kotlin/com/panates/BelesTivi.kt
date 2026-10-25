@@ -32,20 +32,18 @@ class BelesTivi : MainAPI() {
         private const val M3U_URL = "https://raw.githubusercontent.com/sunarproje/support/refs/heads/main/belesplus.m3u"
         private const val TAG = "BelesTivi"
 
-        // Known group titles from M3U (stable across updates)
-        private val GROUP_NAMES = mapOf(
-            "ULUSAL" to "Ulusal Kanallar",
-            "Ulusal - Yurt Dışı" to "Ulusal (Yurt Dışı)",
-            "HABER" to "Haber Kanalları",
-            "Spor" to "Spor Kanalları",
-            "BELGESEL" to "Belgesel Kanalları",
-            "Belgesel" to "Belgesel Kanalları",
-            "ÇOCUK" to "Çocuk Kanalları",
-            "Çocuk" to "Çocuk Kanalları",
-            "Müzik" to "Müzik Kanalları",
-            "7/24 Dizi/Film" to "7/24 Dizi/Film",
-            "Dünya" to "Dünya Kanalları",
-            "AZERBAYCAN" to "Azerbaycan Kanalları"
+        // Embedded channels from Beleş TiVi APK (not in M3U playlist)
+        private val EMBEDDED_CHANNELS = listOf(
+            BelesKanal("atv", "ATV", "ULUSAL", "https://trkvz.daioncdn.net/atv/atv.m3u8?ce=3&app=d1ce2d40-5256-4550-b02e-e73c185a314e", "https://www.google.com/s2/favicons?domain=atv.com.tr&sz=128", "ATV Canlı Yayın"),
+            BelesKanal("a2tv", "A2 TV", "7/24 Dizi/Film", "https://trkvz.daioncdn.net/a2tv/a2tv.m3u8?ce=3&app=59363a60-be96-4f73-9eff-355d0ff2c758", "https://www.google.com/s2/favicons?domain=a2tv.com.tr&sz=128", "A2 TV Canlı Yayın"),
+            BelesKanal("ahaber", "A Haber", "HABER", "https://trkvz.daioncdn.net/ahaber/ahaber.m3u8?app=web", "https://www.google.com/s2/favicons?domain=ahaber.com.tr&sz=128", "A Haber Canlı Yayın"),
+            BelesKanal("apara", "A Para", "HABER", "https://trkvz.daioncdn.net/apara/apara.m3u8?app=web", "https://www.google.com/s2/favicons?domain=apara.com.tr&sz=128", "A Para Canlı Yayın"),
+            BelesKanal("aspor", "A Spor", "Spor", "https://trkvz.daioncdn.net/aspor/aspor.m3u8?ce=3&app=45f847c4-04e8-419a-a561-2ebf87084765", "https://www.google.com/s2/favicons?domain=aspor.com.tr&sz=128", "A Spor Canlı Yayın"),
+            BelesKanal("minikago", "Minika Go", "ÇOCUK", "https://trkvz.daioncdn.net/minikago/minikago.m3u8?app=web&ce=3", "https://www.google.com/s2/favicons?domain=minika.com.tr&sz=128", "Minika Go Canlı Yayın"),
+            BelesKanal("minikago-cocuk", "Minika Çocuk", "ÇOCUK", "https://trkvz.daioncdn.net/minikago_cocuk/minikago_cocuk.m3u8?app=web&ce=3", "https://www.google.com/s2/favicons?domain=minika.com.tr&sz=128", "Minika Çocuk Canlı Yayın"),
+            BelesKanal("anews-hd", "A News HD", "HABER", "https://trkvz-live.ercdn.net/anewshd/anewshd.m3u8", "https://www.google.com/s2/favicons?domain=anews.com.tr&sz=128", "A News HD Canlı Yayın"),
+            BelesKanal("atv-avrupa", "ATV Avrupa", "Ulusal - Yurt Dışı", "https://trkvz-live.ercdn.net/atvavrupa/atvavrupa.m3u8", "https://www.google.com/s2/favicons?domain=atv.com.tr&sz=128", "ATV Avrupa Canlı Yayın"),
+            BelesKanal("vav-tv", "Vav TV", "Dünya", "https://trkvz-live.ercdn.net/vavtv/vavtv.m3u8", "https://www.google.com/s2/favicons?domain=vavtv.com.tr&sz=128", "Vav TV Canlı Yayın")
         )
     }
 
@@ -102,10 +100,15 @@ class BelesTivi : MainAPI() {
             emptyList()
         }
 
-        if (channels.isNotEmpty()) {
-            cachedChannels = channels
+        // Merge M3U channels with embedded channels
+        val allChannels = channels + EMBEDDED_CHANNELS.filter { embedded ->
+            channels.none { it.id == embedded.id || it.streamUrl == embedded.streamUrl }
         }
-        return channels
+
+        if (allChannels.isNotEmpty()) {
+            cachedChannels = allChannels
+        }
+        return allChannels
     }
 
     private fun parseM3u(text: String): List<BelesKanal> {
