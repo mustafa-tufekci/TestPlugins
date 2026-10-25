@@ -30,7 +30,40 @@ class BelesTivi : MainAPI() {
 
     companion object {
         private const val M3U_URL = "https://raw.githubusercontent.com/sunarproje/support/refs/heads/main/belesplus.m3u"
+        private const val PLAYLIST_M3U_URL = "https://raw.githubusercontent.com/sunarproje/support/refs/heads/main/playlist.m3u"
         private const val TAG = "BelesTivi"
+        private const val CACHE_TTL_MS = 10 * 60 * 1000L // 10 minutes
+
+        // YouTube channel name → category mapping
+        private val YOUTUBE_CATEGORY_MAP = mapOf(
+            "trt haber" to "HABER",
+            "cnn turk" to "HABER",
+            "ntv" to "HABER",
+            "a haber" to "HABER",
+            "haber turk" to "HABER",
+            "halk tv" to "HABER",
+            "sozcu tv" to "HABER",
+            "sözcü tv" to "HABER",
+            "tgrt haber" to "HABER",
+            "flash haber" to "HABER",
+            "haber global" to "HABER",
+            "tv 100" to "HABER",
+            "bloomberg ht" to "HABER",
+            "bengu turk" to "HABER",
+            "bengü türk" to "HABER",
+            "krt tv" to "HABER",
+            "ulusal kanal" to "HABER",
+            "ulke tv" to "HABER",
+            "ülke tv" to "HABER",
+            "eko turk" to "HABER",
+            "24 tv" to "HABER",
+            "a spor" to "Spor",
+            "ht spor" to "Spor",
+            "tv net" to "HABER",
+            "bein spor haber" to "Spor",
+            "cnbc-e" to "HABER",
+            "cnbce" to "HABER"
+        )
 
         // Embedded channels from Beleş TiVi APK (not in M3U playlist)
         private val EMBEDDED_CHANNELS = listOf(
@@ -60,55 +93,76 @@ class BelesTivi : MainAPI() {
         "7/24 Dizi/Film" to "7/24 Dizi/Film",
         "Dünya" to "Dünya Kanalları",
         "AZERBAYCAN" to "Azerbaycan Kanalları",
+        "YOUTUBE" to "Canlı (YouTube)",
         "ALL" to "Tüm Kanallar"
     )
 
-    // In-memory cache
+    // In-memory cache with expiry (10 minutes for YouTube URL freshness)
     @Volatile
     private var cachedChannels: List<BelesKanal>? = null
+    @Volatile
+    private var cacheTimestamp: Long = 0
 
     private suspend fun fetchChannels(): List<BelesKanal> {
-        cachedChannels?.let { return it }
-
-        val channels = try {
-            var m3uText = ""
-            var attempts = 0
-            while (m3uText.isBlank() && attempts < 3) {
-                attempts++
-                try {
-                    val response = app.get(
-                        M3U_URL,
-                        headers = mapOf(
-                            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-                            "Accept" to "text/plain, */*",
-                            "Accept-Language" to "tr-TR,tr;q=0.9"
-                        )
-                    )
-                    m3uText = response.text
-                } catch (e: Exception) {
-                    Log.e(TAG, "Fetch attempt $attempts failed: ${e.message}")
-                }
-            }
-            if (m3uText.isBlank()) {
-                Log.e(TAG, "M3U response is blank after $attempts attempts")
-                emptyList()
-            } else {
-                parseM3u(m3uText)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch M3U: ${e.message}")
-            emptyList()
+        val now = System.currentTimeMillis()
+        if (cachedChannels != null && (now - cacheTimestamp) < CACHE_TTL_MS) {
+            return cachedChannels!!
         }
+        // Clear stale cache
+        cachedChannels = null
 
-        // Merge M3U channels with embedded channels
-        val allChannels = channels + EMBEDDED_CHANNELS.filter { embedded ->
-            channels.none { it.id == embedded.id || it.streamUrl == embedded.streamUrl }
-        }
+        // Fetch both M3U sources concurrently
+        val belesChannels = fetchM3uSource(M3U_URL, "belesplus")
+        val playlistChannels = fetchM3uSource(PLAYLIST_M3U_URL, "playlist")
+
+        // Merge all channels
+        val allChannels = (belesChannels + playlistChannels + EMBEDDED_CHANNELS).distinctBy { it.id }
 
         if (allChannels.isNotEmpty()) {
             cachedChannels = allChannels
+            cacheTimestamp = System.currentTimeMillis()
         }
         return allChannels
+    }
+
+    private suspend fun fetchM3uSource(url: String, sourceName: String): List<BelesKanal> {
+        var m3uText = ""
+        var attempts = 0
+        while (m3uText.isBlank() && attempts < 3) {
+            attempts++
+            try {
+                val response = app.get(
+                    url,
+                    headers = mapOf(
+                        "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                        "Accept" to "text/plain, */*",
+                        "Accept-Language" to "tr-TR,tr;q=0.9"
+                    )
+                )
+                m3uText = response.text
+            } catch (e: Exception) {
+                Log.e(TAG, "$sourceName fetch attempt $attempts failed: ${e.message}")
+            }
+        }
+        if (m3uText.isBlank()) {
+            Log.e(TAG, "$sourceName M3U response is blank after $attempts attempts")
+            return emptyList()
+        }
+
+        val parsed = parseM3u(m3uText)
+
+        // For playlist.m3u (YouTube), apply category mapping and add YouTube suffix
+        return if (sourceName == "playlist") {
+            parsed.map { channel ->
+                channel.copy(
+                    category = "YOUTUBE",
+                    id = "yt-${channel.id}",
+                    name = channel.name.trim()
+                )
+            }
+        } else {
+            parsed
+        }
     }
 
     private fun parseM3u(text: String): List<BelesKanal> {
@@ -212,8 +266,13 @@ class BelesTivi : MainAPI() {
     override suspend fun load(url: String): LoadResponse {
         if (url.contains("/kanal/")) {
             val kanalId = URLDecoder.decode(url.substringAfterLast("/kanal/").substringBefore("?"), "UTF-8")
-            val kanal = fetchChannels().firstOrNull { it.id == kanalId }
-                ?: return newLiveStreamLoadResponse("Bilinmeyen", url, url) {}
+            var kanal = fetchChannels().firstOrNull { it.id == kanalId }
+            if (kanal == null) {
+                cachedChannels = null
+                cacheTimestamp = 0
+                kanal = fetchChannels().firstOrNull { it.id == kanalId }
+            }
+            if (kanal == null) return newLiveStreamLoadResponse("Bilinmeyen", url, url) {}
 
             return newLiveStreamLoadResponse(kanal.name, url, url) {
                 this.posterUrl = kanal.posterUrl
@@ -232,19 +291,37 @@ class BelesTivi : MainAPI() {
     ): Boolean {
         if (data.contains("/kanal/")) {
             val kanalId = URLDecoder.decode(data.substringAfterLast("/kanal/").substringBefore("?"), "UTF-8")
-            val kanal = fetchChannels().firstOrNull { it.id == kanalId } ?: return false
+            var kanal = fetchChannels().firstOrNull { it.id == kanalId }
+            if (kanal == null) {
+                // Force refresh cache and retry
+                cachedChannels = null
+                cacheTimestamp = 0
+                kanal = fetchChannels().firstOrNull { it.id == kanalId }
+            }
+            if (kanal == null) return false
 
             val streamUrl = kanal.streamUrl
+
+            // YouTube streams need specific headers
+            val headers = if (streamUrl.contains("googlevideo.com", ignoreCase = true) || streamUrl.contains("manifest.googlevideo", ignoreCase = true)) {
+                mapOf(
+                    "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                    "Referer" to "https://www.youtube.com/",
+                    "Origin" to "https://www.youtube.com"
+                )
+            } else {
+                emptyMap()
+            }
 
             callback(
                 ExtractorLink(
                     source = "BelesTivi",
                     name = kanal.name,
                     url = streamUrl,
-                    referer = mainUrl,
+                    referer = if (streamUrl.contains("googlevideo.com", ignoreCase = true)) "https://www.youtube.com/" else mainUrl,
                     quality = Qualities.Unknown.value,
                     type = if (streamUrl.contains(".m3u8", ignoreCase = true)) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO,
-                    headers = emptyMap()
+                    headers = headers
                 )
             )
             return true
