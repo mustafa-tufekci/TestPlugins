@@ -1078,6 +1078,824 @@ object CanliTVChannels {
             posterUrl = "https://www.google.com/s2/favicons?domain=ncdn.telewebion.ir&sz=128",
             description = "West Azerbaijan TV Canlı Yayın"
         ),
+
+        // --- Beles TiVi kaynagindan eklenen kanallar ---
+        CanliKanal(
+            id = "babytv",
+            name = "BabyTv",
+            category = "cocuk",
+            streamUrl = "https://saran-live.ercdn.net/babytv/index.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=saran-live.ercdn.net&sz=128",
+            description = "BabyTv Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "teve2",
+            name = "Teve2",
+            category = "ulusal",
+            streamUrl = "https://ackaxsqacw.turknet.ercdn.net/ozfkfbbjba/teve2/teve2.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=ackaxsqacw.turknet.ercdn.net&sz=128",
+            description = "Teve2 Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "dmax",
+            name = "DMAX",
+            category = "kultur",
+            streamUrl = "https://dogus.daioncdn.net/dmax/dmax.m3u8?ce=3&app=5a02c599-d17e-4982-9b04-090934d51af7",
+            posterUrl = "https://www.google.com/s2/favicons?domain=dogus.daioncdn.net&sz=128",
+            description = "DMAX Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "tlc",
+            name = "TLC",
+            category = "kultur",
+            streamUrl = "https://dogus.daioncdn.net/tlc/tlc.m3u8?ce=3&app=1aca0aa1-06e3-41ff-a8e5-38d7df475469",
+            posterUrl = "https://www.google.com/s2/favicons?domain=dogus.daioncdn.net&sz=128",
+            description = "TLC Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "destination-nature",
+            name = "Destination Nature",
+            category = "kultur",
+            streamUrl = "https://d2cl8wi5f8zf1j.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-0ay35jkybhd8m/DestinationNature_FR.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=d2cl8wi5f8zf1j.cloudfront.net&sz=128",
+            description = "Destination Nature Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "disney-jr",
+            name = "Disney Jr",
+            category = "cocuk",
+            streamUrl = "https://saran-live.ercdn.net/disneyjunior/index.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=saran-live.ercdn.net&sz=128",
+            description = "Disney Jr Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "dream-t-rk",
+            name = "DREAM TÜRK",
+            category = "radyo",
+            streamUrl = "https://live.duhnet.tv/S2/HLS_LIVE/dreamturknp/playlist.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=live.duhnet.tv&sz=128",
+            description = "DREAM TÜRK Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "nature-time",
+            name = "Nature Time",
+            category = "kultur",
+            streamUrl = "https://amg00090-blueantmedia-naturetime-samsungfr-yakbf.amagi.tv/playlist/amg00090-blueantmedia-naturetime-samsungfr/playlist.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=amg00090-blueantmedia-naturetime-samsungfr-yakbf.amagi.tv&sz=128",
+            description = "Nature Time Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "lovenature",
+            name = "lovenature",
+            category = "kultur",
+            streamUrl = "https://viptine.site/2/vavoo.php?hls=259380083927b83aced3e1",
+            posterUrl = "https://www.google.com/s2/favicons?domain=viptine.site&sz=128",
+            description = "lovenature Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "natgeowild",
+            name = "Natgeowild",
+            category = "kultur",
+            streamUrl = "https://viptine.site/2/vavoo.php?hls=1519237116daf8e783a22b",
+            posterUrl = "https://www.google.com/s2/favicons?domain=viptine.site&sz=128",
+            description = "Natgeowild Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "viasathistory",
+            name = "Viasathistory",
+            category = "kultur",
+            streamUrl = "https://viptine.site/2/vavoo.php?hls=1335130209de4b92f31496",
+            posterUrl = "https://www.google.com/s2/favicons?domain=viptine.site&sz=128",
+            description = "Viasathistory Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "abantv-1",
+            name = "ŞabanTv -1",
+            category = "eglence",
+            streamUrl = "https://raw.githubusercontent.com/panorea744/stawerlo/refs/heads/main/noutube1/Kemal-sunal-1.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=raw.githubusercontent.com&sz=128",
+            description = "ŞabanTv -1 Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "ye-il-am",
+            name = "Yeşilçam",
+            category = "eglence",
+            streamUrl = "https://raw.githubusercontent.com/panorea744/stawerlo/refs/heads/main/noutube1/Trfilmler.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=raw.githubusercontent.com&sz=128",
+            description = "Yeşilçam Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "zengin-k-z-fakir-o-lan",
+            name = "Zengin Kız Fakir Oğlan",
+            category = "eglence",
+            streamUrl = "https://raw.githubusercontent.com/panorea744/stawerlo/refs/heads/main/noutube1/zengin-kiz.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=raw.githubusercontent.com&sz=128",
+            description = "Zengin Kız Fakir Oğlan Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "abantv-2",
+            name = "ŞabanTv -2",
+            category = "eglence",
+            streamUrl = "https://raw.githubusercontent.com/panorea744/stawerlo/refs/heads/main/noutube1/Kemal-sunal-2.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=raw.githubusercontent.com&sz=128",
+            description = "ŞabanTv -2 Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "a-k-memnu",
+            name = "Aşk-ı Memnu",
+            category = "eglence",
+            streamUrl = "https://raw.githubusercontent.com/panorea744/stawerlo/refs/heads/main/noutube1/aski-memnu.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=raw.githubusercontent.com&sz=128",
+            description = "Aşk-ı Memnu Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "g-l-ah-film",
+            name = "Gülşah Film",
+            category = "eglence",
+            streamUrl = "https://raw.githubusercontent.com/panorea744/stawerlo/refs/heads/main/noutube1/Gulsah-film.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=raw.githubusercontent.com&sz=128",
+            description = "Gülşah Film Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "yaprak-d-k-m",
+            name = "Yaprak Dökümü",
+            category = "eglence",
+            streamUrl = "https://raw.githubusercontent.com/panorea744/stawerlo/refs/heads/main/noutube1/yaprak-dokumu.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=raw.githubusercontent.com&sz=128",
+            description = "Yaprak Dökümü Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "dirili-ertu-rul",
+            name = "Diriliş Ertuğrul",
+            category = "eglence",
+            streamUrl = "https://raw.githubusercontent.com/panorea744/stawerlo/refs/heads/main/noutube1/dirilis-ertugrul.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=raw.githubusercontent.com&sz=128",
+            description = "Diriliş Ertuğrul Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "kuzey-g-ney",
+            name = "Kuzey Güney",
+            category = "eglence",
+            streamUrl = "https://raw.githubusercontent.com/panorea744/stawerlo/refs/heads/main/noutube1/kuzey-guney.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=raw.githubusercontent.com&sz=128",
+            description = "Kuzey Güney Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "g-n-l-da",
+            name = "Gönül Dağı",
+            category = "eglence",
+            streamUrl = "https://raw.githubusercontent.com/panorea744/stawerlo/refs/heads/main/noutube1/gonul-dagi.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=raw.githubusercontent.com&sz=128",
+            description = "Gönül Dağı Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "5-minutes-craft",
+            name = "5 MINUTES CRAFT",
+            category = "cocuk",
+            streamUrl = "https://soul-5mincrafteng-rakuten.amagi.tv/playlist.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=soul-5mincrafteng-rakuten.amagi.tv&sz=128",
+            description = "5 MINUTES CRAFT Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "ad-n-feriha-koydum",
+            name = "Adını Feriha Koydum",
+            category = "eglence",
+            streamUrl = "https://raw.githubusercontent.com/panorea744/stawerlo/refs/heads/main/noutube1/Feriha.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=raw.githubusercontent.com&sz=128",
+            description = "Adını Feriha Koydum Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "tabii-tv",
+            name = "tabii tv",
+            category = "eglence",
+            streamUrl = "https://ceokzokgtd.erbvr.com/tabiitv/tabiitv.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=ceokzokgtd.erbvr.com&sz=128",
+            description = "tabii tv Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "cnn-t-rk",
+            name = "Cnn Türk",
+            category = "haber",
+            streamUrl = "https://trn03.tulix.tv/gt-cnnturk-tv/index.m3u8?token=10a5253f5ee4a368d5ffae3e332099c8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=trn03.tulix.tv&sz=128",
+            description = "Cnn Türk Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "k-smetse-olur",
+            name = "Kısmetse Olur",
+            category = "eglence",
+            streamUrl = "https://raw.githubusercontent.com/panorea744/stawerlo/refs/heads/main/noutube1/kismetse-olur.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=raw.githubusercontent.com&sz=128",
+            description = "Kısmetse Olur Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "cnn-t-rk",
+            name = "Cnn Türk",
+            category = "haber",
+            streamUrl = "https://cnn.impresents.workers.dev/canli-yayin.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=cnn.impresents.workers.dev&sz=128",
+            description = "Cnn Türk Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "s-f-r-bir",
+            name = "Sıfır Bir",
+            category = "eglence",
+            streamUrl = "https://raw.githubusercontent.com/panorea744/stawerlo/refs/heads/main/noutube1/sifir-bir.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=raw.githubusercontent.com&sz=128",
+            description = "Sıfır Bir Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "fatmag-l-n-su-u-ne",
+            name = "Fatmagül'ün Suçu Ne?",
+            category = "eglence",
+            streamUrl = "https://raw.githubusercontent.com/panorea744/stawerlo/refs/heads/main/noutube1/Fatmagul.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=raw.githubusercontent.com&sz=128",
+            description = "Fatmagül'ün Suçu Ne? Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "tolgshow",
+            name = "Tolgshow",
+            category = "eglence",
+            streamUrl = "https://raw.githubusercontent.com/panorea744/stawerlo/refs/heads/main/noutube1/Tolgshow.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=raw.githubusercontent.com&sz=128",
+            description = "Tolgshow Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "i-nci-taneleri",
+            name = "İnci Taneleri",
+            category = "eglence",
+            streamUrl = "https://raw.githubusercontent.com/panorea744/stawerlo/refs/heads/main/noutube1/inci-taneleri.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=raw.githubusercontent.com&sz=128",
+            description = "İnci Taneleri Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "fx",
+            name = "Fx",
+            category = "eglence",
+            streamUrl = "https://saran-live.ercdn.net/fx/index.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=saran-live.ercdn.net&sz=128",
+            description = "Fx Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "k-z-lc-k-erbeti",
+            name = "Kızılcık Şerbeti",
+            category = "eglence",
+            streamUrl = "https://raw.githubusercontent.com/panorea744/stawerlo/refs/heads/main/noutube1/kizilcik-serbeti.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=raw.githubusercontent.com&sz=128",
+            description = "Kızılcık Şerbeti Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "hz-yusuf",
+            name = "Hz Yusuf",
+            category = "eglence",
+            streamUrl = "https://raw.githubusercontent.com/panorea744/stawerlo/refs/heads/main/noutube1/hzyusuf.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=raw.githubusercontent.com&sz=128",
+            description = "Hz Yusuf Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "arkada-m-ho-geldin",
+            name = "Arkadaşım Hoşgeldin",
+            category = "eglence",
+            streamUrl = "https://raw.githubusercontent.com/panorea744/stawerlo/refs/heads/main/noutube1/arkadasim-hosgeldin.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=raw.githubusercontent.com&sz=128",
+            description = "Arkadaşım Hoşgeldin Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "france-24-english",
+            name = "France 24 English",
+            category = "haber",
+            streamUrl = "https://dash3.antik.sk/live/test_france24_eng/playlist.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=dash3.antik.sk&sz=128",
+            description = "France 24 English Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "al-jazeera-english",
+            name = "Al Jazeera English",
+            category = "haber",
+            streamUrl = "https://dash4.antik.sk/live/test_aljazeera_eng/playlist.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=dash4.antik.sk&sz=128",
+            description = "Al Jazeera English Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "bbc-world-news",
+            name = "BBC World News",
+            category = "haber",
+            streamUrl = "https://vs-hls-push-ww-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_news_channel_hd/t=3840/v=pv14/b=5070016/main.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=vs-hls-push-ww-live.akamaized.net&sz=128",
+            description = "BBC World News Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "dw-english",
+            name = "DW English",
+            category = "haber",
+            streamUrl = "https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=dwamdstream102.akamaized.net&sz=128",
+            description = "DW English Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "euronews-en",
+            name = "Euronews EN",
+            category = "haber",
+            streamUrl = "https://cdn-euronews.akamaized.net/live/eds/euronews-en/25080/euronews-en.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=cdn-euronews.akamaized.net&sz=128",
+            description = "Euronews EN Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "bloomberg-originals",
+            name = "Bloomberg Originals",
+            category = "haber",
+            streamUrl = "https://www.bloomberg.com/media-manifest/streams/originals-global.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=www.bloomberg.com&sz=128",
+            description = "Bloomberg Originals Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "bloomberg-us",
+            name = "Bloomberg US",
+            category = "haber",
+            streamUrl = "https://www.bloomberg.com/media-manifest/streams/phoenix-us.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=www.bloomberg.com&sz=128",
+            description = "Bloomberg US Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "bloomberg-eu",
+            name = "Bloomberg EU",
+            category = "haber",
+            streamUrl = "https://www.bloomberg.com/media-manifest/streams/eu.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=www.bloomberg.com&sz=128",
+            description = "Bloomberg EU Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "nhk-english",
+            name = "NHK English",
+            category = "haber",
+            streamUrl = "https://media-tyo.hls.nhkworld.jp/hls/w/live/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=media-tyo.hls.nhkworld.jp&sz=128",
+            description = "NHK English Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "cgtn-news",
+            name = "CGTN NEWS",
+            category = "haber",
+            streamUrl = "https://english-livetx.cgtn.com/hls/yypdyyctzb_hd.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=english-livetx.cgtn.com&sz=128",
+            description = "CGTN NEWS Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "kiss-tv",
+            name = "Kiss TV",
+            category = "radyo",
+            streamUrl = "https://tv.broadcasting.ro/kisstv/a629c031-2170-4ee9-a36d-87a891aa3131_output_0.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=tv.broadcasting.ro&sz=128",
+            description = "Kiss TV Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "cbs-news",
+            name = "CBS News",
+            category = "haber",
+            streamUrl = "https://cbsn-us.cbsnstream.cbsnews.com/out/v1/55a8648e8f134e82a470f83d562deeca/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=cbsn-us.cbsnstream.cbsnews.com&sz=128",
+            description = "CBS News Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "trace-latin",
+            name = "Trace Latin",
+            category = "radyo",
+            streamUrl = "https://amg01131-tracetv-tracelatina-glewed-vtnk7.amagi.tv/playlist1080P.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=amg01131-tracetv-tracelatina-glewed-vtnk7.amagi.tv&sz=128",
+            description = "Trace Latin Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "trace-urban",
+            name = "Trace Urban",
+            category = "radyo",
+            streamUrl = "https://lightning-traceurban-samsungau.amagi.tv/playlist.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lightning-traceurban-samsungau.amagi.tv&sz=128",
+            description = "Trace Urban Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "viasathistory",
+            name = "Viasathistory",
+            category = "kultur",
+            streamUrl = "https://kbl.impresents.workers.dev/cable-live/id/viasat-explore",
+            posterUrl = "https://www.google.com/s2/favicons?domain=kbl.impresents.workers.dev&sz=128",
+            description = "Viasathistory Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "company-tv",
+            name = "Company TV",
+            category = "radyo",
+            streamUrl = "https://5929b138b139d.streamlock.net/CompanyTV/smil:CompanyTV.smil/chunklist_w2056647378_b1428000_slita.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=5929b138b139d.streamlock.net&sz=128",
+            description = "Company TV Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "fox-news",
+            name = "Fox News",
+            category = "haber",
+            streamUrl = "https://fox-foxnewsnow-vizio.amagi.tv/playlist.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=fox-foxnewsnow-vizio.amagi.tv&sz=128",
+            description = "Fox News Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "arirang-world",
+            name = "ARIRANG WORLD",
+            category = "haber",
+            streamUrl = "https://amdlive-ch01-ctnd-com.akamaized.net/arirang_1ch/smil:arirang_1ch.smil/chunklist_b2256000_sleng.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=amdlive-ch01-ctnd-com.akamaized.net&sz=128",
+            description = "ARIRANG WORLD Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "nbc-news",
+            name = "NBC News",
+            category = "haber",
+            streamUrl = "https://xumo-drct-nbcnn-ir8ze.fast.nbcuni.com/live/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=xumo-drct-nbcnn-ir8ze.fast.nbcuni.com&sz=128",
+            description = "NBC News Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "rtl-102-5-tv",
+            name = "RTL 102.5 Tv",
+            category = "radyo",
+            streamUrl = "https://streamcdnb4-dd782ed59e2a4e86aabf6fc508674b59.msvdn.net/live/S97044836/tbbP8T1ZRPBL/chunklist_b3256000.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=streamcdnb4-dd782ed59e2a4e86aabf6fc508674b59.msvdn.net&sz=128",
+            description = "RTL 102.5 Tv Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "vevo-pop",
+            name = "Vevo Pop",
+            category = "radyo",
+            streamUrl = "https://amg00056-amg00056c9-rakuten-fr-3243.playouts.now.amagi.tv/playlist/amg00056-vevotvfast-vevopopfr-rakutenfr/playlist.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=amg00056-amg00056c9-rakuten-fr-3243.playouts.now.amagi.tv&sz=128",
+            description = "Vevo Pop Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "vevo-hip-hop-rb",
+            name = "Vevo Hip-Hop RB",
+            category = "radyo",
+            streamUrl = "https://amg00056-amg00056c14-rakuten-fr-3244.playouts.now.amagi.tv/playlist/amg00056-vevotvfast-vevohiphopandrbfr-rakutenfr/playlist.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=amg00056-amg00056c14-rakuten-fr-3244.playouts.now.amagi.tv&sz=128",
+            description = "Vevo Hip-Hop RB Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "music-box-hits",
+            name = "Music Box Hits",
+            category = "radyo",
+            streamUrl = "http://88.212.7.14/live/mb_hits/index.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=88.212.7.14&sz=128",
+            description = "Music Box Hits Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "music-box-dance",
+            name = "Music Box Dance",
+            category = "radyo",
+            streamUrl = "http://88.212.7.14/live/mb_dance/index.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=88.212.7.14&sz=128",
+            description = "Music Box Dance Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "music-box-classic",
+            name = "Music Box Classic",
+            category = "radyo",
+            streamUrl = "https://dash4.antik.sk/live/mb_classic/index.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=dash4.antik.sk&sz=128",
+            description = "Music Box Classic Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "music-box-sexy",
+            name = "Music Box Sexy",
+            category = "radyo",
+            streamUrl = "http://88.212.7.14/live/mb_sexy/index.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=88.212.7.14&sz=128",
+            description = "Music Box Sexy Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "emotion-music",
+            name = "Emotion Music",
+            category = "radyo",
+            streamUrl = "https://amg01736-harmonysecomgro-harmonymelody-samsungfr-n25pe.amagi.tv/playlist/amg01736-harmonysecomgro-harmonymelody-samsungfr/playlist.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=amg01736-harmonysecomgro-harmonymelody-samsungfr-n25pe.amagi.tv&sz=128",
+            description = "Emotion Music Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "that-s-90s00s",
+            name = "that's 90s00s",
+            category = "radyo",
+            streamUrl = "https://amg01076-amg01076c19-rakuten-gb-8653.playouts.now.amagi.tv/ts-eu-w1-n2/playlist/amg01076-lightning-now90s00s-rakutengb/cb513f19657460909bce2167d0d334dd844c3bdd0b61cb3071aa448f049f4b1bdae5a5d3ec4ae47821c04d873d5f66411f21c118dc7c1fc7c76adf046727486b9b9ab265d9896450f08d597562ac7b1c51e00e07c47100238ebb4e5dd670e7295243a5583f5063c0bf5fab704fc1d50bd8767dd8a9d963317c383ea57e657305d692dfd07777ae0eb3876a0ac47116b2a063f3e669dea0488f5371ac408451dfcdb0def92098b6937091938145c78e2062208d51b3b0e4ebc3a2a1ecfe51622a3b40f4ac83fb010c87554a4fc219aad541d21cd480298d6178ee4ec80fcc11846fb806aee50ef1fce09f6f4e3badc85e3a67b2f3fadba9657ded2fbb85ecde7873d6a7462809992dfe2b393d96f2d35bd59145d8e651e8de0e3c36c4834a9299c0e1bee1f705f642ffc9ff963255401972258353a78864d869fc76acdc1c28580d69a2985cc8839b321d6d4d8f8c5b942313b6d58e89bd566e2a01dfdb52cdbf8ef6cea6a54bcf99790ab8c7b3a23d0c/85/1920x1080_4716800/index.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=amg01076-amg01076c19-rakuten-gb-8653.playouts.now.amagi.tv&sz=128",
+            description = "that's 90s00s Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "deluxe-music-rap",
+            name = "DELUXE MUSIC Rap",
+            category = "radyo",
+            streamUrl = "https://sdn-global-live-streaming-packager-cache.3qsdn.com/65183/65183_264_live.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=sdn-global-live-streaming-packager-cache.3qsdn.com&sz=128",
+            description = "DELUXE MUSIC Rap Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "deluxe-music-english",
+            name = "DELUXE MUSIC English",
+            category = "radyo",
+            streamUrl = "https://sdn-global-live-streaming-packager-cache.3qsdn.com/13456/13456_264_live.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=sdn-global-live-streaming-packager-cache.3qsdn.com&sz=128",
+            description = "DELUXE MUSIC English Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "movie-music",
+            name = "Movie Music",
+            category = "radyo",
+            streamUrl = "https://stream.ads.ottera.tv/playlist.m3u8?network_id=3034",
+            posterUrl = "https://www.google.com/s2/favicons?domain=stream.ads.ottera.tv&sz=128",
+            description = "Movie Music Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "qello-concerts-2",
+            name = "Qello Concerts 2",
+            category = "radyo",
+            streamUrl = "https://stream.ads.ottera.tv/playlist.m3u8?network_id=3039",
+            posterUrl = "https://www.google.com/s2/favicons?domain=stream.ads.ottera.tv&sz=128",
+            description = "Qello Concerts 2 Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "that-s-80s",
+            name = "that's 80s",
+            category = "radyo",
+            streamUrl = "https://lightning-now80s-samsungnz.amagi.tv/playlist.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lightning-now80s-samsungnz.amagi.tv&sz=128",
+            description = "that's 80s Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "qello-concerts-1",
+            name = "Qello Concerts 1",
+            category = "radyo",
+            streamUrl = "https://stream.ads.ottera.tv/playlist.m3u8?network_id=3031",
+            posterUrl = "https://www.google.com/s2/favicons?domain=stream.ads.ottera.tv&sz=128",
+            description = "Qello Concerts 1 Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "classica",
+            name = "Classica",
+            category = "radyo",
+            streamUrl = "https://stream.ads.ottera.tv/playlist.m3u8?network_id=3038",
+            posterUrl = "https://www.google.com/s2/favicons?domain=stream.ads.ottera.tv&sz=128",
+            description = "Classica Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "djazz",
+            name = "Djazz",
+            category = "radyo",
+            streamUrl = "https://stream.ads.ottera.tv/playlist.m3u8?network_id=3037",
+            posterUrl = "https://www.google.com/s2/favicons?domain=stream.ads.ottera.tv&sz=128",
+            description = "Djazz Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "that-s-rock",
+            name = "that's Rock",
+            category = "radyo",
+            streamUrl = "https://lightning-now90s-samsungnz.amagi.tv/playlist.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lightning-now90s-samsungnz.amagi.tv&sz=128",
+            description = "that's Rock Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "qwest-jazz",
+            name = "Qwest Jazz",
+            category = "radyo",
+            streamUrl = "https://qwestjazz-rakuten.amagi.tv/hls/amagi_hls_data_rakutenAA-qwestjazz-rakuten/CDN/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=qwestjazz-rakuten.amagi.tv&sz=128",
+            description = "Qwest Jazz Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "deluxe-music-dance",
+            name = "DELUXE MUSIC Dance",
+            category = "radyo",
+            streamUrl = "https://d37i8mvsaxucfl.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-0785d94zsjwwd/index.m3u8?uid=%7BPSID%7D&optout=%7BTARGETOPT%7D&country=DE&vendor=Samsung",
+            posterUrl = "https://www.google.com/s2/favicons?domain=d37i8mvsaxucfl.cloudfront.net&sz=128",
+            description = "DELUXE MUSIC Dance Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "movie-music-by-stingray",
+            name = "Movie Music by Stingray",
+            category = "radyo",
+            streamUrl = "https://lotus.stingray.com/manifest/cmusic-cme004-montreal/samsungtvplus/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lotus.stingray.com&sz=128",
+            description = "Movie Music by Stingray Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "stingray-classica",
+            name = "Stingray Classica",
+            category = "radyo",
+            streamUrl = "https://lotus.stingray.com/manifest/classica-cla008-montreal/samsungtvplus/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lotus.stingray.com&sz=128",
+            description = "Stingray Classica Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "stingray-iconcerts",
+            name = "Stingray iConcerts",
+            category = "radyo",
+            streamUrl = "https://dash4.antik.sk/live/test_stingray_iconcerts_hd_hevc50/playlist.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=dash4.antik.sk&sz=128",
+            description = "Stingray iConcerts Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "stingray-djazz",
+            name = "Stingray DJAZZ",
+            category = "radyo",
+            streamUrl = "https://lotus.stingray.com/manifest/djazz-djaads-montreal/samsungtvplus/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lotus.stingray.com&sz=128",
+            description = "Stingray DJAZZ Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "stingray-alternative",
+            name = "Stingray Alternative",
+            category = "radyo",
+            streamUrl = "https://lotus.stingray.com/manifest/ose-102ads-montreal/samsungtvplus/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lotus.stingray.com&sz=128",
+            description = "Stingray Alternative Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "stingray-easy-listening",
+            name = "Stingray Easy Listening",
+            category = "radyo",
+            streamUrl = "https://lotus.stingray.com/manifest/ose-137ads-montreal/samsungtvplus/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lotus.stingray.com&sz=128",
+            description = "Stingray Easy Listening Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "stingray-flashback-70-s",
+            name = "Stingray Flashback 70's",
+            category = "radyo",
+            streamUrl = "https://lotus.stingray.com/manifest/ose-115ads-montreal/samsungtvplus/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lotus.stingray.com&sz=128",
+            description = "Stingray Flashback 70's Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "that-s-70s",
+            name = "that's 70s",
+            category = "radyo",
+            streamUrl = "https://lightning-now70s-samsungnz.amagi.tv/playlist.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lightning-now70s-samsungnz.amagi.tv&sz=128",
+            description = "that's 70s Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "stingray-remember-the-80s",
+            name = "Stingray Remember the 80s",
+            category = "radyo",
+            streamUrl = "https://lotus.stingray.com/manifest/ose-128ads-montreal/samsungtvplus/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lotus.stingray.com&sz=128",
+            description = "Stingray Remember the 80s Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "stingray-classic-rock",
+            name = "Stingray Classic Rock",
+            category = "radyo",
+            streamUrl = "https://lotus.stingray.com/manifest/ose-101ads-montreal/samsungtvplus/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lotus.stingray.com&sz=128",
+            description = "Stingray Classic Rock Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "qello-concerts-by-stingray",
+            name = "Qello Concerts by Stingray",
+            category = "radyo",
+            streamUrl = "https://lotus.stingray.com/manifest/qello-qello001-montreal/samsungtvplus/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lotus.stingray.com&sz=128",
+            description = "Qello Concerts by Stingray Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "stingray-holidayscapes",
+            name = "Stingray Holidayscapes",
+            category = "radyo",
+            streamUrl = "https://plextv.ott-channels.stingray.com/holidayscapes/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=plextv.ott-channels.stingray.com&sz=128",
+            description = "Stingray Holidayscapes Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "stingray-nothin-but-90s",
+            name = "Stingray Nothin' But 90s",
+            category = "radyo",
+            streamUrl = "https://lotus.stingray.com/manifest/ose-142ads-montreal/samsungtvplus/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lotus.stingray.com&sz=128",
+            description = "Stingray Nothin' But 90s Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "stingray-hip-hop-r-b",
+            name = "Stingray Hip-Hop/R&B",
+            category = "radyo",
+            streamUrl = "https://lotus.stingray.com/manifest/ose-133ads-montreal/samsungtvplus/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lotus.stingray.com&sz=128",
+            description = "Stingray Hip-Hop/R&B Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "stingray-greatest-hits",
+            name = "Stingray Greatest Hits",
+            category = "radyo",
+            streamUrl = "https://lotus.stingray.com/manifest/ose-155ads-montreal/samsungtvplus/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lotus.stingray.com&sz=128",
+            description = "Stingray Greatest Hits Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "stingray-exitos-del-momento",
+            name = "Stingray Exitos del Momento",
+            category = "radyo",
+            streamUrl = "https://lotus.stingray.com/manifest/ose-190ads-montreal/samsungtvplus/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lotus.stingray.com&sz=128",
+            description = "Stingray Exitos del Momento Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "stingray-karaoke",
+            name = "Stingray Karaoke",
+            category = "radyo",
+            streamUrl = "https://lotus.stingray.com/manifest/karaoke-kar000-montreal/samsungtvplus/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lotus.stingray.com&sz=128",
+            description = "Stingray Karaoke Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "stingray-pop-adult",
+            name = "Stingray Pop Adult",
+            category = "radyo",
+            streamUrl = "https://lotus.stingray.com/manifest/ose-104ads-montreal/samsungtvplus/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lotus.stingray.com&sz=128",
+            description = "Stingray Pop Adult Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "stingray-romance-latino",
+            name = "Stingray Romance Latino",
+            category = "radyo",
+            streamUrl = "https://lotus.stingray.com/manifest/ose-202ads-montreal/samsungtvplus/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lotus.stingray.com&sz=128",
+            description = "Stingray Romance Latino Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "stingray-smooth-jazz",
+            name = "Stingray Smooth Jazz",
+            category = "radyo",
+            streamUrl = "https://lotus.stingray.com/manifest/ose-140ads-montreal/samsungtvplus/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lotus.stingray.com&sz=128",
+            description = "Stingray Smooth Jazz Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "stingray-hit-list",
+            name = "Stingray Hit List",
+            category = "radyo",
+            streamUrl = "https://lotus.stingray.com/manifest/ose-107ads-montreal/samsungtvplus/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lotus.stingray.com&sz=128",
+            description = "Stingray Hit List Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "stingray-today-s-k-pop",
+            name = "Stingray Today's K-Pop",
+            category = "radyo",
+            streamUrl = "https://lotus.stingray.com/manifest/ose-317ads-montreal/samsungtvplus/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lotus.stingray.com&sz=128",
+            description = "Stingray Today's K-Pop Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "stingray-the-spa",
+            name = "Stingray The Spa",
+            category = "radyo",
+            streamUrl = "https://lotus.stingray.com/manifest/ose-122ads-montreal/samsungtvplus/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lotus.stingray.com&sz=128",
+            description = "Stingray The Spa Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "stingray-hot-country",
+            name = "Stingray Hot Country",
+            category = "radyo",
+            streamUrl = "https://lotus.stingray.com/manifest/ose-108ads-montreal/samsungtvplus/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lotus.stingray.com&sz=128",
+            description = "Stingray Hot Country Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "stingray-soul-storm",
+            name = "Stingray Soul Storm",
+            category = "radyo",
+            streamUrl = "https://lotus.stingray.com/manifest/ose-134ads-montreal/samsungtvplus/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lotus.stingray.com&sz=128",
+            description = "Stingray Soul Storm Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "red-bull-tv",
+            name = "Red Bull TV",
+            category = "spor",
+            streamUrl = "https://rbmn-live.akamaized.net/hls/live/590964/BoRB-AT/master.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=rbmn-live.akamaized.net&sz=128",
+            description = "Red Bull TV Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "trace-sports",
+            name = "Trace Sports",
+            category = "spor",
+            streamUrl = "https://lightning-tracesport-samsungau.amagi.tv/playlist.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=lightning-tracesport-samsungau.amagi.tv&sz=128",
+            description = "Trace Sports Canlı Yayın"
+        ),
+        CanliKanal(
+            id = "abc-news-live",
+            name = "ABC News Live",
+            category = "haber",
+            streamUrl = "https://live-manifest.production-public.tubi.io/live/14e4f5f2-9787-4c49-8554-f2ad109764a7/playlist.m3u8",
+            posterUrl = "https://www.google.com/s2/favicons?domain=live-manifest.production-public.tubi.io&sz=128",
+            description = "ABC News Live Canlı Yayın"
+        ),
     )
 
     fun findById(id: String): CanliKanal? = kanallar.firstOrNull { it.id == id }
