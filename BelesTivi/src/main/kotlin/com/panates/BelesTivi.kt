@@ -61,7 +61,8 @@ class BelesTivi : MainAPI() {
         "Müzik" to "Müzik Kanalları",
         "7/24 Dizi/Film" to "7/24 Dizi/Film",
         "Dünya" to "Dünya Kanalları",
-        "AZERBAYCAN" to "Azerbaycan Kanalları"
+        "AZERBAYCAN" to "Azerbaycan Kanalları",
+        "ALL" to "Tüm Kanallar"
     )
 
     // In-memory cache
@@ -72,8 +73,30 @@ class BelesTivi : MainAPI() {
         cachedChannels?.let { return it }
 
         val channels = try {
-            val m3uText = app.get(M3U_URL).text
-            parseM3u(m3uText)
+            var m3uText = ""
+            var attempts = 0
+            while (m3uText.isBlank() && attempts < 3) {
+                attempts++
+                try {
+                    val response = app.get(
+                        M3U_URL,
+                        headers = mapOf(
+                            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                            "Accept" to "text/plain, */*",
+                            "Accept-Language" to "tr-TR,tr;q=0.9"
+                        )
+                    )
+                    m3uText = response.text
+                } catch (e: Exception) {
+                    Log.e(TAG, "Fetch attempt $attempts failed: ${e.message}")
+                }
+            }
+            if (m3uText.isBlank()) {
+                Log.e(TAG, "M3U response is blank after $attempts attempts")
+                emptyList()
+            } else {
+                parseM3u(m3uText)
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to fetch M3U: ${e.message}")
             emptyList()
@@ -147,17 +170,21 @@ class BelesTivi : MainAPI() {
         val category = request.data
         val channels = fetchChannels()
 
-        val items = channels
-            .filter { it.category.equals(category, ignoreCase = true) }
-            .map { kanal ->
-                newLiveSearchResponse(
-                    name = kanal.name,
-                    url = "${mainUrl}/kanal/${URLEncoder.encode(kanal.id, "UTF-8")}",
-                    type = TvType.Live
-                ) {
-                    this.posterUrl = kanal.posterUrl
-                }
+        val filtered = if (category.equals("ALL", ignoreCase = true)) {
+            channels
+        } else {
+            channels.filter { it.category.equals(category, ignoreCase = true) }
+        }
+
+        val items = filtered.map { kanal ->
+            newLiveSearchResponse(
+                name = kanal.name,
+                url = "${mainUrl}/kanal/${URLEncoder.encode(kanal.id, "UTF-8")}",
+                type = TvType.Live
+            ) {
+                this.posterUrl = kanal.posterUrl
             }
+        }
 
         return newHomePageResponse(request.name, items)
     }
