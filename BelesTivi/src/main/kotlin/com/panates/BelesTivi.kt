@@ -17,7 +17,6 @@ import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.newExtractorLink
-import org.jsoup.Jsoup
 import java.net.URLDecoder
 import java.net.URLEncoder
 
@@ -29,27 +28,131 @@ class BelesTivi : MainAPI() {
     override val hasQuickSearch = true
     override val supportedTypes = setOf(TvType.Live)
 
+    companion object {
+        private const val M3U_URL = "https://raw.githubusercontent.com/sunarproje/support/refs/heads/main/belesplus.m3u"
+        private const val TAG = "BelesTivi"
+
+        // Known group titles from M3U (stable across updates)
+        private val GROUP_NAMES = mapOf(
+            "ULUSAL" to "Ulusal Kanallar",
+            "Ulusal - Yurt Dışı" to "Ulusal (Yurt Dışı)",
+            "HABER" to "Haber Kanalları",
+            "Spor" to "Spor Kanalları",
+            "BELGESEL" to "Belgesel Kanalları",
+            "Belgesel" to "Belgesel Kanalları",
+            "ÇOCUK" to "Çocuk Kanalları",
+            "Çocuk" to "Çocuk Kanalları",
+            "Müzik" to "Müzik Kanalları",
+            "7/24 Dizi/Film" to "7/24 Dizi/Film",
+            "Dünya" to "Dünya Kanalları",
+            "AZERBAYCAN" to "Azerbaycan Kanalları"
+        )
+    }
+
     override val mainPage = mainPageOf(
-        "ulusal" to "Ulusal Kanallar",
-        "haber" to "Haber Kanalları",
-        "spor" to "Spor Kanalları",
-        "belgesel" to "Belgesel Kanalları",
-        "cocuk" to "Çocuk Kanalları",
-        "muzik" to "Müzik Kanalları",
-        "dunya" to "Dünya Kanalları",
-        "dizi" to "7/24 Dizi/Film",
-        "dini" to "Dini Kanallar"
+        "ULUSAL" to "Ulusal Kanallar",
+        "Ulusal - Yurt Dışı" to "Ulusal (Yurt Dışı)",
+        "HABER" to "Haber Kanalları",
+        "Spor" to "Spor Kanalları",
+        "BELGESEL" to "Belgesel Kanalları",
+        "Belgesel" to "Belgesel Kanalları",
+        "ÇOCUK" to "Çocuk Kanalları",
+        "Çocuk" to "Çocuk Kanalları",
+        "Müzik" to "Müzik Kanalları",
+        "7/24 Dizi/Film" to "7/24 Dizi/Film",
+        "Dünya" to "Dünya Kanalları",
+        "AZERBAYCAN" to "Azerbaycan Kanalları"
     )
+
+    // In-memory cache
+    @Volatile
+    private var cachedChannels: List<BelesKanal>? = null
+
+    private suspend fun fetchChannels(): List<BelesKanal> {
+        cachedChannels?.let { return it }
+
+        val channels = try {
+            val m3uText = app.get(M3U_URL).text
+            parseM3u(m3uText)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch M3U: ${e.message}")
+            emptyList()
+        }
+
+        if (channels.isNotEmpty()) {
+            cachedChannels = channels
+        }
+        return channels
+    }
+
+    private fun parseM3u(text: String): List<BelesKanal> {
+        val channels = mutableListOf<BelesKanal>()
+        val lines = text.lines()
+        var i = 0
+        var currentExtinf: String? = null
+
+        while (i < lines.size) {
+            val line = lines[i].trim()
+            if (line.startsWith("#EXTINF")) {
+                currentExtinf = line
+            } else if (line.isNotBlank() && !line.startsWith("#") && currentExtinf != null) {
+                val url = line
+                val channel = parseExtinf(currentExtinf, url, channels.size)
+                if (channel != null) {
+                    channels.add(channel)
+                }
+                currentExtinf = null
+            }
+            i++
+        }
+        return channels
+    }
+
+    private fun parseExtinf(extinf: String, url: String, index: Int): BelesKanal? {
+        // Extract name (after last comma)
+        val name = extinf.substringAfterLast(",").trim()
+        if (name.isBlank()) return null
+
+        // Extract group-title
+        val groupMatch = Regex("""group-title="([^"]*)"""").find(extinf)
+        val groupTitle = groupMatch?.groupValues?.get(1)?.trim() ?: "Diğer"
+
+        // Extract tvg-logo
+        val logoMatch = Regex("""tvg-logo="([^"]*)"""").find(extinf)
+        val logo = logoMatch?.groupValues?.get(1)?.trim()?.takeIf { it.isNotBlank() }
+
+        // Extract tvg-id
+        val idMatch = Regex("""tvg-id="([^"]*)"""").find(extinf)
+        val tvgId = idMatch?.groupValues?.get(1)?.trim()
+
+        // Generate stable ID from name
+        val id = name.lowercase()
+            .replace(Regex("[^a-z0-9]+"), "-")
+            .trim('-')
+            .ifBlank { "kanal-$index" }
+
+        val category = groupTitle
+
+        return BelesKanal(
+            id = id,
+            name = name,
+            category = category,
+            streamUrl = url,
+            posterUrl = logo,
+            description = null
+        )
+    }
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val category = request.data
+        val channels = fetchChannels()
 
-        val items = BelesTiviChannels.kanallar
+        val items = channels
             .filter { it.category.equals(category, ignoreCase = true) }
             .map { kanal ->
                 newLiveSearchResponse(
                     name = kanal.name,
-                    url = "${mainUrl}/kanal/${kanal.id}",
+                    url = "${mainUrl}/kanal/${URLEncoder.encode(kanal.id, "UTF-8")}",
                     type = TvType.Live
                 ) {
                     this.posterUrl = kanal.posterUrl
@@ -61,25 +164,26 @@ class BelesTivi : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val q = query.trim().lowercase()
-        val channelMatches = BelesTiviChannels.kanallar
+        val channels = fetchChannels()
+
+        return channels
             .filter { it.name.lowercase().contains(q) || it.category.lowercase().contains(q) }
             .map { kanal ->
                 newLiveSearchResponse(
                     name = kanal.name,
-                    url = "${mainUrl}/kanal/${kanal.id}",
+                    url = "${mainUrl}/kanal/${URLEncoder.encode(kanal.id, "UTF-8")}",
                     type = TvType.Live
                 ) {
                     this.posterUrl = kanal.posterUrl
                 }
             }
-
-        return channelMatches
     }
 
     override suspend fun load(url: String): LoadResponse {
         if (url.contains("/kanal/")) {
-            val kanalId = url.substringAfterLast("/kanal/").substringBefore("?")
-            val kanal = BelesTiviChannels.findById(kanalId) ?: return newLiveStreamLoadResponse("Bilinmeyen", url, url) {}
+            val kanalId = URLDecoder.decode(url.substringAfterLast("/kanal/").substringBefore("?"), "UTF-8")
+            val kanal = fetchChannels().firstOrNull { it.id == kanalId }
+                ?: return newLiveStreamLoadResponse("Bilinmeyen", url, url) {}
 
             return newLiveStreamLoadResponse(kanal.name, url, url) {
                 this.posterUrl = kanal.posterUrl
@@ -97,8 +201,8 @@ class BelesTivi : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ): Boolean {
         if (data.contains("/kanal/")) {
-            val kanalId = data.substringAfterLast("/kanal/").substringBefore("?")
-            val kanal = BelesTiviChannels.findById(kanalId) ?: return false
+            val kanalId = URLDecoder.decode(data.substringAfterLast("/kanal/").substringBefore("?"), "UTF-8")
+            val kanal = fetchChannels().firstOrNull { it.id == kanalId } ?: return false
 
             val streamUrl = kanal.streamUrl
 

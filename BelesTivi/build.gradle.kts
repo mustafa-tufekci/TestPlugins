@@ -1,9 +1,9 @@
-version = 1
+version = 2
 
 cloudstream {
     authors     = listOf("Panates")
     language    = "tr"
-    description = "Beleş TiVi uygulamasından alınan canlı TV kanalları. Spor, haber, belgesel, müzik, çocuk ve 7/24 dizi/film kanalları. Kaynak: Beleş TiVi Android uygulaması (com.sunargames.belestivi)."
+    description = "Beleş TiVi M3U listesinden dinamik olarak alınan canlı TV kanalları. M3U listesi runtime'da çekilir ve cache'lenir. Spor, haber, belgesel, müzik, çocuk, dünya ve 7/24 dizi/film kanalları. Kaynak: Beleş TiVi Android uygulaması (com.sunargames.belestivi)."
 
     /**
      * Status int as the following:
