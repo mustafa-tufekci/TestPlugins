@@ -39,6 +39,9 @@ class InatBox : MainAPI() {
     private val requestMutex = Mutex()
     private var lastRequestTimestamp = 0L
 
+    /** Sunucu ile aramizdaki saat farki (saniye); 403 + x-st yanitindan ogrenilir. */
+    @Volatile private var clockSkewSeconds = 0L
+
     companion object {
         private const val CACHE_TTL_MS = 15 * 60 * 1000L
         private const val HMK = "x7kkk0qmqz63kj68tla5i7u26192v7zqnnddhjgm"
@@ -75,7 +78,7 @@ class InatBox : MainAPI() {
             return bytesToHex(mac.doFinal(data.toByteArray(StandardCharsets.UTF_8)))
         }
 
-        fun signRequest(method: String, url: String, body: String): Map<String, String> {
+        fun signRequest(method: String, url: String, body: String, offsetSeconds: Long = 0L): Map<String, String> {
             val uriPath = try {
                 val rawPath = URI(url).rawPath
                 if (rawPath.isNullOrEmpty()) "/" else rawPath
@@ -83,7 +86,7 @@ class InatBox : MainAPI() {
                 "/"
             }
 
-            val timestamp = (System.currentTimeMillis() / 1000).toString()
+            val timestamp = ((System.currentTimeMillis() / 1000) + offsetSeconds).toString()
             val nonceBytes = ByteArray(16)
             SECURE_RANDOM.nextBytes(nonceBytes)
             val nonce = bytesToHex(nonceBytes)
@@ -704,29 +707,54 @@ class InatBox : MainAPI() {
                     }
                     lastRequestTimestamp = System.currentTimeMillis()
 
-                    val dynKey = generateRandomKey(16)
-                    val requestBody = "1=$dynKey&0=$dynKey"
-                    val signatureHeaders = signRequest("POST", url, requestBody)
+                    var sonuc: Triple<Boolean, String?, String>? = null
+                    var deneme = 0
+                    while (deneme < 2) {
+                        val dynKey = generateRandomKey(16)
+                        val requestBody = "1=$dynKey&0=$dynKey"
+                        val signatureHeaders = signRequest("POST", url, requestBody, clockSkewSeconds)
 
-                    val headers = mutableMapOf(
-                        "User-Agent" to "speedrestapi",
-                        "X-Requested-With" to "com.bp.box",
-                        "Referer" to "https://speedrestapi.com/",
-                        "Content-Type" to "application/x-www-form-urlencoded; charset=UTF-8",
-                        "Cache-Control" to "no-cache",
-                        "Host" to hostName
-                    )
-                    headers.putAll(signatureHeaders)
-
-                    val response = app.post(
-                        url = url,
-                        headers = headers,
-                        requestBody = requestBody.toRequestBody(
-                            "application/x-www-form-urlencoded; charset=UTF-8".toMediaType()
+                        val headers = mutableMapOf(
+                            "User-Agent" to "speedrestapi",
+                            "X-Requested-With" to "com.bp.box",
+                            "Referer" to "https://speedrestapi.com/",
+                            "Content-Type" to "application/x-www-form-urlencoded; charset=UTF-8",
+                            "Cache-Control" to "no-cache",
+                            "Host" to hostName
                         )
-                    )
+                        headers.putAll(signatureHeaders)
 
-                    Triple(response.isSuccessful, if (response.isSuccessful) response.body.string() else null, dynKey)
+                        val response = app.post(
+                            url = url,
+                            headers = headers,
+                            requestBody = requestBody.toRequestBody(
+                                "application/x-www-form-urlencoded; charset=UTF-8".toMediaType()
+                            )
+                        )
+
+                        // 403 + "x-st" = sunucu saati bizden farkli -> imzayi duzelt, tekrar dene
+                        if (response.code == 403) {
+                            val sunucuZamani = response.headers["x-st"]?.toLongOrNull()
+                            if (sunucuZamani != null) {
+                                val fark = sunucuZamani - System.currentTimeMillis() / 1000
+                                if (fark != clockSkewSeconds) {
+                                    clockSkewSeconds = fark
+                                    Log.d("InatBox", "saat farki duzeltildi: ${fark}s")
+                                    deneme++
+                                    continue
+                                }
+                            }
+                        }
+
+                        sonuc = Triple(
+                            response.isSuccessful,
+                            if (response.isSuccessful) response.body.string() else null,
+                            dynKey
+                        )
+                        break
+                    }
+
+                    sonuc ?: Triple(false, null, "")
                 }
 
                 if (isSuccessful && !rawBody.isNullOrBlank()) {

@@ -1,4 +1,4 @@
-version = 16
+version = 17
 
 cloudstream {
     description = "İnatBox - Film, dizi ve canlı yayın kanalları"
