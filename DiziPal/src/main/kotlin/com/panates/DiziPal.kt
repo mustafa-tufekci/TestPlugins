@@ -205,14 +205,41 @@ class DiziPal : MainAPI() {
                 val full = if (it.href.startsWith("http")) it.href else "$mainUrl${it.href}"
                 full == pageUrl
             }?.label ?: "DiziPal"
-            val enc = parseEnc(raw) ?: return@forEach
-            val playerUrl = normalizePlayer(decryptPlayer(enc) ?: return@forEach)
+            val playerUrl = run {
+                val enc = parseEnc(raw)
+                val decrypted = if (enc != null) decryptPlayer(enc) else null
+                val fallback = decrypted ?: DpRmk.decryptFromPage(raw) ?: return@forEach
+                normalizePlayer(fallback)
+            }
             if (!seen.add(playerUrl)) return@forEach
+
+            // Host-specific decoders ported from the neowatch DiziPal family.
+            val special = when {
+                playerUrl.contains("formationfeed") -> DpJwKaynak()
+                playerUrl.contains("streamcorecdn") -> DpStreamCore()
+                playerUrl.contains("player.html?video=") -> DpVideoPlays()
+                else -> null
+            }
+            if (special != null) {
+                runCatching {
+                    special.getUrl(playerUrl, "$mainUrl/", subtitleCallback) { link ->
+                        callback(renameLink(link, label))
+                    }
+                }.onSuccess { found = true }
+                return@forEach
+            }
 
             val iframe = runCatching { app.get(playerUrl, referer = "$mainUrl/").text }.getOrNull()
                 ?: return@forEach
             val token = Regex("openPlayer\\('([^']+)'").find(iframe)?.groupValues?.get(1)
-                ?: return@forEach
+
+            // Unknown player layout: hand the iframe to the global extractor registry.
+            if (token == null) {
+                runCatching { loadExtractor(playerUrl, "$mainUrl/", subtitleCallback, callback) }
+                    .onSuccess { if (it) found = true }
+                return@forEach
+            }
+
             val host = playerUrl.substringAfter("://").substringBefore("/")
             val source2 = "https://$host/source2.php?v=$token"
 

@@ -11,5 +11,8 @@ class DiziPalPlugin: Plugin() {
         registerExtractorAPI(DpSnHotlinger())
         registerExtractorAPI(DpHotlinger())
         registerExtractorAPI(DpContentX())
+        registerExtractorAPI(DpJwKaynak())
+        registerExtractorAPI(DpStreamCore())
+        registerExtractorAPI(DpVideoPlays())
     }
 }
