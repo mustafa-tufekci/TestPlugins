@@ -187,3 +187,19 @@ imzasız istek 403 — uygulama içinde doğrulanamaz, `status = 1` bırakıldı
 
 `./gradlew make makePluginsJson` → 36 sağlayıcı. Commit'ler yerel: `57bb5ac` (HDC v41),
 `658446e` (RecTV/NetflixMirror/Watch2Movies v2). Push **yapılmadı**, onay bekleniyor.
+
+### 2026-10-30 — takip turu (JetFilmizle Trendler, DiziPal ana sayfa, RecTV)
+
+- **JetFilmizle v4** (`e772157`): `/trendler` sayfası klasik ızgara değil, sıralama listesi
+  (`a.trend-item` > `.trend-rank` / `.trend-poster img` / `.trend-name`). `getMainPage` bu
+  bölüm için ayrı ayrıştırıcı (`toTrendResult()`) kullanıyor; canlı sayfada 37 kayıttan 20'si
+  film/dizi (kalanı kullanıcı sıralaması). `JtfResim.buyuk()` artık `-poster-tiny|small|medium`
+  varyantlarını `-poster-large`'a yükseltiyor (8 KB → 132 KB).
+- **DiziPal v41** (`7c2d24c`): ana sayfanın "Excepted url schema…" hatasının kökü
+  `MainPageData(name, data)` sırasının ters yazılmasıydı (data alanına "Anasayfa" gidiyordu).
+  Altı bölüm düzeltildi. "Yeni Bölümler" sayfası `a.ecl` / `a.mwr` kartları kullanıyor
+  (eskisi `a.sr`), `aria-label` ("Dizi, 4. Sezon 6. Bölüm, dublaj") üzerinden başlık
+  çıkarılıyor — canlı sayfada 68 bölüm.
+- **RecTV v3** (`ff93326`) kullanıcı isteğiyle `status = 1`. Uyarı: `a.psrectv80.xyz` kökü
+  `/admin/`'e 301 (401), imzalı `/api/...` çağrıları **404**; Firebase remote config hâlâ
+  aynı tabanı veriyor, `api_secure_key` (`c.prectv30.sbs`) DNS'te yok. Liste muhtemelen boş gelir.
