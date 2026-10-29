@@ -330,7 +330,13 @@ class HDFilmCehennemi : MainAPI() {
                 } else {
                     invokeLocalSource(source, iframe, subtitleCallback, callback)
                 }*/
-                loadExtractor(iframe, data, subtitleCallback, callback)
+                val handled = runCatching { loadExtractor(iframe, data, subtitleCallback, callback) }
+                    .getOrDefault(false)
+                if (!handled) {
+                    // Generic JS/packer fallback for players the registry does not know.
+                    runCatching { HdcGizliJsOynatici().getUrl(iframe, data, subtitleCallback, callback) }
+                        .onFailure { Log.d("HDCH", "js fallback failed: ${it.message}") }
+                }
                 Log.d("HDCH", "$source » $videoID » $iframe")
             }
         }

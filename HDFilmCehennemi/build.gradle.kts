@@ -1,4 +1,4 @@
-version = 37
+version = 38
 
 cloudstream {
     authors     = listOf("Panates", "hexated", "keyiflerolsun", "nikyokki")
@@ -15,4 +15,9 @@ cloudstream {
     status  = 1
     tvTypes = listOf("Movie", "TvSeries")
     iconUrl = "https://www.google.com/s2/favicons?domain=hdfilmcehennemi.com&sz=%size%"
+}
+
+dependencies {
+    // Rhino (JS engine) is provided by the CloudStream app at runtime; needed only to compile.
+    compileOnly("org.mozilla:rhino:1.8.1")
 }
