@@ -1,4 +1,4 @@
-version = 2
+version = 3
 
 cloudstream {
     authors     = listOf("Panates", "NeO")
@@ -12,7 +12,7 @@ cloudstream {
      * 2: Slow
      * 3: Beta only
     **/
-    status  = 0
+    status  = 1
     tvTypes = listOf("Movie", "Live", "TvSeries")
     iconUrl = "https://www.google.com/s2/favicons?domain=a.psrectv80.xyz&sz=%size%"
 }
