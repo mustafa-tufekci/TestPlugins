@@ -2,9 +2,31 @@
 
 ## Current focus
 
-Fixing Dizilla (v31) following Next.js App Router / Turbopack migration, and adding the new CanliTV (v1) live TV & sports provider plugin.
+Nothing in flight. HEAD = `418a8e1` (`fix(BelesTivi): quickSearch override … (v7)`), pushed to
+`fork/master`, CI run `40189043379` green. Last work stream was the **BelesTivi** live-TV module
+(v1→v7, 2026-10-25) plus channel expansion in **CanliTV** (v5→v6).
 
 ## Recent changes (see also progress.md)
+
+- `fix(BelesTivi): quickSearch override eklendi, arama sorunu düzeltildi (v7)` — `418a8e1`
+- `chore(BelesTivi): kullanılmayan YOUTUBE_CATEGORY_MAP kaldırıldı (v6)` — `7fa03f2`
+- `feat(BelesTivi): Dual M3U kaynağı + YouTube canlı yayın + cache TTL + headers (v6)` — `c60b1d3`
+- `feat(BelesTivi): APK'dan 10 gömülü Turkuvaz kanalı eklendi (ATV, A Haber, A Spor vb.) (v4)` — `57e30d1`
+- `fix(BelesTivi): M3U fetch headers, retry, Tüm Kanallar kategorisi eklendi (v3)` — `1691025`
+- `feat(BelesTivi): M3U tabanlı dinamik kanal yükleme (v2)` — `a8e0518`
+- `feat(BelesTivi): Beleş TiVi uygulamasından 141 kanal … (v1)` — `64ef2f3`
+- `feat(CanliTV): Beleş TiVi kaynağından 102 doğrulanmış kanal (v6)` — `6178d0d`
+- `feat(CanliTV): iptv-org kaynağından 110 doğrulanmış kanal (v5)` — `7c5cd2b`;
+  v4 TURKTV batch reverted in `dc59b74`
+- `fix(DiziPal): dizipal1592.com Next.js App Router/Turbopack yeniden yazımı … (v37)` — `ffd433d`
+- `fix(HDFilmCehennemi2): vidload JSON.parse config çözümü … (v13)` — `543821e`
+- `fix(HDFilmCehennemi): Close hostname salt eklendi … (v37)` — `5f145a3`
+- `fix(Anizium): epochYear yıl dönüşümü, genre nesnesinden name … (v3)` — `38707ea`
+- `fix(Animecix): metaCache döndürüldü, /secure/videos ile film tespiti … (v8)` — `4bfa8a7`
+- `fix(DiziFilm): arama content_type filtresi, yıl JSON-LD'den … (v5)` — `43f7942`
+- `fix(SelcukFlix): search type field now checks used_type … (v11)` — `04ba135`
+- `feat(SezonlukDizi): Son Bölümler row, JSON-LD trailer, search word fallback … (v15)` — `6923068`
+- (older history below)
 
 - `fix(Dizilla): adapt to site redesign with Schema.org JSON-LD and clean search/loadLinks (v31)`
 - `feat(CanliTV): add CanliTV live sports and TV channels plugin with Sporekrani schedule (v1)`
@@ -36,9 +58,11 @@ Fixing Dizilla (v31) following Next.js App Router / Turbopack migration, and add
 - `fix(hdfilmcehennemi): decode new splice-family player obfuscation (v35)`.
 - `docs: add AGENTS.md with build/workflow rules and compile gotchas`.
 
-**State:** HEAD = `76f2bbd` == `fork/master`, pushed; CI run `39302196599` success; builds shows BelgeselX 2, CizgiMax 2, DiziPal 35 (15 modules).
-Last pushed CI run `39297293073` success; `builds` publishes 15 modules (DiziPal 34).
-Earlier: `0f06e40` + SelcukFlix v3/v2/v1 runs all green.
+**State:** HEAD = `418a8e1` == `fork/master`, pushed; CI run `40189043379` success;
+17 modules published: Animecix 8, Anizium 3, BelesTivi 7, BelgeselX 3, CanliTV 6, CizgiMax 2,
+DiziBal 3, DiziFilm 5, Dizilla 31, DiziPal 37, FullHDFilm 3, HDFilmCehennemi 37,
+HDFilmCehennemi2 13, InatBox 16, SelcukFlix 11, SezonlukDizi 15, Youtube 2.
+Working tree clean. Memory bank re-synced to this state on 2026-10-29.
 `origin/master` (upstream) is unrelated and intentionally not synced.
 
 ## DiziPal SSL error (2026-09-28) — `CertPathValidatorException: Trust anchor …`
@@ -142,7 +166,7 @@ Earlier: `0f06e40` + SelcukFlix v3/v2/v1 runs all green.
 
 ## Next steps
 
-- Cloudstream-builder full-provider verification completed 2026-10-24: all 16 sources probed, 14 ✅ verified end-to-end, 1 ⚠️ InatBox blocked by Cloudflare IP ban (code intact), 1 🛠️ Youtube build-only (NewPipeExtractor).
+- Cloudstream-builder full-provider verification completed 2026-10-24: all 16 sources probed, 14 ✅ verified end-to-end, 1 ⚠️ InatBox blocked by Cloudflare IP ban (code intact), 1 🛠️ Youtube build-only (NewPipeExtractor). **BelesTivi (v7) was added after that sweep and has not been re-probed end-to-end.**
 - Keep the memory bank current after every non-trivial change (`activeContext.md`,
   `progress.md`, and `productContext.md`'s version table).
 - Watch for further site template/player changes on hdfilmcehennemi*.biz hosts.

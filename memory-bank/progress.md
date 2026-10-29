@@ -1,13 +1,30 @@
 # Progress — TestPlugins
 
-## Status at last review (2026-10-24)
+## Status at last review (2026-10-29, bank re-synced against HEAD `418a8e1`)
 
-- 16 modules, all building: `Animecix (v6)`, `Anizium (v1)`, `BelgeselX (v3)`, **CanliTV (v1)**, `CizgiMax (v2)`,
-  `DiziBal (v2)`, `DiziFilm (v4)`, **Dizilla (v31)**, `DiziPal (v37)`,
-  `FullHDFilm (v3)`, `HDFilmCehennemi (v36)`, `HDFilmCehennemi2 (v11)`, `InatBox (v16)`,
-  `SelcukFlix (v10)`, `SezonlukDizi (v15)`, `Youtube (v2)`.
-- `./gradlew make makePluginsJson --dry-run` passes cleanly with Java 17 + Android SDK; all targets resolve.
-- **cloudstream-builder verification (2026-10-24)**: all 16 provider sources probed end-to-end. Results below.
+- 17 modules, all building and published (CI run `40189043379` on `418a8e1`: success):
+  `Animecix (v8)`, `Anizium (v3)`, **`BelesTivi (v7)`**, `BelgeselX (v3)`, `CanliTV (v6)`,
+  `CizgiMax (v2)`, `DiziBal (v3)`, `DiziFilm (v5)`, `Dizilla (v31)`, `DiziPal (v37)`,
+  `FullHDFilm (v3)`, `HDFilmCehennemi (v37)`, `HDFilmCehennemi2 (v13)`, `InatBox (v16)`,
+  `SelcukFlix (v11)`, `SezonlukDizi (v15)`, `Youtube (v2)`.
+- **BelesTivi (v1→v7, 2026-10-25)**: live TV from the Beleş TiVi Android app
+  (com.sunargames.belestivi). v1 141 channels from the app, v2 M3U-driven dynamic load,
+  v3 fetch headers + retry + "Tüm Kanallar", v4 10 embedded Turkuvaz channels
+  (ATV, A2, A Haber, A Para, A Spor, Minika Go/Çocuk, A News HD, ATV Avrupa, Vav TV),
+  v6 dual M3U source (`belesplus.m3u` + `playlist.m3u`), YouTube live row, 10-min cache TTL,
+  v7 `quickSearch` override (in-app search returned nothing for a `hasQuickSearch` provider).
+  `mainUrl = https://belestivi.local` (no real site; links come from the M3U), `status = 1`.
+- **CanliTV (v1→v6)**: v5 +110 iptv-org channels, v6 +102 Beleş TiVi channels;
+  v4 TURKTV batch was reverted (`dc59b74`).
+- **Batch of 2026-10-24 fixes** (all published): HDFilmCehennemi v37 (Close hostname salt,
+  `!!` NPE), HDFilmCehennemi2 v12/v13 (escaped vidload JSON + Tracks), DiziPal v36/v37
+  (1592 rewrite, PBKDF2/CBC), Animecix v7/v8 (film sources via `/secure/videos`, metaCache,
+  season filter), Anizium v2/v3 (genre names + epoch years), DiziFilm v5 (search
+  `content_type` filter, JSON-LD year), DiziBal v3 (SPA JSON-LD homepage, `/ara/oneri`),
+  SelcukFlix v11 (`used_type` in search), SezonlukDizi v15 (Son Bölümler row, trailer,
+  word fallback, allocation-free PoW).
+- **cloudstream-builder verification (2026-10-24)**: all 16 then-existing sources probed
+  end-to-end. Results below (BelesTivi added afterwards and not yet in that table).
 - **Dizilla (v31)**: Fixed site redesign (Next.js App Router / Turbopack migration). Replaced legacy `__NEXT_DATA__` and AES decryption with Schema.org `TVSeries` JSON-LD parsing, updated search to clean `/ara?q=`, parsed Next.js embedded `sources` JSON, registered `Filese`, `FourFilese`, `Okvip`, `FourOkvip` extractors.
 - **CanliTV (v1)**: New live TV & sports plugin with 20+ verified HLS channels (TRT Spor 1-2, TRT Spor Yıldız, tabii Spor 1-6 UEFA, TRT 1, TV8, Show TV, Kanal D, NOW TV dynamic m3u8 resolver, TRT Haber, TRT Belgesel, TRT 2, TRT World, TRT Çocuk, TRT Müzik, Kral FM, Power Türk) plus dynamic `Sporekrani` match schedule scraper mapping to live channel streams.
 - **DiziBOX**: Removed completely from repository on user request.
@@ -18,11 +35,17 @@
 
 ## What works
 
-- **HDFilmCehennemi (v36)** — full flow incl. splice-family player script decoding, subtitle
+- **HDFilmCehennemi (v37)** — full flow incl. splice-family player script decoding, subtitle
   track extraction from page script with absolute `.vtt` URLs, metadata parsing fixed to read
-  HTML via JsonNode (no Boolean-parse bug from `meta.canonical`).
-- **HDFilmCehennemi2 (v10)** — new site template, vidload player, `Tracks` JSON subtitle
-  parsing, actor photos from the *oyuncu listesi* block.
+  HTML via JsonNode (no Boolean-parse bug from `meta.canonical`); v37 adds the Close hostname salt.
+- **HDFilmCehennemi2 (v13)** — new site template, vidload player (escaped `JSON.parse` config in v12/v13),
+  `Tracks` JSON subtitle parsing, actor photos from the *oyuncu listesi* block.
+- **BelesTivi (v7)** — live TV only (`tvTypes = listOf("Live")`), `status = 1`; channels come from two
+  `sunarproje/support` M3U files + 10 embedded Turkuvaz HLS URLs; `mainUrl` is a dummy
+  `belestivi.local`; 10-minute `@Volatile` cache; categories map to M3U `group-title`s
+  (`ULUSAL`, `Haber`, `Spor`, `Belgesel`, `Çocuk`, `Müzik`, `7/24 Dizi/Film`, `Dünya`,
+  `AZERBAYCAN`, `YOUTUBE`, `ALL`); v7 adds `override suspend fun quickSearch(query) = search(query)`
+  so the search-bar shortcut filters the M3U list locally instead of hitting the dummy `mainUrl`.
 - **Dizilla (v26)** — hero image as background poster with poster fallback.
 - **SezonlukDizi (v13)** — self-contained `DzenSez` extractor + new `FilemoonSez` (Byse / bysejikuar.com):
   site moved nearly all embed servers behind Cloudflare Turnstile (`/ajax/reCAPTCHADATA.asp` iframe), only Filemoon
