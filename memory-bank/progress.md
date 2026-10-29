@@ -1,4 +1,31 @@
-# Progress — TestPlugins
+# Progress
+
+## 2026-10-30 — bozuk kaynak onarım turu
+
+Tamamlanan:
+
+- BelesTivi modülü tamamen kaldırıldı (36 sağlayıcı kaldı).
+- CanliTV, neowatch'in iptv-org kaynağının birebir portuyla değiştirildi (v8);
+  eski hardcoded kanal listesi (`CanliTVChannels.kt`) silindi.
+- ContentX oynatıcıları `window.NP_CONFIG` destekli (Dizilla v34, SelcukFlix v13,
+  DiziPal v40) — "link bulunamadı" kök nedeni buydu.
+- FilmMakinesi (v3) ve HDFilmCehennemi (v40): Rhino polyfill'i tam tarayıcı taklidine
+  çevrildi; P.A.C.K.E.R. paketleri artık çözülüyor.
+- Pilavyer zinciri `pilavyerplay.top` + `api/stream.php`/`api/sub.php`'ye taşındı
+  (DiziBal v6, FilmModu v3); SetFilmIzle player hostu `setplay.sbs` doğrulandı.
+- Afiş düzeltmesi: 16 modüle `<Önek>Resim` yardımcısı; 16:9 kapak/platform logosu yerine
+  dikey büyük afiş, en büyük srcset, bilinen boyut yükseltmeleri (v6…v40 hepsi bump).
+- Canlandırılan kaynaklar: WebteIzle (webteizle.info), SuperFilmGeldi
+  (superfilmizle.icu), JetFilmizle (jetfilmizle.app), KultFilmler (kultfilmler.net,
+  vidpapi FirePlayer), TurkAnime (turkanime.live, StreamCore), DiziYou (diziyou.net),
+  WebDramaTurkey (FirePlayer hostu dtpasn.asia).
+- Kalıcı ölü ilan edilenler: DiziMom, SinemaCX, UgurFilm → `status = 0`.
+
+Bekleyen:
+
+- Bu turun commit'lerinin `fork/master`'a push edilmesi (kullanıcı onayı).
+- WebteIzle oynatması Cloudflare Turnstile yüzünden kapalı; resmî çözüm yok.
+- DiziBox davranışı yalnızca uygulama içinde (CloudflareInterceptor) doğrulanabilir. — TestPlugins
 
 ## Status at last review (2026-10-29, HEAD `dc598d9`, push edildi + CI green)
 

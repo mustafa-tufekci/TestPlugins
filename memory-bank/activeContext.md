@@ -2,14 +2,61 @@
 
 ## Current focus
 
-**neowatch karşılaştırması tamamlandı ve yayınlandı (2026-10-29).** Referans repo
-`neoser1984/neowatch` incelendi, 13 ortak modül karşılaştırıldı, eksikler kapatıldı:
-20 yeni sağlayıcı modülü eklendi + 9 özellik portu yapıldı. `fork/master`'a push edildi
-(31 commit, `418a8e1..dc598d9`), CI run `40906447013` **success**, `builds/plugins.json`
-37 sağlayıcı ile doğrulandı. Açık iş: 20 beta modülün (`status = 3`) canlı oynatma
-doğrulaması → `status = 1`.
+**Bozuk kaynak onarım turu (2026-10-29/30) — kod tamam, push onayı bekliyor.**
+Kullanıcı istekleri: BelesTivi'yi tamamen kaldır, CanliTV'yi neowatch'in birebir kopyası
+yap, neowatch'te afişlerin neden daha düzgün olduğunu bul ve tüm repoya uygula, DiziBal /
+DiziBox / DiziMom'u düzelt, "link bulunamadı" veren Dizilla, FilmMakinesi, FilmModu,
+FullHDFilm, HDFilmCehennemi, SelcukFlix, SetFilmIzle'yi düzelt, DiziPal şema hatasını
+çöz, ölü kaynakları (DiziYou, JetFilmizle, KultFilmler, SinemaCX, SuperFilmGeldi,
+TurkAnime, UgurFilm, WebDramaTurkey, WebteIzle) canlandır.
 
-## Recent changes — neowatch portu (2026-10-29)
+Sonuç: 5 commit yerel (`cd352e5`, `958a3da`, `335666d`, `9947727`, `10d58c9`+`4d13691`,
+`c671a52`), `./gradlew make makePluginsJson` **BUILD SUCCESSFUL**, `build/plugins.json`
+**36 sağlayıcı**. Push edilmedi — kullanıcı onayı bekleniyor.
+
+## 2026-10-30 turu — kök nedenler
+
+- **ContentX ailesi (Dizilla/SelcukFlix/DiziPal):** oynatıcı `window.openPlayer('...')`
+  yerine tek bir `window.NP_CONFIG = {...}` JSON'u basıyor; eski ayrıştırıcı
+  `iExtract is null` atıyordu → "link bulunamadı". Üç modüle NP_CONFIG dalı eklendi
+  (`sources[].master`, `subtitles[].url`, `track`). Referer **tam olarak oynatıcı
+  origin'i** olmalı (`scheme://host/`) ve tarayıcı UA şart: referer yok / contentx.me /
+  sorgulu iframe URL'si → 404; origin → 200.
+- **Pilavyer (DiziBal/FilmModu):** host `play2.pilavyerplay.top` → `pilavyerplay.top`;
+  `api/stream.php` + `api/sub.php` jeton uçları; altyazılara Referer/UA başlığı eklendi.
+  Zincir referersiz de 200 dönüyor, yani DiziBal'ın "video oynamıyor" şikayeti
+  seçici/akış kaynaklı değildi — yine de sağlamlaştırıldı (v6).
+- **FilmMakinesi + HDFilmCehennemi (asıl büyük kazanç):** P.A.C.K.E.R. JS'i Rhino'da
+  çalıştıran `GizliJs` çözücülerinin polyfill'i yalnızca `window/self/document={}` +
+  atob/btoa tanımlıyordu. Yeni paketler `self.location.hostname`, `document.createElement`,
+  `screen`, `navigator` çağırıyor → değerlendirme patlıyor, akış değişkeni hiç
+  tanımlanmıyordu. Tam DOM tarayıcı taklidi eklendi (`location`, `screen`, `navigator`,
+  `document` + `__sahteEleman()`); `degiskenCoz(html, degisken, host)` host alıyor.
+  Doğrulandı: FilmMakinesi → rapidrame master m3u8; HDFilmCehennemi → cdnimages master
+  (TR/Original ses).
+- **Afişler (kullanıcının "resimler düzgün değil" şikayeti):** neowatch ile kod farkı
+  yok; fark **görsel adreslerinde**. Siteler listede 16:9 küçük kapak / platform logosu /
+  WordPress kırpıntısı veriyor. Çözüm: her modüle kendi `<Önek>Resim` yardımcısı
+  (ortak `com.panates` paketinde sınıf adı çakışması olmasın diye modül başına ayrı ad):
+  kart içinde en uygun `img`'i puanlar (poster/afis/kapak + dikey oran ×; logo/brand/
+  platforms/backdrop −), `data-src`/`data-lazy-src`/`data-original`, en büyük
+  `srcset`/`data-srcset` varyantını seçer ve adresi büyütür. Doğrulanan büyütmeler
+  (hepsi 200, 2–6 kat büyük dosya):
+  `macellan/cdnhipter /images/640/360|0/360/90/` → `/images/630/910/95/` (2:3 afiş),
+  `dizibal /storage/tmdb/posters/w342/` → `w780`, TMDB `/t/p/w300|w185/` → `w500`,
+  WordPress `-200x300` → orijinal, `fullhdfilm /poster/film/` → `poster/film-lg/`,
+  `hdfilmcehennemi ...poster/x.webp` → `@2x`. 16 modüle uygulandı, `c671a52`.
+- **Ölü kaynaklar:** canlandırılanlar — WebteIzle `webteizle.info`, SuperFilmGeldi
+  `superfilmizle.icu` (oynatıcı `luciferplays.com`), JetFilmizle `jetfilmizle.app`
+  (playerx HLS), KultFilmler `kultfilmler.net` (yeni tema + vidpapi FirePlayer),
+  TurkAnime `turkanime.live` (StreamCore `play.m3u8`), DiziYou `diziyou.net`
+  (WP/Wstream + NP_CONFIG), WebDramaTurkey yalnızca FirePlayer hostu `dtpasn.asia`.
+  Kalıcı ölü: **DiziMom, SinemaCX, UgurFilm** → `status = 0` (tüm alan adları 000/parked).
+  WebteIzle oynatması Cloudflare Turnstile + sunucu tarafı doğrulama ile kalıcı kapalı
+  (liste/detay çalışıyor).
+
+## Önceki tur — neowatch portu (2026-10-29)
+
 
 Özellik portları (mevcut modüllerin sürüm bump'ları):
 
@@ -34,13 +81,14 @@ Daha önceki akış (2026-10-25): BelesTivi v1→v7, CanliTV v5→v6.
 
 ## State
 
-- HEAD = `dc598d9` (memory bank senkronu). `fork/master` = `dc598d9` → **push edildi**,
-  CI run `40906447013` **success**; `builds` branch'inde 37 sağlayıcı doğrulandı
-  (Dizilla v32, DiziPal v38, HDFilmCehennemi v38, InatBox v17, CanliTV v7, DiziBal v4,
-  BelgeselX v4, CizgiMax v3, FullHDFilm v4, 20 yeni modül v1).
-- `./gradlew make makePluginsJson` → **BUILD SUCCESSFUL**, 37 sağlayıcı üretildi
-  (`build/plugins.json`).
-- Working tree temiz. Memory bank bu duruma göre güncellendi (2026-10-29).
+- Yerel `master` = `c671a52` (bu turun son commit'i). `fork/master` hâlâ `dc598d9`;
+  **bu turun 6 commit'i push EDİLMEDİ** — kullanıcı onayı bekleniyor.
+- `./gradlew make makePluginsJson` → **BUILD SUCCESSFUL**, **36 sağlayıcı**
+  (BelesTivi kaldırıldığı için 37 → 36).
+- Bu turdaki sürümler: CanliTV 8, Dizilla 34, SelcukFlix 13, DiziPal 40, DiziBal 6,
+  FilmModu 3, FilmMakinesi 3, HDFilmCehennemi 40, FullHDFilm 5, SetFilmIzle 2,
+  WebteIzle 3, SuperFilmGeldi 3, WebDramaTurkey 2, JetFilmizle 3, KultFilmler 3,
+  TurkAnime 3, DiziYou 3, DiziBox 2, DiziMom/SinemaCX/UgurFilm 2 (`status = 0`).
 - `origin/master` (upstream) ilgisiz ve bilinçli olarak senkronize edilmiyor.
 
 ## neowatch portu — kararlar ve tuzaklar
