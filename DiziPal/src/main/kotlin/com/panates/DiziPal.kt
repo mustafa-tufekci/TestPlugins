@@ -35,12 +35,12 @@ class DiziPal : MainAPI() {
     override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries, TvType.Anime)
 
     override val mainPage = listOf(
-        MainPageData("$mainUrl/", "Anasayfa"),
-        MainPageData("$mainUrl/yeni-eklenen-dizi-bolumler", "Yeni Bölümler"),
-        MainPageData("$mainUrl/yabanci-dizi-izle", "Yabancı Diziler"),
-        MainPageData("$mainUrl/film-izle", "Filmler"),
-        MainPageData("$mainUrl/platform-bolumler", "Platform Bölümleri"),
-        MainPageData("$mainUrl/kesfet", "Keşfet"),
+        MainPageData("Anasayfa", "$mainUrl/"),
+        MainPageData("Yeni Bölümler", "$mainUrl/yeni-eklenen-dizi-bolumler"),
+        MainPageData("Yabancı Diziler", "$mainUrl/yabanci-dizi-izle"),
+        MainPageData("Filmler", "$mainUrl/film-izle"),
+        MainPageData("Platform Bölümleri", "$mainUrl/platform-bolumler"),
+        MainPageData("Keşfet", "$mainUrl/kesfet"),
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
@@ -52,7 +52,7 @@ class DiziPal : MainAPI() {
             val item = cardFromAnchor(card) ?: return@forEach
             items.putIfAbsent(item.url, item)
         }
-        doc.select("a.sr[href^=/bolum/]").forEach { card ->
+        doc.select("a.sr[href^=/bolum/], a.ecl[href^=/bolum/], a.mwr[href^=/bolum/]").forEach { card ->
             val item = episodeCardFromAnchor(card) ?: return@forEach
             items.putIfAbsent(item.url, item)
         }
@@ -102,12 +102,19 @@ class DiziPal : MainAPI() {
         val href = a.attr("href").trim()
         val m = Regex("^/bolum/(.+?)-(\\d+)x(\\d+)$").find(href) ?: return null
         val slug = m.groupValues[1]
-        val spans = a.select("span").map { it.text().trim() }.filter { it.isNotBlank() }
-        val seriesName = spans.firstOrNull { !it.matches(Regex("\\d+")) && !it.startsWith("Son:") }
+        val aria = a.attr("aria-label").trim()
+
+        // aria-label biçimi: "<Dizi>, 4. Sezon 6. Bölüm, dublaj"
+        val parcalar = aria.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        val seriesName = parcalar.firstOrNull { !it.startsWith("Son:") && !it.contains("Sezon") }
             ?: slug.replace('-', ' ')
-        val episodeInfo = spans.firstOrNull { it.startsWith("Son:") }
-            ?.removePrefix("Son:")?.trim()
-        val title = if (episodeInfo.isNullOrBlank()) seriesName else "$seriesName - $episodeInfo"
+
+        val bolumEtiketi = Regex("\\d+\\.\\s*Sezon\\s*\\d+\\.\\s*Bölüm").find(aria)?.value
+            ?: a.select("span").map { it.text().trim() }
+                .firstOrNull { it.contains("Sezon") && it.contains("Bölüm") }
+            ?: "${m.groupValues[2]}. Sezon ${m.groupValues[3]}. Bölüm"
+
+        val title = "$seriesName - $bolumEtiketi"
         val poster = DpResim.kart(a)
         return newTvSeriesSearchResponse(title, "$mainUrl/series/$slug", TvType.TvSeries) {
             this.posterUrl = poster
