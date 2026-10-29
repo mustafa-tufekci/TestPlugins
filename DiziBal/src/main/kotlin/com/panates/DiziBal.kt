@@ -6,6 +6,8 @@ import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.loadExtractor
 import org.json.JSONObject
+import org.jsoup.nodes.Document
+import org.jsoup.nodes.Element
 import java.net.URLEncoder
 
 class DiziBal : MainAPI() {
@@ -14,6 +16,23 @@ class DiziBal : MainAPI() {
     override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries, TvType.Anime)
     override var lang = "tr"
     override val hasMainPage = true
+
+    // Platform + genre rows (each page ships 48 poster cards, paginated via ?page=N)
+    override val mainPage = mainPageOf(
+        "/diziler" to "Diziler",
+        "/filmler" to "Filmler",
+        "/tur/animasyon" to "Animasyon",
+        "/platform/netflix" to "Netflix",
+        "/platform/disney" to "Disney+",
+        "/platform/amazon-prime" to "Amazon Prime",
+        "/platform/hbo-max" to "HBO Max",
+        "/platform/exxen" to "Exxen",
+        "/platform/tabii" to "tabii",
+        "/tur/aksiyon" to "Aksiyon",
+        "/tur/bilim-kurgu-fantastik" to "Bilim Kurgu & Fantastik",
+        "/tur/belgesel" to "Belgesel",
+        "/tur/aile" to "Aile"
+    )
 
     companion object {
         private const val DEFAULT_PLAYER_BASE = "https://play2.pilavyerplay.top"
@@ -27,66 +46,106 @@ class DiziBal : MainAPI() {
     // ── Main Page ───────────────────────────────────────────────────────
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val allPages = mutableListOf<HomePageList>()
+        val sep = if (request.data.contains("?")) "&" else "?"
+        val url = "$mainUrl${request.data}$sep" + "page=$page"
 
         val doc = try {
-            app.get(mainUrl, headers = defaultHeaders).document
+            app.get(url, headers = defaultHeaders).document
         } catch (_: Exception) {
-            return newHomePageResponse(allPages)
+            return newHomePageResponse(request.name, emptyList())
         }
 
-        // Site is an SPA (Alpine.js + Vite): content is in Schema.org JSON-LD ItemList(s)
-        val jsonLdScripts = doc.select("script[type=application/ld+json]")
-        for (script in jsonLdScripts) {
+        // Poster cards: a.group.block > img[poster], span.badge-rating, h3 (title), p (year)
+        val cards = doc.select("a.group.block")
+            .mapNotNull { it.toSearchResult() }
+            .distinctBy { it.url }
+
+        val items = if (cards.isNotEmpty()) cards else parseJsonLd(doc)
+        val hasNext = cards.isNotEmpty() && doc.select("a[href*='page=']").any {
+            Regex("""[?&]page=${page + 1}$""").containsMatchIn(it.attr("href"))
+        }
+
+        return newHomePageResponse(request.name, items, hasNext)
+    }
+
+    private fun Element.toSearchResult(): SearchResponse? {
+        val href = attr("href").trim()
+        if (href.isBlank()) return null
+        val fullUrl = fixUrl(href)
+        if (!fullUrl.contains("/movie/") && !fullUrl.contains("/series/") && !fullUrl.contains("/anime/")) return null
+
+        val img = selectFirst("img")
+        val rawTitle = selectFirst("h3")?.text()?.trim()?.takeIf { it.isNotBlank() }
+            ?: img?.attr("alt")?.replace(Regex("(?i)\\s*(film|dizi|anime)\\s*izle\\s*$"), "")?.trim()
+            ?: return null
+        if (rawTitle.isBlank()) return null
+
+        val poster = img?.attr("src")?.trim()?.takeIf { it.isNotBlank() }?.let { fixUrl(it) }
+        val year = select("p").lastOrNull()?.text()
+            ?.let { Regex("""(19|20)\d\d""").find(it)?.value?.toIntOrNull() }
+
+        return when {
+            fullUrl.contains("/movie/") -> newMovieSearchResponse(rawTitle, fullUrl, TvType.Movie) {
+                this.posterUrl = poster
+            }
+            fullUrl.contains("/anime/") -> newTvSeriesSearchResponse(rawTitle, fullUrl, TvType.Anime) {
+                this.posterUrl = poster
+            }
+            else -> newTvSeriesSearchResponse(rawTitle, fullUrl, TvType.TvSeries) {
+                this.posterUrl = poster
+                this.year = year
+            }
+        }
+    }
+
+    /** Fallback: Schema.org ItemList nodes (homepage "Trend Filmler" row). */
+    private fun parseJsonLd(doc: Document): List<SearchResponse> {
+        val out = mutableListOf<SearchResponse>()
+        for (script in doc.select("script[type=application/ld+json]")) {
             val jsonText = script.html().trim()
             if (jsonText.isBlank()) continue
             try {
-                val jsonObj = org.json.JSONObject(jsonText)
-                val graph = jsonObj.optJSONArray("@graph") ?: continue
-                for (i in 0 until graph.length()) {
-                    val node = graph.optJSONObject(i) ?: continue
-                    if (node.optString("@type") != "ItemList") continue
-                    val listName = node.optString("name").takeIf { it.isNotBlank() } ?: "İçerik"
-                    val items = node.optJSONArray("itemListElement") ?: continue
-
-                    val pageItems = mutableListOf<SearchResponse>()
-                    for (j in 0 until items.length()) {
-                        val item = items.optJSONObject(j) ?: continue
-                        val title = item.optString("name").trim()
-                        val url = item.optString("url").trim()
-                        val image = item.optString("image").trim()
-                        if (title.isBlank() || url.isBlank()) continue
-
-                        val fullUrl = fixUrl(url)
-                        val poster = image.takeIf { it.isNotBlank() }?.let { fixUrl(it) }
-
-                        when {
-                            fullUrl.contains("/movie/") -> pageItems.add(
-                                newMovieSearchResponse(title, fullUrl, TvType.Movie) {
-                                    this.posterUrl = poster
-                                }
-                            )
-                            fullUrl.contains("/anime/") -> pageItems.add(
-                                newTvSeriesSearchResponse(title, fullUrl, TvType.Anime) {
-                                    this.posterUrl = poster
-                                }
-                            )
-                            else -> pageItems.add(
-                                newTvSeriesSearchResponse(title, fullUrl, TvType.TvSeries) {
-                                    this.posterUrl = poster
-                                }
-                            )
-                        }
-                    }
-
-                    if (pageItems.isNotEmpty()) {
-                        allPages.add(HomePageList(listName, pageItems.distinctBy { it.url }))
-                    }
-                }
+                collectItemLists(JSONObject(jsonText), out)
             } catch (_: Exception) {}
         }
+        return out.distinctBy { it.url }
+    }
 
-        return newHomePageResponse(allPages)
+    private fun collectItemLists(node: JSONObject, out: MutableList<SearchResponse>) {
+        if (node.optString("@type") == "ItemList") {
+            val items = node.optJSONArray("itemListElement")
+            if (items != null) {
+                for (j in 0 until items.length()) {
+                    val item = items.optJSONObject(j) ?: continue
+                    val title = item.optString("name").trim()
+                    val url = item.optString("url").trim()
+                    if (title.isBlank() || url.isBlank()) continue
+                    val fullUrl = fixUrl(url)
+                    val poster = item.optString("image").trim().takeIf { it.isNotBlank() }?.let { fixUrl(it) }
+                    when {
+                        fullUrl.contains("/movie/") -> out.add(
+                            newMovieSearchResponse(title, fullUrl, TvType.Movie) { this.posterUrl = poster }
+                        )
+                        fullUrl.contains("/anime/") -> out.add(
+                            newTvSeriesSearchResponse(title, fullUrl, TvType.Anime) { this.posterUrl = poster }
+                        )
+                        else -> out.add(
+                            newTvSeriesSearchResponse(title, fullUrl, TvType.TvSeries) { this.posterUrl = poster }
+                        )
+                    }
+                }
+            }
+        }
+        val keys = node.keys()
+        while (keys.hasNext()) {
+            val key = keys.next()
+            when (val value = node.opt(key)) {
+                is JSONObject -> collectItemLists(value, out)
+                is org.json.JSONArray -> for (i in 0 until value.length()) {
+                    value.optJSONObject(i)?.let { collectItemLists(it, out) }
+                }
+            }
+        }
     }
 
     // ── Search ──────────────────────────────────────────────────────────
@@ -103,7 +162,7 @@ class DiziBal : MainAPI() {
         val results = mutableListOf<SearchResponse>()
 
         try {
-            val json = org.json.JSONObject(responseText)
+            val json = JSONObject(responseText)
 
             // Movies
             val movies = json.optJSONArray("movies")
@@ -136,19 +195,11 @@ class DiziBal : MainAPI() {
 
                     val fullUrl = fixUrl(url)
                     val tvType = if (fullUrl.contains("/anime/")) TvType.Anime else TvType.TvSeries
-                    if (tvType == TvType.Anime) {
-                        results.add(
-                            newTvSeriesSearchResponse(title, fullUrl, TvType.Anime) {
-                                this.posterUrl = poster.takeIf { it.isNotBlank() }?.let { fixUrl(it) }
-                            }
-                        )
-                    } else {
-                        results.add(
-                            newTvSeriesSearchResponse(title, fullUrl, TvType.TvSeries) {
-                                this.posterUrl = poster.takeIf { it.isNotBlank() }?.let { fixUrl(it) }
-                            }
-                        )
-                    }
+                    results.add(
+                        newTvSeriesSearchResponse(title, fullUrl, tvType) {
+                            this.posterUrl = poster.takeIf { it.isNotBlank() }?.let { fixUrl(it) }
+                        }
+                    )
                 }
             }
         } catch (_: Exception) {}
@@ -160,29 +211,53 @@ class DiziBal : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse {
         val doc = app.get(url, headers = defaultHeaders).document
+        val ld = findSchemaNode(doc)
 
-        val rawTitle = doc.selectFirst("h1")?.text()?.trim()
+        val rawTitle = ld?.optString("name")?.trim()?.takeIf { it.isNotBlank() }
+            ?: doc.selectFirst("h1")?.text()?.trim()
             ?: doc.selectFirst("meta[property='og:title']")?.attr("content")?.trim()
             ?: "İçerik"
         val title = cleanTitle(rawTitle)
 
-        val poster = doc.selectFirst("meta[property='og:image']")?.attr("content")?.takeIf { it.isNotBlank() }
+        val poster = ld?.optString("image")?.trim()?.takeIf { it.isNotBlank() }?.let { fixUrl(it) }
+            ?: doc.selectFirst("meta[property='og:image']")?.attr("content")?.takeIf { it.isNotBlank() }?.let { fixUrl(it) }
             ?: doc.selectFirst(".tb-slot img, img[src*='/posters/']")?.attr("src")?.takeIf { it.isNotBlank() }
             ?.let { fixUrl(it) }
 
-        val plot = doc.selectFirst("meta[name='description']")?.attr("content")?.trim()
+        val plot = ld?.optString("description")?.trim()?.takeIf { it.isNotBlank() }
+            ?: doc.selectFirst("meta[name='description']")?.attr("content")?.trim()
             ?: doc.selectFirst("p.text-content-secondary")?.text()?.trim()
 
-        val year = Regex("""(20\d\d|19\d\d)""").find(doc.text())?.groupValues?.get(1)?.toIntOrNull()
+        // Movie -> datePublished, series -> startDate
+        val dateText = ld?.optString("datePublished")?.takeIf { it.isNotBlank() }
+            ?: ld?.optString("startDate")?.takeIf { it.isNotBlank() }
+        val year = dateText?.let { Regex("""(19|20)\d\d""").find(it)?.value?.toIntOrNull() }
+            ?: Regex("""(19|20)\d\d""").find(doc.text())?.value?.toIntOrNull()
 
-        val tags = doc.select("a[href*='/tur/']").mapNotNull {
-            it.text().trim().takeIf { t -> t.isNotBlank() }
-        }.distinct()
+        val duration = parseIsoDuration(ld?.optString("duration"))
 
-        val ratingText = doc.selectFirst(".text-star")?.parent()?.text()
-        val score = ratingText?.let {
-            Regex("""(\d+(?:\.\d+)?)""").find(it)?.groupValues?.get(1)?.toDoubleOrNull()
-        }
+        val tags = ld?.optJSONArray("genre")?.let { arr ->
+            (0 until arr.length()).mapNotNull { arr.optString(it).trim().takeIf { g -> g.isNotBlank() } }
+        }?.takeIf { it.isNotEmpty() }
+            ?: doc.select("a[href*='/tur/']").mapNotNull { it.text().trim().takeIf { t -> t.isNotBlank() } }
+
+        val rating = ld?.optJSONObject("aggregateRating")
+        val score = rating?.optDouble("ratingValue", 0.0)?.takeIf { it > 0 }
+            ?: Regex("""(\d+(?:[.,]\d+)?)""")
+                .find(doc.selectFirst(".text-star")?.parent()?.text().orEmpty())
+                ?.groupValues?.get(1)?.replace(',', '.')?.toDoubleOrNull()
+
+        // Backdrop + trailer from the JSON-LD VideoObject / trailer node
+        val trailerNode = ld?.optJSONObject("trailer")
+        val background = trailerNode?.optString("thumbnailUrl")?.trim()?.takeIf { it.isNotBlank() }?.let { fixUrl(it) }
+        val trailerUrl = trailerNode?.optString("embedUrl")?.trim()?.takeIf { it.isNotBlank() }
+
+        // Cast photos live outside the JSON-LD (img[src*='/storage/tmdb/profiles'])
+        val actors = doc.select("img[src*='/storage/tmdb/profiles']").mapNotNull {
+            val actorName = it.attr("alt").trim()
+            if (actorName.isBlank()) return@mapNotNull null
+            ActorData(Actor(actorName, fixUrl(it.attr("src"))))
+        }.distinctBy { it.actor?.name }
 
         val isMovie = url.contains("/movie/")
 
@@ -199,10 +274,14 @@ class DiziBal : MainAPI() {
 
             return newMovieLoadResponse(title, url, TvType.Movie, episodes) {
                 this.posterUrl = poster
+                this.backgroundPosterUrl = background
                 this.plot = plot
                 this.year = year
                 this.tags = tags
+                this.duration = duration
+                this.actors = actors
                 this.score = score?.let { Score.from10(it) }
+                trailerUrl?.let { this.trailers = mutableListOf(TrailerData(it, mainUrl, false)) }
             }
         }
 
@@ -265,11 +344,62 @@ class DiziBal : MainAPI() {
 
         return newTvSeriesLoadResponse(title, url, type, episodes.distinctBy { it.data }) {
             this.posterUrl = poster
+            this.backgroundPosterUrl = background
             this.plot = plot
             this.year = year
             this.tags = tags
+            this.duration = duration
+            this.actors = actors
             this.score = score?.let { Score.from10(it) }
+            trailerUrl?.let { this.trailers = mutableListOf(TrailerData(it, mainUrl, false)) }
         }
+    }
+
+    /** Finds the Movie / TVSeries / Anime node inside the page's JSON-LD graph. */
+    private fun findSchemaNode(doc: Document): JSONObject? {
+        for (script in doc.select("script[type=application/ld+json]")) {
+            val jsonText = script.html().trim()
+            if (jsonText.isBlank()) continue
+            val found = try {
+                findSchemaIn(JSONObject(jsonText), 0)
+            } catch (_: Exception) {
+                null
+            }
+            if (found != null) return found
+        }
+        return null
+    }
+
+    private fun findSchemaIn(node: JSONObject, depth: Int): JSONObject? {
+        if (depth > 6) return null
+        val type = node.optString("@type")
+        if (type == "Movie" || type == "TVSeries" || type == "TVShow" || type == "AnimeSeries") return node
+
+        val graph = node.optJSONArray("@graph")
+        if (graph != null) {
+            for (i in 0 until graph.length()) {
+                graph.optJSONObject(i)?.let { findSchemaIn(it, depth + 1)?.let { hit -> return hit } }
+            }
+        }
+        val keys = node.keys()
+        while (keys.hasNext()) {
+            val key = keys.next()
+            when (val value = node.opt(key)) {
+                is JSONObject -> findSchemaIn(value, depth + 1)?.let { return it }
+                is org.json.JSONArray -> for (i in 0 until value.length()) {
+                    value.optJSONObject(i)?.let { findSchemaIn(it, depth + 1)?.let { hit -> return hit } }
+                }
+            }
+        }
+        return null
+    }
+
+    /** "PT110M" / "PT1H42M" -> minutes */
+    private fun parseIsoDuration(iso: String?): Int? {
+        val raw = iso?.trim()?.uppercase()?.takeIf { it.startsWith("PT") } ?: return null
+        val h = Regex("""(\d+)H""").find(raw)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+        val m = Regex("""(\d+)M""").find(raw)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+        return (h * 60 + m).takeIf { it > 0 }
     }
 
     // ── Load Links ──────────────────────────────────────────────────────
