@@ -88,6 +88,9 @@ object JtfResim {
         if (adres.contains("/wp-content/uploads/")) adres = wpKucuk.replace(adres, "$1")
         if (adres.contains("/storage/tmdb/posters/w")) adres = Regex("/storage/tmdb/posters/w\\d+/").replace(adres, "/storage/tmdb/posters/w780/")
         if (adres.contains("/poster/film/")) adres = adres.replace("/poster/film/", "/poster/film-lg/")
+        if (adres.contains("-poster-tiny.") || adres.contains("-poster-small.") || adres.contains("-poster-medium.")) {
+            adres = Regex("-poster-(?:tiny|small|medium)\\.").replace(adres, "-poster-large.")
+        }
         if (adres.contains("/images/list/poster/") && !adres.contains("@2x")) {
             adres = adres.replace(".webp", "@2x.webp").replace(".jpg", "@2x.jpg")
         }

@@ -37,6 +37,20 @@ class Jtf : MainAPI() {
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+        // ! /trendler site tarafında tek sayfalık bir sıralama listesi (a.trend-item);
+        // ! klasik film kartı (div.film-card) yok, bu yüzden ayrı ayrıştırılıyor.
+        if (request.data.contains("trendler")) {
+            if (page > 1) return newHomePageResponse(request.name, emptyList())
+            val document = app.get(
+                request.data.replace("SAYFA", "").trimEnd('/') + "/",
+                headers = tarayici
+            ).document
+            val liste = document.select("a.trend-item[href]")
+                .mapNotNull { it.toTrendResult() }
+                .distinctBy { it.url }
+            return newHomePageResponse(request.name, liste, hasNext = false)
+        }
+
         // ! İlk sayfa /filmler, sonrakiler /filmler/sayfa-2 biçiminde.
         val url = if (page <= 1) request.data.replace("SAYFA", "").trimEnd('/') + "/"
         else request.data.replace("SAYFA", "sayfa-$page").trimEnd('/')
@@ -45,6 +59,27 @@ class Jtf : MainAPI() {
         val home     = document.select("div.film-card, div.card.film-card").mapNotNull { it.toSearchResult() }.distinctBy { it.url }
 
         return newHomePageResponse(request.name, home, hasNext = home.isNotEmpty())
+    }
+
+    private fun Element.toTrendResult(): SearchResponse? {
+        val href = fixUrlNull(this.attr("href")) ?: return null
+        if (!href.contains("/film/") && !href.contains("/dizi/")) return null
+
+        val baslik = (this.attr("title").ifBlank { null }
+            ?: this.selectFirst(".trend-name")?.text()?.trim()?.ifBlank { null }
+            ?: this.selectFirst("img")?.attr("alt")?.ifBlank { null }
+            ?: return null)
+            .substringBefore(" izle")
+            .trim()
+
+        val posterUrl = JtfResim.kart(this)
+        val tur       = if (href.contains("/dizi/")) TvType.TvSeries else TvType.Movie
+
+        return if (tur == TvType.Movie) {
+            newMovieSearchResponse(baslik, href, TvType.Movie) { this.posterUrl = posterUrl }
+        } else {
+            newTvSeriesSearchResponse(baslik, href, TvType.TvSeries) { this.posterUrl = posterUrl }
+        }
     }
 
     private fun Element.toSearchResult(): SearchResponse? {
