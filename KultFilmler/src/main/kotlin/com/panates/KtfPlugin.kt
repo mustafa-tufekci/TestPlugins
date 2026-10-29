@@ -9,5 +9,6 @@ class KtfPlugin: Plugin() {
     override fun load(context: Context) {
         registerMainAPI(Ktf())
         registerExtractorAPI(KtfYildizKisaFilm())
+        registerExtractorAPI(KtfFirePlayer())
     }
 }
