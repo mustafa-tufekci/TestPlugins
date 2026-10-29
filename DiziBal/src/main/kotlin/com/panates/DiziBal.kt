@@ -80,7 +80,7 @@ class DiziBal : MainAPI() {
             ?: return null
         if (rawTitle.isBlank()) return null
 
-        val poster = img?.attr("src")?.trim()?.takeIf { it.isNotBlank() }?.let { fixUrl(it) }
+        val poster = DzbResim.kart(this)
         val year = select("p").lastOrNull()?.text()
             ?.let { Regex("""(19|20)\d\d""").find(it)?.value?.toIntOrNull() }
 
@@ -121,7 +121,7 @@ class DiziBal : MainAPI() {
                     val url = item.optString("url").trim()
                     if (title.isBlank() || url.isBlank()) continue
                     val fullUrl = fixUrl(url)
-                    val poster = item.optString("image").trim().takeIf { it.isNotBlank() }?.let { fixUrl(it) }
+                    val poster = DzbResim.buyuk(item.optString("image"))
                     when {
                         fullUrl.contains("/movie/") -> out.add(
                             newMovieSearchResponse(title, fullUrl, TvType.Movie) { this.posterUrl = poster }
@@ -171,13 +171,13 @@ class DiziBal : MainAPI() {
                     val item = movies.optJSONObject(i) ?: continue
                     val title = item.optString("title").trim()
                     val url = item.optString("url").trim()
-                    val poster = item.optString("poster").trim()
+                    val poster = DzbResim.buyuk(item.optString("poster"))
                     if (title.isBlank() || url.isBlank()) continue
 
                     val fullUrl = fixUrl(url)
                     results.add(
                         newMovieSearchResponse(title, fullUrl, TvType.Movie) {
-                            this.posterUrl = poster.takeIf { it.isNotBlank() }?.let { fixUrl(it) }
+                            this.posterUrl = poster
                         }
                     )
                 }
@@ -190,14 +190,14 @@ class DiziBal : MainAPI() {
                     val item = series.optJSONObject(i) ?: continue
                     val title = item.optString("title").trim()
                     val url = item.optString("url").trim()
-                    val poster = item.optString("poster").trim()
+                    val poster = DzbResim.buyuk(item.optString("poster"))
                     if (title.isBlank() || url.isBlank()) continue
 
                     val fullUrl = fixUrl(url)
                     val tvType = if (fullUrl.contains("/anime/")) TvType.Anime else TvType.TvSeries
                     results.add(
                         newTvSeriesSearchResponse(title, fullUrl, tvType) {
-                            this.posterUrl = poster.takeIf { it.isNotBlank() }?.let { fixUrl(it) }
+                            this.posterUrl = poster
                         }
                     )
                 }
@@ -219,9 +219,9 @@ class DiziBal : MainAPI() {
             ?: "İçerik"
         val title = cleanTitle(rawTitle)
 
-        val poster = ld?.optString("image")?.trim()?.takeIf { it.isNotBlank() }?.let { fixUrl(it) }
-            ?: doc.selectFirst("meta[property='og:image']")?.attr("content")?.takeIf { it.isNotBlank() }?.let { fixUrl(it) }
-            ?: doc.selectFirst(".tb-slot img, img[src*='/posters/']")?.attr("src")?.takeIf { it.isNotBlank() }
+        val poster = DzbResim.buyuk(ld?.optString("image"))
+            ?: DzbResim.buyuk(doc.selectFirst("meta[property='og:image']")?.attr("content"))
+            ?: DzbResim.kart(doc)
             ?.let { fixUrl(it) }
 
         val plot = ld?.optString("description")?.trim()?.takeIf { it.isNotBlank() }
@@ -319,7 +319,7 @@ class DiziBal : MainAPI() {
 
             for (card in distinctCards) {
                 val epHref = fixUrl(card.attr("href"))
-                val epImg = card.selectFirst("img")?.attr("src")?.let { fixUrl(it) }
+                val epImg = DzbResim.kart(card)
 
                 val sNum = Regex("""/season/(\d+)/""").find(epHref)?.groupValues?.get(1)?.toIntOrNull() ?: s
                 val epNum = Regex("""/episode/(\d+)""").find(epHref)?.groupValues?.get(1)?.toIntOrNull() ?: 1

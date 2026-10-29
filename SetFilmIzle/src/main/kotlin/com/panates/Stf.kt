@@ -57,7 +57,7 @@ class Stf : MainAPI() {
         val title     = this.selectFirst("span.hcard-title")?.text()?.trim()
             ?: this.selectFirst("img")?.attr("alt")?.trim()
             ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst("img")?.let { it.attr("data-src").ifBlank { it.attr("src") } })
+        val posterUrl = StfResim.kart(this)
         val score     = this.selectFirst("span.badge-imdb")?.text()?.trim()
         val year      = this.select("dl.hcard-kunye div").firstOrNull { it.selectFirst("dt")?.text()?.trim() == "Yıl" }
             ?.selectFirst("dd")?.text()?.trim()?.toIntOrNull()
@@ -126,7 +126,7 @@ class Stf : MainAPI() {
         val title       = document.selectFirst("h1 span.fbox-title-tx")?.text()?.trim()
             ?: document.selectFirst("h1")?.text()?.substringBefore(" izle")?.trim()
             ?: return null
-        val poster      = fixUrlNull(document.selectFirst("img.fbox-cover-img")?.attr("src"))
+        val poster      = StfResim.kart(document)
             ?: fixUrlNull(document.selectFirst("meta[property=og:image]")?.attr("content"))
         val background  = fixUrlNull(document.selectFirst("meta[property=og:image]")?.attr("content"))
         val description = document.selectFirst("meta[property=og:description]")?.attr("content")?.trim()

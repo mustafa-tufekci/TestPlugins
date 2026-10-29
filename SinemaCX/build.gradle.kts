@@ -1,5 +1,4 @@
-version = 1
-
+version = 2
 cloudstream {
     authors     = listOf("Panates", "NeO")
     language    = "tr"
@@ -12,7 +11,7 @@ cloudstream {
      * 2: Slow
      * 3: Beta only
     **/
-    status  = 3
+    status = 0
     tvTypes = listOf("Movie")
     iconUrl = "https://www.google.com/s2/favicons?domain=www.sinema.cx&sz=%size%"
 }

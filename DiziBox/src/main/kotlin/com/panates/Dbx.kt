@@ -91,7 +91,7 @@ class Dbx : MainAPI() {
     private fun Element.toMainPageResult(): SearchResponse? {
         val title     = this.selectFirst("h3 a")?.text() ?: return null
         val href      = fixUrlNull(this.selectFirst("h3 a")?.attr("href")) ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("src"))
+        val posterUrl = DbxResim.kart(this)
 
         return newTvSeriesSearchResponse(title, href, TvType.TvSeries) { this.posterUrl = posterUrl }
     }
@@ -124,7 +124,7 @@ class Dbx : MainAPI() {
         ).document
 
         val title       = document.selectFirst("div.tv-overview h1 a")?.text()?.trim() ?: return null
-        val poster      = fixUrlNull(document.selectFirst("div.tv-overview figure img")?.attr("src"))
+        val poster      = DbxResim.kart(document)
         val description = document.selectFirst("div.tv-story p")?.text()?.trim()
         val year        = document.selectFirst("a[href*='/yil/']")?.text()?.trim()?.toIntOrNull()
         val tags        = document.select("a[href*='/tur/']").map { it.text() }

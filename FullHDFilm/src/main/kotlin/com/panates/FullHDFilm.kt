@@ -75,11 +75,7 @@ class FullHDFilm : MainAPI() {
                 ?: link.text().replace(Regex("""(?i)\s*izle$"""), "").trim()
             if (title.isBlank()) return@mapNotNull null
 
-            val poster = li.selectFirst("img.afis, img")?.let { img ->
-                img.attr("data-src").takeIf { it.isNotBlank() }
-                    ?: img.attr("src").takeIf { it.isNotBlank() && !it.startsWith("data:") }
-                    ?: li.selectFirst("source")?.attr("data-srcset")?.split(" ")?.firstOrNull()
-            }?.let { fixUrl(it) }
+            val poster = FhfResim.kart(li)
 
             val year = li.selectFirst("span.film-yil")?.text()?.trim()?.toIntOrNull()
             val scoreRaw = li.selectFirst("span.imdb")?.text()?.trim()
@@ -102,8 +98,8 @@ class FullHDFilm : MainAPI() {
             ?: doc.selectFirst("meta[property='og:title']")?.attr("content")?.trim()
             ?: "FullHDFilm"
 
-        val poster = doc.selectFirst("meta[property='og:image']")?.attr("content")?.let { fixUrl(it) }
-            ?: doc.selectFirst("img.afis, .film-afis img")?.attr("src")?.let { fixUrl(it) }
+        val poster = FhfResim.buyuk(doc.selectFirst("meta[property='og:image']")?.attr("content"))
+            ?: FhfResim.kart(doc)
 
         val plot = extractPlot(doc)
 

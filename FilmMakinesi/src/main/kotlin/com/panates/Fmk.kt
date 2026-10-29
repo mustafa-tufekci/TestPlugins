@@ -49,7 +49,7 @@ class Fmk : MainAPI() {
         val title     = this.attr("data-title").ifBlank { this.selectFirst("div.title")?.text() ?: "" }.trim()
         if (title.isBlank()) return null
         val href      = fixUrlNull(this.attr("href")) ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("src"))
+        val posterUrl = FmkResim.kart(this)
         val score     = this.attr("data-score")
         val year      = this.selectFirst("div.info span")?.text()?.trim()?.take(4)?.toIntOrNull()
 
@@ -81,7 +81,7 @@ class Fmk : MainAPI() {
 
         val title           = document.selectFirst("h1.title")?.ownText()?.removeSuffix(" izle")?.trim()
             ?: document.selectFirst("h1")?.text()?.substringBefore(" izle")?.trim() ?: return null
-        val poster          = fixUrlNull(document.selectFirst("img.cover-img")?.attr("src"))
+        val poster          = FmkResim.kart(document)
             ?: fixUrlNull(document.selectFirst("[property='og:image']")?.attr("content"))
         val description     = document.selectFirst("div.info-description p")?.text()?.trim()
         val year            = document.selectFirst("h1.title span.date a")?.text()?.trim()?.toIntOrNull()

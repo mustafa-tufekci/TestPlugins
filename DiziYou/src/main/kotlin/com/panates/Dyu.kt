@@ -81,7 +81,7 @@ class Dyu : MainAPI() {
         val baslik = this.selectFirst("h3")?.text()?.trim()
             ?: link.attr("title").substringBefore(" izle").trim().takeIf { it.isNotBlank() }
             ?: return null
-        val poster = this.selectFirst("img")?.let { el -> el.attr("src").ifBlank { el.attr("data-src") } }
+        val poster = DyuResim.kart(this)
             ?.let { fixUrlNull(it) }
         val puan = Regex("""(\d+(?:[.,]\d+)?)""")
             .find(this.selectFirst(".tmdb")?.text().orEmpty())
@@ -175,7 +175,7 @@ class Dyu : MainAPI() {
             ?.takeIf { it.isNotBlank() }
             ?: document.selectFirst("article.hro h1")?.text()?.trim()?.substringBefore(" izle")?.trim()
             ?: return null
-        val poster = fixUrlNull(document.selectFirst("article.hro .hro__poster img")?.attr("src"))
+        val poster = DyuResim.buyuk(document.selectFirst("article.hro .hro__poster img")?.attr("src"))
         val aciklama = document.selectFirst("article.hro .hro__overview")?.text()?.trim()
         val yil = document.selectFirst("article.hro .hro__caption span")?.text()?.trim()?.toIntOrNull()
         val puan = Regex("""(\d+(?:[.,]\d+)?)""")

@@ -119,7 +119,7 @@ class Sfg : MainAPI() {
     private fun Element.toSearchResult(): SearchResponse? {
         val href      = this.attr("abs:href").ifBlank { return null }
         val title     = this.selectFirst("h3")?.text()?.trim()?.ifBlank { null } ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("src"))
+        val posterUrl = SfgResim.kart(this)
         val puan      = this.selectFirst("span.badge-rating")?.text()?.trim()
         val yil       = this.selectFirst("h3 + p")?.text()?.trim()?.toIntOrNull()
 
@@ -213,7 +213,7 @@ class Sfg : MainAPI() {
                     this.name        = a.selectFirst("p.font-semibold, p")?.text()?.trim()?.ifBlank { null }
                     this.season      = s
                     this.episode     = e
-                    this.posterUrl   = fixUrlNull(a.selectFirst("img")?.attr("src"))
+                    this.posterUrl   = SfgResim.kart(a)
                 })
             }
         }

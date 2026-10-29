@@ -61,7 +61,7 @@ class Fmd : MainAPI() {
             ?: this.selectFirst("img")?.attr("alt")?.removeSuffix(" izle")?.removeSuffix(" Film")?.removeSuffix(" Dizi")?.trim()
             ?: return null
         val href      = fixUrlNull(this.attr("href")) ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("src"))
+        val posterUrl = FmdResim.kart(this)
         val year      = this.selectFirst("h3 + p")?.text()?.trim()?.take(4)?.toIntOrNull()
         val score     = this.selectFirst("span.badge-rating")?.text()?.trim()
 
@@ -99,8 +99,8 @@ class Fmd : MainAPI() {
 
         val title       = document.selectFirst("h1")?.ownText()?.trim()?.ifBlank { null }
             ?: document.selectFirst("h1")?.text()?.trim() ?: return null
-        val poster      = fixUrlNull(document.select("img").firstOrNull { it.attr("src").contains("/posters/") }?.attr("src"))
-        val background  = fixUrlNull(document.select("img").firstOrNull { it.attr("src").contains("/backdrops/") }?.attr("src"))
+        val poster      = FmdResim.buyuk(document.select("img").firstOrNull { it.attr("src").contains("/posters/") }?.attr("src"))
+        val background  = FmdResim.buyuk(document.select("img").firstOrNull { it.attr("src").contains("/backdrops/") }?.attr("src"))
         val description = document.selectFirst("p.mt-5")?.text()?.trim()
             ?: document.selectFirst("meta[name=description]")?.attr("content")?.trim()
         val tags        = document.select("a[href*='/tur/']").map { it.text().trim() }.filter { it.isNotBlank() }.distinct().take(6)
@@ -113,7 +113,7 @@ class Fmd : MainAPI() {
         val actors      = document.select("#cast-grid a[href*='/oyuncu/']").mapNotNull { a ->
             val ps   = a.select("p")
             val name = ps.getOrNull(0)?.text()?.trim() ?: return@mapNotNull null
-            Actor(name, fixUrlNull(a.selectFirst("img")?.attr("src"))) to ps.getOrNull(1)?.text()?.trim()
+            Actor(name, FmdResim.kart(a)) to ps.getOrNull(1)?.text()?.trim()
         }
 
         if (url.contains("/dizi/")) {
@@ -129,7 +129,7 @@ class Fmd : MainAPI() {
                         this.name      = a.selectFirst("p")?.text()?.trim()
                         this.season    = Regex("""/sezon-(\d+)""").find(epHref)?.groupValues?.get(1)?.toIntOrNull()
                         this.episode   = Regex("""/bolum-(\d+)""").find(epHref)?.groupValues?.get(1)?.toIntOrNull()
-                        this.posterUrl = fixUrlNull(a.selectFirst("img")?.attr("src"))
+                        this.posterUrl = FmdResim.kart(a)
                     }
                 }
             }.distinctBy { it.data }

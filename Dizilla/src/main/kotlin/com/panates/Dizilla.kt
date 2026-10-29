@@ -109,7 +109,7 @@ class Dizilla : MainAPI() {
             .trim()
         if (title.isBlank()) return null
 
-        val posterUrl = fixUrlNull(img?.attr("src"))
+        val posterUrl = DzlResim.kart(this)
         val score = Regex("""(?:IMDb\s*|★\s*)(\d{1,2}(?:\.\d)?)""").find(aria.ifBlank { this.text() })
             ?.groupValues?.get(1)
 
@@ -172,9 +172,10 @@ class Dizilla : MainAPI() {
             ?.takeIf { it.isNotBlank() }
             ?: ogDesc.takeIf { it.isNotBlank() }
 
-        val posterUrl = fixUrlNull(seriesNode?.path("image")?.asText(null))
+        val posterUrl = DzlResim.buyuk(seriesNode?.path("image")?.asText(null))
             ?: fixUrlNull(ogImage)
-            ?: fixUrlNull(document.selectFirst("img[src*='poster']")?.attr("src"))
+            ?: DzlResim.buyuk(document.selectFirst("img[src*='poster']")?.attr("src"))
+            ?: DzlResim.buyuk(ogImage)
 
         val rating = seriesNode?.path("aggregateRating")?.path("ratingValue")
             ?.takeIf { !it.isMissingNode && !it.isNull }?.asText()

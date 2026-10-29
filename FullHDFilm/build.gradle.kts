@@ -1,5 +1,4 @@
-    version = 4
-
+    version = 5
 cloudstream {
     description = "fullhdfilmizlesene.now - Turkish movies & dubbed films"
     authors = listOf("Panates")

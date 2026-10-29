@@ -1,5 +1,4 @@
-    version = 5
-
+    version = 6
 cloudstream {
     description = "dizibal.org - Turkish series, movies & anime"
     authors = listOf("Panates")

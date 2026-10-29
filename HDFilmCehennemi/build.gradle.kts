@@ -1,5 +1,4 @@
-version = 39
-
+version = 40
 cloudstream {
     authors     = listOf("Panates", "hexated", "keyiflerolsun", "nikyokki")
     language    = "tr"

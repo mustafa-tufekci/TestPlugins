@@ -59,7 +59,7 @@ class Jtf : MainAPI() {
             .substringBefore(" izle")
             .trim()
 
-        val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("src"))
+        val posterUrl = JtfResim.kart(this)
         val tur       = if (href.contains("/dizi/")) TvType.TvSeries else TvType.Movie
 
         return if (tur == TvType.Movie) {

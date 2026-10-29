@@ -80,9 +80,7 @@ class DiziPal : MainAPI() {
             ?: aria.substringBefore(",").trim().takeIf { it.isNotBlank() }
             ?: a.text().trim().takeIf { it.isNotBlank() }
             ?: return null
-        val poster = a.selectFirst("img")?.let { img ->
-            (img.attr("src").ifBlank { img.attr("data-src") }).takeIf { it.isNotBlank() }
-        }
+        val poster = DpResim.kart(a)
         val year = Regex("\\b(19|20)\\d{2}\\b").find(aria)?.value?.toIntOrNull()
             ?: Regex("\\b(19|20)\\d{2}\\b").find(a.text())?.value?.toIntOrNull()
 
@@ -110,7 +108,7 @@ class DiziPal : MainAPI() {
         val episodeInfo = spans.firstOrNull { it.startsWith("Son:") }
             ?.removePrefix("Son:")?.trim()
         val title = if (episodeInfo.isNullOrBlank()) seriesName else "$seriesName - $episodeInfo"
-        val poster = a.selectFirst("img")?.attr("src")?.takeIf { it.isNotBlank() }
+        val poster = DpResim.kart(a)
         return newTvSeriesSearchResponse(title, "$mainUrl/series/$slug", TvType.TvSeries) {
             this.posterUrl = poster
         }

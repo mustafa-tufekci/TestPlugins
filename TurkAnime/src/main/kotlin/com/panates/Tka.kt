@@ -80,7 +80,7 @@ class Tka : MainAPI() {
         val baslik = this.selectFirst("h3")?.text()?.trim()?.takeIf { it.isNotBlank() }
             ?: posterEl?.attr("alt")?.substringBefore(" izle")?.trim()?.takeIf { it.isNotBlank() }
             ?: return null
-        val poster = posterEl?.let { el -> el.attr("src").ifBlank { el.attr("data-src") } }
+        val poster = TkaResim.kart(this)
             ?.let { fixUrlNull(it) }
         val puan = Regex("""(\d+(?:[.,]\d+)?)""")
             .find(this.selectFirst("span.text-primary")?.text().orEmpty())
@@ -117,7 +117,7 @@ class Tka : MainAPI() {
                     href,
                     if (tip.contains("movie") || tip.contains("film")) TvType.AnimeMovie else TvType.Anime
                 ) {
-                    this.posterUrl = fixUrlNull(oge.optString("poster"))
+                    this.posterUrl = TkaResim.buyuk(oge.optString("poster"))
                 }
             }
         }.getOrDefault(emptyList())

@@ -123,7 +123,7 @@ class HDFilmCehennemi : MainAPI() {
     private fun Element.toSearchResult(): SearchResponse? {
         val title = this.attr("title")
         val href = fixUrlNull(this.attr("href")) ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("data-src"))
+        val posterUrl = HdcResim.kart(this)
         val score = this.selectFirst("span.imdb")?.text()?.trim()
 
         return newMovieSearchResponse(title, href, TvType.Movie) {
@@ -146,9 +146,7 @@ class HDFilmCehennemi : MainAPI() {
 
             val title = document.selectFirst("h4.title")?.text() ?: return@forEach
             val href = fixUrlNull(document.selectFirst("a")?.attr("href")) ?: return@forEach
-            val posterUrl = fixUrlNull(document.selectFirst("img")?.attr("src")) ?: fixUrlNull(
-                document.selectFirst("img")?.attr("data-src")
-            )
+            val posterUrl = HdcResim.kart(document)
 
             searchResults.add(
                 newMovieSearchResponse(title, href, TvType.Movie) {
@@ -165,9 +163,7 @@ class HDFilmCehennemi : MainAPI() {
 
         val title = document.selectFirst("h1.section-title")?.text()?.substringBefore(" izle")
             ?: return null
-        val poster = fixUrlNull(
-            document.select("aside.post-info-poster img.lazyload").lastOrNull()?.attr("data-src")
-        )
+        val poster = HdcResim.kart(document.selectFirst("aside.post-info-poster") ?: document)
         val tags = document.select("div.post-info-genres a").map { it.text() }
         val year =
             document.selectFirst("div.post-info-year-country a")?.text()?.trim()?.toIntOrNull()
@@ -185,8 +181,7 @@ class HDFilmCehennemi : MainAPI() {
                 val recName = it.selectFirst("a")?.attr("title") ?: return@mapNotNull null
                 val recHref =
                     fixUrlNull(it.selectFirst("a")?.attr("href")) ?: return@mapNotNull null
-                val recPosterUrl = fixUrlNull(it.selectFirst("img")?.attr("data-src"))
-                    ?: fixUrlNull(it.selectFirst("img")?.attr("src"))
+                val recPosterUrl = HdcResim.kart(it)
 
                 newTvSeriesSearchResponse(recName, recHref, TvType.TvSeries) {
                     this.posterUrl = recPosterUrl

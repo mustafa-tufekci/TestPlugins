@@ -64,7 +64,7 @@ class Ktf : MainAPI() {
         val title     = this.selectFirst("h3")?.text()?.trim()?.ifBlank { null }
             ?: this.selectFirst("img")?.attr("alt")?.ifBlank { null }
             ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst("img.pimg, img")?.attr("src"))
+        val posterUrl = KtfResim.kart(this)
         val year      = this.selectFirst("span.pyear")?.text()?.trim()?.toIntOrNull()
         val puan      = this.selectFirst("span.mscore b")?.text()?.trim()
 

@@ -95,6 +95,7 @@ class SelcukFlix : MainAPI() {
         if (raw.isNullOrBlank() || raw == "null") return null
         var url = raw
             .replace("images-macellan-online.cdn.ampproject.org/i/s/", "")
+        url = SlcResim.buyuk(url) ?: return null
         url = Regex("file\\.[\\w.]+/").replace(url, "file.macellan.online/")
         url = Regex("images\\.[\\w.]+/").replace(url, "images.macellan.online/")
         url = url.replace("/f/f/", "/630/910/")
@@ -214,7 +215,7 @@ class SelcukFlix : MainAPI() {
                     val title = el.selectFirst("h2,h3")?.text()
                         ?: img?.attr("alt")?.replace(" izle", "")?.trim()
                         ?: return@forEach
-                    val poster = fixPosterUrl(img?.attr("data-src")?.takeIf { it.isNotBlank() } ?: img?.attr("src"))
+                    val poster = SlcResim.kart(el)
                     if (href.contains("/dizi/")) {
                         results.add(newTvSeriesSearchResponse(title, href.substringBefore("/sezon"), TvType.TvSeries) { posterUrl = poster })
                     } else {
