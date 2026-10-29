@@ -140,3 +140,11 @@ BelesTivi v7, CanliTV v7 ve 20 yeni modül bu taramada yok.
    benimsendi.
 6. Doğrulanamayan upstream özellikleri körü körüne port etmeme kararı (InatBox dinamik
    dizin); bunun yerine protokol davranışı (x-st) uygulandı.
+## 2026-10-29 — push öncesi denetim
+
+- 36 kaynağın tamamı canlı prob edildi; sonuçlar `activeContext.md` içinde tablo hâlinde.
+- HDFilmCehennemi ana sayfası yeni sunucu taraflı yapıya göre yeniden yazıldı (v41).
+- RecTV, NetflixMirror, Watch2Movies → `status = 0` (v2): alan adları/DNS kapalı.
+- Bilinen sınır: WebteIzle oynatma Turnstile ile kapalı; InatBox/Youtube ağdan
+  doğrulanamıyor (imzalı CDN / NewPipe).
+- Yerel commit'ler hazır, push onay bekliyor.

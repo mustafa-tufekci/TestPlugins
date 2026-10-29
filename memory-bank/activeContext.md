@@ -152,3 +152,38 @@ Daha önceki akış (2026-10-25): BelesTivi v1→v7, CanliTV v5→v6.
 - **CloudStreamHub karşılaştırması (2026-10-19):** Emre-Kahveci/CloudStreamHub; BelgeselX
   seçicileri ölü, CizgiMax rotaları 404, googlevideo'ya Referer gönderiyor. Bizim sürümler
   prob edilen tüm kriterlerde doğru. Ödünç alınabilir: StreamValidator, BoundedParallelResolver.
+## 2026-10-29 push öncesi çalışırlık denetimi (36 kaynak)
+
+Kullanıcı isteği: "pushlamadan önce tüm kaynaklari kontrol et hangileri çalişiyor".
+Her modülün `mainUrl`/API ucu canlı prob edildi (curl + Chrome/Firefox UA, gerekli
+`X-Requested-With`/`Referer`/`Cf-Control` başlıklarıyla) ve liste seçicileri
+BeautifulSoup ile modülün kendi CSS seçicisi kullanılarak sayıldı.
+
+**Bu turda bulunan gerçek kırık: HDFilmCehennemi ana sayfa.** Site yeniden yazılmış;
+`/load/page/sayfano/...` AJAX uç noktaları ve `data-pages` sayfalaması sunucuda **404**.
+Yeni yapı sunucu tarafında render: `a.poster[href][title][data-token]` >
+`div.poster-wrapper > img[src|srcset @2x]`, `div.poster-meta` (yıl | süre | puan).
+Düzeltme (v41): `mainPage` 20 hazır rota (`/`, `/category/*`, `/dil/*`, `/tur/*`),
+`getMainPage` `a.poster[href]` seçer, `page > 1` boş döner (site sayfalamıyor),
+`search` `/search/?q=` (sondaki `/` 301'i kaldırır; JSON `{query,results}` aynı kaldı).
+`/tur/korku-filmleri-izle-9/` 404 → doğrusu `/tur/korku-filmlerini-izle-9/`.
+
+Ayrıca kapatılanlar: **RecTV** (Cloudflare Access "Sign in"), **NetflixMirror**
+(`iosmirror.cc` DNS yok), **Watch2Movies** (`watch2movies.net` DNS yok) → `status = 0`.
+Zaten kapalıydı: DiziMom, SinemaCX, UgurFilm.
+
+Doğrulanan ve çalışan (spot): Animecix (`/secure/homepage/lists-guests` 200/490 KB),
+Anizium (`api.anizium.co/page/home` — **`Cf-Control` başlığı şart**, o olmadan 401; onunla
+200 ve `special_list` 8 satır), BelgeselX, CanliTV (m3u 172 kanal), CizgiMax, DiziBal
+(detayda iframe yok, pilavyer `core.js`), DiziBox (CF challenge artık yok, 15 kart),
+DiziFilm (ana sayfa 5 `h2` bölümü), DiziKorea, DiziPal, DiziYou, Dizilla, FilmMakinesi,
+FilmModu, FullHDFilm, HDFilmCehennemi (ana sayfa v41, oynatma zaten sağlam),
+HDFilmCehennemi2, JetFilmizle, KoreanTurk, KultFilmler, RareFilmm, SelcukFlix
+(`api/bg/findMovies` 200, AES'li `response` — beklenen), SetFilmIzle, SezonlukDizi
+(`ajax/dataDefaultSonCikan.asp` 200), SuperFilmGeldi, TurkAnime, WebDramaTurkey
+(`dtpasn.asia`), WebteIzle (liste çalışır; **oynatma Cloudflare Turnstile ile kalıcı
+kapalı**), Youtube (NewPipe kiosk, ağdan doğrulanamaz), InatBox (HMAC imzalı CDN;
+imzasız istek 403 — uygulama içinde doğrulanamaz, `status = 1` bırakıldı).
+
+`./gradlew make makePluginsJson` → 36 sağlayıcı. Commit'ler yerel: `57bb5ac` (HDC v41),
+`658446e` (RecTV/NetflixMirror/Watch2Movies v2). Push **yapılmadı**, onay bekleniyor.
