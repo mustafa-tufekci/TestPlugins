@@ -19,11 +19,59 @@ open class ContentX : ExtractorApi() {
 
     private val jsonMapper by lazy { ObjectMapper() }
 
+    private val userAgent =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+
     override suspend fun getUrl(url: String, referer: String?, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit) {
         val extRef   = referer ?: ""
         Log.d("Dizilla", "url » $url")
 
         val iSource = app.get(url, referer = extRef).text
+
+        // Yeni nesil oynatıcı: her şey tek bir window.NP_CONFIG JSON'unda geliyor.
+        val playerOrigin = originOf(url)
+        val npConfig     = parseNpConfig(iSource)
+        if (npConfig != null) {
+            val npHeaders = mapOf(
+                "Referer"    to playerOrigin,
+                "User-Agent" to userAgent
+            )
+
+            npConfig.path("subtitles").forEach { node ->
+                val raw   = node.path("url").asText("").ifBlank { node.path("file").asText("") }
+                val fixed = fixSubUrl(raw, playerOrigin) ?: return@forEach
+                val label = node.path("label").asText("").trim()
+                    .ifBlank { node.path("lang").asText("").trim() }
+                    .ifBlank { "Altyazı" }
+                subtitleCallback.invoke(SubtitleFile(label, fixed).apply { headers = npHeaders })
+            }
+
+            val seen = mutableSetOf<String>()
+            npConfig.path("sources").forEach { node ->
+                val raw = node.path("master").asText("").ifBlank { node.path("file").asText("") }
+                val fixed = fixSubUrl(raw, playerOrigin) ?: return@forEach
+                if (!seen.add(fixed)) return@forEach
+                val label = node.path("title").asText("").trim()
+
+                callback.invoke(
+                    newExtractorLink(
+                        source = this.name,
+                        name   = label.ifBlank { this.name },
+                        url    = fixed,
+                        type   = if (fixed.contains(".mp4")) ExtractorLinkType.VIDEO else ExtractorLinkType.M3U8
+                    ) {
+                        this.referer = playerOrigin
+                        this.headers = npHeaders
+                        this.quality = Qualities.Unknown.value
+                    }
+                )
+            }
+
+            if (seen.isNotEmpty()) return
+
+            Log.d("Dizilla", "NP_CONFIG içinde kaynak yok, eski akışa düşülüyor")
+        }
+
         val iExtract = Regex("""window\.openPlayer\('([^']+)'""").find(iSource)?.groups?.get(1)?.value ?: throw ErrorLoadingException("iExtract is null")
 
         val subPairs = mutableListOf<Pair<String, String>>()
@@ -98,6 +146,47 @@ open class ContentX : ExtractorApi() {
         }
     }
 
+    /** Oynatıcı URL'sinin şema + host kökü (yeni akış referer doğrulaması bunu bekliyor). */
+    private fun originOf(url: String): String {
+        val m = Regex("""^(https?://[^/]+)""").find(url) ?: return mainUrl
+        return "${m.groupValues[1]}/"
+    }
+
+    /** HTML içindeki window.NP_CONFIG JSON'unu süslü parantez eşleştirerek çıkarır. */
+    private fun parseNpConfig(html: String): JsonNode? {
+        val marker = html.indexOf("NP_CONFIG")
+        if (marker < 0) return null
+        val start = html.indexOf('{', marker)
+        if (start < 0) return null
+
+        var depth = 0
+        var inStr = false
+        var escape = false
+        var end = -1
+        for (i in start until html.length) {
+            val c = html[i]
+            if (inStr) {
+                when {
+                    escape    -> escape = false
+                    c == '\\' -> escape = true
+                    c == '"'  -> inStr = false
+                }
+            } else {
+                when (c) {
+                    '"' -> inStr = true
+                    '{' -> depth++
+                    '}' -> {
+                        depth--
+                        if (depth == 0) { end = i; break }
+                    }
+                }
+            }
+        }
+        if (end < 0) return null
+
+        return runCatching { jsonMapper.readTree(html.substring(start, end + 1)) }.getOrNull()
+    }
+
     private fun unescapeTr(raw: String): String = raw
         .replace("\\u0131", "ı")
         .replace("\\u0130", "İ")
@@ -110,7 +199,7 @@ open class ContentX : ExtractorApi() {
         val u = raw.replace("\\/", "/").replace("\\u0026", "&").replace("\\", "").trim()
         if (u.isBlank()) return null
         if (u.startsWith("https://")) return u
-        if (u.startsWith("http://")) return "https://" + u.removePrefix("http://")
+        if (u.startsWith("http://")) return u
         if (u.startsWith("//")) return "https:$u"
         if (u.startsWith("/")) {
             val origin = Regex("""^(https?://[^/]+)""").find(pageUrl)?.groupValues?.get(1) ?: return null

@@ -164,6 +164,14 @@ class Fmd : MainAPI() {
         val oynaticiBase = document.select("script[src]").map { it.attr("src") }
             .firstOrNull { it.contains("/assets/js/core.js") || it.contains("/e/c.js") }
             ?.replace(Regex("""/(?:e/c|assets/js/core)\.js.*$"""), "")
+            ?.let { raw ->
+                when {
+                    raw.isBlank() -> null
+                    raw.startsWith("//") -> "https:$raw"
+                    !raw.startsWith("http") -> "https://${raw.removePrefix("/")}"
+                    else -> raw.trimEnd('/')
+                }
+            }
 
         document.select("[data-pv]").forEach { div ->
             val slug = div.attr("data-pv").ifBlank { return@forEach }

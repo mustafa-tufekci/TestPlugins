@@ -233,8 +233,18 @@ class DiziPal : MainAPI() {
                 ?: return@forEach
             val token = Regex("openPlayer\\('([^']+)'").find(iframe)?.groupValues?.get(1)
 
-            // Unknown player layout: hand the iframe to the global extractor registry.
+            // Unknown player layout: try our own ContentX/NP_CONFIG decoder first, then the registry.
             if (token == null) {
+                val handled = runCatching {
+                    DpContentX().getUrl(playerUrl, "$mainUrl/", subtitleCallback) { link ->
+                        callback(renameLink(link, label))
+                    }
+                    true
+                }.getOrDefault(false)
+                if (handled) {
+                    found = true
+                    return@forEach
+                }
                 runCatching { loadExtractor(playerUrl, "$mainUrl/", subtitleCallback, callback) }
                     .onSuccess { if (it) found = true }
                 return@forEach
@@ -334,7 +344,13 @@ class DiziPal : MainAPI() {
 
     private fun normalizePlayer(url: String): String {
         val out = url.trim()
-        return if (out.startsWith("//")) "https:$out" else out
+        return when {
+            out.startsWith("http://") || out.startsWith("https://") -> out
+            out.startsWith("//") -> "https:$out"
+            out.isBlank() -> out
+            // Şemasız gelen oynatıcı adresleri (sn.dplayer*.site/...) app.get'te patlıyordu.
+            else -> "https://$out"
+        }
     }
 
     // ── tiny parsing helpers ──────────────────────────────────────────────

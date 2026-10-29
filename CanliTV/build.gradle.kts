@@ -1,9 +1,9 @@
-version = 7
+version = 8
 
 cloudstream {
-    authors     = listOf("Panates")
+    authors     = listOf("Adippe", "NeO", "Panates")
     language    = "tr"
-    description = "Canlı TV & Spor: TRT Spor, tabii Spor (UEFA), ulusal ve tematik canlı yayınlar, iptv-org IPTV listesi ve maç ekranı."
+    description = "Canlı TV: iptv-org Türkiye listesindeki kanallar (neowatch portu)."
 
     /**
      * Status int as the following:
@@ -14,5 +14,5 @@ cloudstream {
     **/
     status  = 1
     tvTypes = listOf("Live")
-    iconUrl = "https://raw.githubusercontent.com/recloudstream/cloudstream-icons/master/icons/live.png"
+    iconUrl = "https://www.google.com/s2/favicons?domain=tr.canlitv.team&sz=%size%"
 }

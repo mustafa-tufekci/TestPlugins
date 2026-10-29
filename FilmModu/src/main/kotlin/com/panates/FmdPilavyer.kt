@@ -12,7 +12,7 @@ import com.lagradost.cloudstream3.utils.*
  */
 open class FmdPilavyer : ExtractorApi() {
     override val name            = "Pilavyer"
-    override val mainUrl         = "https://play2.pilavyerplay.top"
+    override val mainUrl         = "https://pilavyerplay.top"
     override val requiresReferer = true
 
     override suspend fun getUrl(url: String, referer: String?, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit) {
@@ -24,7 +24,12 @@ open class FmdPilavyer : ExtractorApi() {
         val oyuncu = fmdJsonOku<PlayerVeri>(json) ?: return
 
         oyuncu.subs?.forEach { sub ->
-            val subUrl = sub.src ?: return@forEach
+            val rawSub = sub.src?.trim().orEmpty().ifBlank { return@forEach }
+            val subUrl = when {
+                rawSub.startsWith("http") -> rawSub
+                rawSub.startsWith("//") -> "https:$rawSub"
+                else -> "$base/${rawSub.removePrefix("/")}"
+            }
             subtitleCallback.invoke(newSubtitleFile(sub.label ?: sub.lang ?: "Türkçe", subUrl))
         }
 

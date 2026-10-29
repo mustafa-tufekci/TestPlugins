@@ -35,7 +35,7 @@ class DiziBal : MainAPI() {
     )
 
     companion object {
-        private const val DEFAULT_PLAYER_BASE = "https://play2.pilavyerplay.top"
+        private const val DEFAULT_PLAYER_BASE = "https://pilavyerplay.top"
 
         private val defaultHeaders = mapOf(
             "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
@@ -422,10 +422,16 @@ class DiziBal : MainAPI() {
         val dataPv = watchPage.selectFirst("div[data-pv]")?.attr("data-pv")
         val coreScriptSrc = watchPage.selectFirst("script[src*='pilavyerplay'], script[src*='/assets/js/core.js']")?.attr("src")
 
-        val playerBase = if (!coreScriptSrc.isNullOrBlank()) {
-            coreScriptSrc.substringBefore("/assets/js/core.js").substringBefore("/e/c.js")
+        val rawBase = if (!coreScriptSrc.isNullOrBlank()) {
+            coreScriptSrc.substringBefore("/assets/js/core.js").substringBefore("/e/c.js").trim()
         } else {
             DEFAULT_PLAYER_BASE
+        }
+        val playerBase = when {
+            rawBase.isBlank() -> DEFAULT_PLAYER_BASE
+            rawBase.startsWith("//") -> "https:$rawBase"
+            !rawBase.startsWith("http") -> "https://${rawBase.removePrefix("/")}"
+            else -> rawBase.trimEnd('/')
         }
 
         if (!dataPv.isNullOrBlank()) {
@@ -435,7 +441,7 @@ class DiziBal : MainAPI() {
                     iframeUrl,
                     headers = mapOf(
                         "User-Agent" to defaultHeaders["User-Agent"]!!,
-                        "Referer" to "$mainUrl/"
+                        "Referer" to "$playerBase/"
                     )
                 ).text
 
@@ -453,7 +459,12 @@ class DiziBal : MainAPI() {
                                 val subSrc = sub.optString("src")
                                 val subLabel = sub.optString("label", "Türkçe")
                                 if (!subSrc.isNullOrBlank()) {
-                                    subtitleCallback(SubtitleFile(subLabel, subSrc))
+                                    subtitleCallback(SubtitleFile(subLabel, fixUrl(subSrc)).apply {
+                                        headers = mapOf(
+                                            "Referer" to iframeUrl,
+                                            "User-Agent" to defaultHeaders["User-Agent"]!!
+                                        )
+                                    })
                                 }
                             }
                         }
