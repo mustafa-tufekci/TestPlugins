@@ -43,7 +43,7 @@ open class HdcGizliJsOynatici : ExtractorApi() {
         }
 
         val degisken = Regex("""sources\s*:\s*\[\s*\{\s*file\s*:\s*([A-Za-z_$][\w$]*)\s*[,}]""").find(html)?.groupValues?.get(1)
-        var link     = if (degisken != null) HdcGizliJs.degiskenCoz(html, degisken) else null
+        var link     = if (degisken != null) HdcGizliJs.degiskenCoz(html, degisken, host) else null
 
         // Eski tip: file_link="base64"
         if (link.isNullOrBlank()) {
@@ -72,7 +72,7 @@ object HdcGizliJs {
     }
 
     /** Sayfadaki gizlenmiş betikleri (gerekirse paketten çıkararak) çalıştırıp [degisken] değerini döndürür. */
-    fun degiskenCoz(html: String, degisken: String): String? {
+    fun degiskenCoz(html: String, degisken: String, host: String = ""): String? {
         val betikler = Jsoup.parse(html).select("script").map { it.data() }.filter {
             it.contains("eval(function(p,a,c,k,e,d)") || it.contains(".join('')") || it.contains(".join(\"\")")
         }
@@ -82,7 +82,7 @@ object HdcGizliJs {
         return try {
             val scope: Scriptable = cx.initSafeStandardObjects()
             cx.putThreadLocal("baslangic", System.currentTimeMillis())
-            cx.evaluateString(scope, POLYFILL, "polyfill", 1, null)
+            cx.evaluateString(scope, tampon(host), "polyfill", 1, null)
 
             betikler.forEach { betik ->
                 val kod = if (betik.contains("eval(function(p,a,c,k,e,d)")) paketAc(cx, scope, betik) else betik
@@ -124,9 +124,45 @@ object HdcGizliJs {
         }
     }
 
+
+    /** Host bilgisiyle tarayıcı taklidi (location / document / screen) hazırlar. */
+    fun tampon(host: String): String {
+        val gercek = host.ifBlank { "localhost" }
+        return POLYFILL.replace("__HOST__", gercek).replace("__ORIGIN__", "https://" + gercek)
+    }
+
     // Rhino'da tarayıcıya özgü atob / btoa yok
     private const val POLYFILL = """
-        var window = this; var self = this; var document = {}; var navigator = { userAgent: "" };
+        var window = this; var self = this;
+        var navigator = {
+            userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+            platform: "Win32", language: "tr-TR", languages: ["tr-TR"], vendor: "", appVersion: "5.0"
+        };
+        var screen = { width: 1920, height: 1080, availWidth: 1920, availHeight: 1080, colorDepth: 24 };
+        var location = {
+            hostname: "__HOST__", host: "__HOST__", href: "__ORIGIN__/", protocol: "https:",
+            origin: "__ORIGIN__", pathname: "/", search: "", hash: ""
+        };
+        function __sahteEleman() {
+            return {
+                style: {}, innerHTML: "", childNodes: [], firstChild: null, parentNode: null,
+                appendChild: function () {}, removeChild: function () {},
+                setAttribute: function () {}, getAttribute: function () { return null; },
+                addEventListener: function () {}, removeEventListener: function () {},
+                getElementsByTagName: function () { return []; }, querySelector: function () { return null; }
+            };
+        }
+        var document = {
+            createElement: function () { return __sahteEleman(); },
+            createTextNode: function () { return __sahteEleman(); },
+            getElementById: function () { return null; },
+            getElementsByTagName: function () { return []; },
+            getElementsByClassName: function () { return []; },
+            querySelector: function () { return null; },
+            querySelectorAll: function () { return []; },
+            addEventListener: function () {}, write: function () {},
+            body: __sahteEleman(), documentElement: __sahteEleman(), head: __sahteEleman(), cookie: ""
+        };
         var _b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
         function atob(input) {
             var str = String(input).replace(/[=]+$/, "").replace(/[^A-Za-z0-9+\/]/g, "");
