@@ -8,5 +8,9 @@ import android.content.Context
 class CizgiMaxPlugin : Plugin() {
     override fun load(context: Context) {
         registerMainAPI(CizgiMax())
+        registerExtractorAPI(CmxSibNet())
+        registerExtractorAPI(CmxDrive())
+        registerExtractorAPI(CmxCizgiDuo())
+        registerExtractorAPI(CmxCizgiPass())
     }
 }
