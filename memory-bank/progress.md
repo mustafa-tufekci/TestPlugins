@@ -148,3 +148,14 @@ BelesTivi v7, CanliTV v7 ve 20 yeni modül bu taramada yok.
 - Bilinen sınır: WebteIzle oynatma Turnstile ile kapalı; InatBox/Youtube ağdan
   doğrulanamıyor (imzalı CDN / NewPipe).
 - Yerel commit'ler hazır, push onay bekliyor.
+
+## 2026-10-29 — push tamamlandı
+
+- `git push fork master` → `dc598d9..8a0d7c9` (12 commit).
+- CI run `40925823516` → **success**; `fork/builds` üzerindeki `plugins.json`
+  doğrulandı: **36 sağlayıcı**, sürümler yerel `build/plugins.json` ile birebir
+  (HDFilmCehennemi v41, CanliTV v8, Dizilla v34, DiziPal v40, DiziYou/TurkAnime/
+  KultFilmler/JetFilmizle v3, RecTV/NetflixMirror/Watch2Movies/DiziMom/SinemaCX/
+  UgurFilm v2 & status 0).
+- Açık kalan bilinen sınırlar: WebteIzle oynatma (Turnstile), InatBox + Youtube
+  ağdan doğrulanamıyor, SuperFilmGeldi `luciferplays.com` buradan erişilemiyor.
