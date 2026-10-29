@@ -1,4 +1,4 @@
-version = 1
+version = 2
 
 cloudstream {
     authors     = listOf("Panates", "NeO")
@@ -12,7 +12,7 @@ cloudstream {
      * 2: Slow
      * 3: Beta only
     **/
-    status  = 3
+    status  = 1
     tvTypes = listOf("TvSeries")
-    iconUrl = "https://www.google.com/s2/favicons?domain=www.diziyou3.com&sz=%size%"
+    iconUrl = "https://www.google.com/s2/favicons?domain=diziyou.net&sz=%size%"
 }
