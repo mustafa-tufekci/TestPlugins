@@ -78,53 +78,51 @@ class HDFilmCehennemi : MainAPI() {
 
 
     override val mainPage = mainPageOf(
-        "${mainUrl}/load/page/sayfano/home/" to "Yeni Eklenen Filmler",
-        "${mainUrl}/load/page/sayfano/categories/nette-ilk-filmler/" to "Nette İlk Filmler",
-        "${mainUrl}/load/page/sayfano/home-series/" to "Yeni Eklenen Diziler",
-        "${mainUrl}/load/page/sayfano/categories/tavsiye-filmler-izle2/" to "Tavsiye Filmler",
-        "${mainUrl}/load/page/sayfano/imdb7/" to "IMDB 7+ Filmler",
-        "${mainUrl}/load/page/sayfano/mostCommented/" to "En Çok Yorumlananlar",
-        "${mainUrl}/load/page/sayfano/mostLiked/" to "En Çok Beğenilenler",
-        "${mainUrl}/load/page/sayfano/genres/aile-filmleri-izleyin-6/" to "Aile Filmleri",
-        "${mainUrl}/load/page/sayfano/genres/aksiyon-filmleri-izleyin-5/" to "Aksiyon Filmleri",
-        "${mainUrl}/load/page/sayfano/genres/animasyon-filmlerini-izleyin-5/" to "Animasyon Filmleri",
-        "${mainUrl}/load/page/sayfano/genres/belgesel-filmlerini-izle-1/" to "Belgesel Filmleri",
-        "${mainUrl}/load/page/sayfano/genres/bilim-kurgu-filmlerini-izleyin-3/" to "Bilim Kurgu Filmleri",
-        "${mainUrl}/load/page/sayfano/genres/komedi-filmlerini-izleyin-1/" to "Komedi Filmleri",
-        "${mainUrl}/load/page/sayfano/genres/korku-filmlerini-izle-4/" to "Korku Filmleri",
-        "${mainUrl}/load/page/sayfano/genres/romantik-filmleri-izle-2/" to "Romantik Filmleri",
-        "${mainUrl}/load/page/sayfano/genres/suc-filmleri-izle-3/" to "Suç Filmleri",
-        "${mainUrl}/load/page/sayfano/genres/tarih-filmleri-izle-4/" to "Tarih Filmleri"
+        "${mainUrl}/" to "Yeni Eklenenler",
+        "${mainUrl}/category/film-izle-2/" to "Tüm Filmler",
+        "${mainUrl}/dil/turkce-dublajli-film-izleyin-6/" to "Türkçe Dublaj",
+        "${mainUrl}/dil/turkce-altyazili-filmleri-izleme-sitesi-3/" to "Türkçe Altyazılı",
+        "${mainUrl}/category/tavsiye-filmler-izle2/" to "Tavsiye Filmler",
+        "${mainUrl}/category/nette-ilk-filmler-1/" to "Nette İlk Filmler",
+        "${mainUrl}/tur/aksiyon-filmleri-izleyin-9/" to "Aksiyon",
+        "${mainUrl}/tur/macera-filmlerini-izleyin-6/" to "Macera",
+        "${mainUrl}/tur/animasyon-filmlerini-izleyin-5/" to "Animasyon",
+        "${mainUrl}/tur/bilim-kurgu-filmlerini-izleyin-6/" to "Bilim Kurgu",
+        "${mainUrl}/tur/dram-filmlerini-izle-2/" to "Dram",
+        "${mainUrl}/tur/fantastik-filmlerini-izleyin-5/" to "Fantastik",
+        "${mainUrl}/tur/gerilim-filmlerini-izle-5/" to "Gerilim",
+        "${mainUrl}/tur/gizem-filmleri-izle-4/" to "Gizem",
+        "${mainUrl}/tur/komedi-filmlerini-izleyin-2/" to "Komedi",
+        "${mainUrl}/tur/korku-filmlerini-izle-9/" to "Korku",
+        "${mainUrl}/tur/romantik-filmleri-izle-3/" to "Romantik",
+        "${mainUrl}/tur/suc-filmleri-izle-3/" to "Suç",
+        "${mainUrl}/tur/savas-filmleri-izle-6/" to "Savaş",
+        "${mainUrl}/tur/tarih-filmleri-izle-5/" to "Tarih"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val objectMapper = ObjectMapper().registerModule(KotlinModule.Builder().build())
-        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-        val url = request.data.replace("sayfano", page.toString())
-        val headers = mapOf(
-            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
-            "user-agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
-            "Accept" to "*/*", "X-Requested-With" to "fetch"
-        )
-        val doc = app.get(url, headers = headers, referer = mainUrl, interceptor = interceptor)
-        if (!doc.text.contains("Sayfa Bulunamadı")) {
-            // meta alanlarını modele almadan sadece html alıyoruz: site
-            // meta.canonical değerini Boolean'dan URL string'e çevirdi (nik v32'deki hata)
-            val html = runCatching { objectMapper.readTree(doc.text) }
-                .getOrNull()?.path("html")?.asText("").orEmpty()
-            if (html.isBlank()) return newHomePageResponse(request.name, emptyList())
-            val document = Jsoup.parse(html)
-            val home: List<SearchResponse> = document.select("a").mapNotNull { it.toSearchResult() }
-            return newHomePageResponse(request.name, home)
-        }
-        return newHomePageResponse(request.name, emptyList())
+        // site yeniden yazıldı: /load/page/... AJAX uç noktaları kaldırıldı, listeler sunucu
+        // tarafında render ediliyor ve sayfalama (data-pages/data-page-action) sunucuda 404.
+        if (page > 1) return newHomePageResponse(request.name, emptyList())
+        val document = app.get(request.data, referer = mainUrl, interceptor = interceptor).document
+        val home: List<SearchResponse> = document.select("a.poster[href], a.search-result[href]")
+            .distinctBy { it.attr("href") }
+            .mapNotNull { it.toSearchResult() }
+        return newHomePageResponse(request.name, home)
     }
 
     private fun Element.toSearchResult(): SearchResponse? {
-        val title = this.attr("title")
+        val title = this.attr("title").ifBlank {
+            this.selectFirst("h4.title")?.text()?.trim()
+                ?: this.selectFirst("img")?.attr("alt")?.substringBefore(" izle")?.trim()
+                ?: return null
+        }.ifBlank { return null }
         val href = fixUrlNull(this.attr("href")) ?: return null
         val posterUrl = HdcResim.kart(this)
         val score = this.selectFirst("span.imdb")?.text()?.trim()
+            ?: Regex("(\\d+(?:[.,]\\d+)?)\\s*$")
+                .find(this.selectFirst("div.poster-meta")?.text()?.trim().orEmpty())
+                ?.groupValues?.getOrNull(1)?.replace(',', '.')
 
         return newMovieSearchResponse(title, href, TvType.Movie) {
             this.posterUrl = posterUrl
@@ -136,7 +134,7 @@ class HDFilmCehennemi : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val response = app.get(
-            "${mainUrl}/search?q=${URLEncoder.encode(query, "UTF-8")}",
+            "${mainUrl}/search/?q=${URLEncoder.encode(query, "UTF-8")}",
             headers = mapOf("X-Requested-With" to "fetch")
         ).parsedSafe<Results>() ?: return emptyList()
         val searchResults = mutableListOf<SearchResponse>()
