@@ -38,7 +38,12 @@ class CanliTV : MainAPI() {
         "dini" to "Dini Kanallar",
         "kultur" to "Kültür & Belgesel",
         "radyo" to "Radyo & Müzik",
-        "sporekrani" to "Günün Maçları (Spor Ekranı)"
+        "sporekrani" to "Günün Maçları (Spor Ekranı)",
+        "iptv" to "IPTV Türkiye",
+        "iptv-spor" to "IPTV Spor",
+        "iptv-haber" to "IPTV Haber",
+        "iptv-cocuk" to "IPTV Çocuk",
+        "iptv-muzik" to "IPTV Müzik"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
@@ -46,6 +51,30 @@ class CanliTV : MainAPI() {
         if (category == "sporekrani") {
             val matches = fetchSporekraniMatches()
             return newHomePageResponse(request.name, matches)
+        }
+
+        if (category.startsWith("iptv")) {
+            val tokens = when (category) {
+                "iptv-spor" -> listOf("sports")
+                "iptv-haber" -> listOf("news")
+                "iptv-cocuk" -> listOf("kids", "animation")
+                "iptv-muzik" -> listOf("music")
+                else -> emptyList()
+            }
+
+            val items = CanliTVIptv.kanallar()
+                .filter { CanliTVIptv.inGroups(it, tokens) }
+                .map { kanal ->
+                    newLiveSearchResponse(
+                        name = kanal.name,
+                        url = iptvUrl(kanal),
+                        type = TvType.Live
+                    ) {
+                        this.posterUrl = kanal.logo
+                    }
+                }
+
+            return newHomePageResponse(request.name, items)
         }
 
         val items = CanliTVChannels.kanallar
@@ -81,7 +110,21 @@ class CanliTV : MainAPI() {
             fetchSporekraniMatches().filter { it.name.lowercase().contains(q) }
         }.getOrDefault(emptyList())
 
-        return channelMatches + matchResults
+        val iptvMatches = runCatching {
+            CanliTVIptv.kanallar()
+                .filter { it.name.lowercase().contains(q) }
+                .map { kanal ->
+                    newLiveSearchResponse(
+                        name = kanal.name,
+                        url = iptvUrl(kanal),
+                        type = TvType.Live
+                    ) {
+                        this.posterUrl = kanal.logo
+                    }
+                }
+        }.getOrDefault(emptyList())
+
+        return (channelMatches + iptvMatches).distinctBy { it.url } + matchResults
     }
 
     override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
@@ -128,6 +171,36 @@ class CanliTV : MainAPI() {
             }
         }
 
+        if (url.contains("/iptv/play")) {
+            val params = iptvParams(url)
+            val streamUrl = params["u"]?.takeIf { it.isNotBlank() } ?: return null
+            val title = params["n"].orEmpty().ifBlank { "IPTV Kanalı" }
+            val group = params["g"].orEmpty().ifBlank { "Undefined" }
+            val logo = params["l"]?.takeIf { it.isNotBlank() }
+
+            val recommendations = runCatching {
+                CanliTVIptv.kanallar()
+                    .filter { it.group == group && it.url != streamUrl }
+                    .take(12)
+                    .map { kanal ->
+                        newLiveSearchResponse(kanal.name, iptvUrl(kanal), TvType.Live) {
+                            this.posterUrl = kanal.logo
+                        }
+                    }
+            }.getOrDefault(emptyList())
+
+            return newLiveStreamLoadResponse(
+                name = title,
+                url = url,
+                dataUrl = url
+            ) {
+                this.posterUrl = logo
+                this.plot = "${CanliTVIptv.groupTr(group)} · iptv-org canlı yayın listesi"
+                this.tags = listOf(CanliTVIptv.groupTr(group), "TR")
+                this.recommendations = recommendations
+            }
+        }
+
         return null
     }
 
@@ -152,6 +225,34 @@ class CanliTV : MainAPI() {
                 ) {
                     this.referer = ""
                     this.quality = Qualities.Unknown.value
+                }
+            )
+            return true
+        }
+
+        if (data.contains("/iptv/play")) {
+            val params = iptvParams(data)
+            val streamUrl = params["u"]?.takeIf { it.isNotBlank() } ?: return false
+            val kanalName = params["n"].orEmpty().ifBlank { "IPTV Kanalı" }
+            val headers = params["h"].orEmpty()
+                .split("|")
+                .mapNotNull { part ->
+                    val key = part.substringBefore("=", "").trim()
+                    val value = part.substringAfter("=", "").trim()
+                    if (key.isBlank() || value.isBlank()) null else key to value
+                }
+                .toMap()
+
+            callback.invoke(
+                newExtractorLink(
+                    source = this.name,
+                    name = kanalName,
+                    url = streamUrl,
+                    type = ExtractorLinkType.M3U8
+                ) {
+                    this.referer = headers["referrer"] ?: ""
+                    this.quality = Qualities.Unknown.value
+                    if (headers.isNotEmpty()) this.headers = headers
                 }
             )
             return true
@@ -223,6 +324,27 @@ class CanliTV : MainAPI() {
             }
         }
         return kanal.streamUrl
+    }
+
+    private fun iptvUrl(kanal: CanliM3uKanal): String {
+        val headerChain = kanal.headers.entries.joinToString("|") { "${it.key}=${it.value}" }
+        val logo = kanal.logo?.takeIf { it.isNotBlank() }?.let { "&l=${enc(it)}" } ?: ""
+        val headers = headerChain.takeIf { it.isNotBlank() }?.let { "&h=${enc(it)}" } ?: ""
+        return "$mainUrl/iptv/play?u=${enc(kanal.url)}&n=${enc(kanal.name)}&g=${enc(kanal.group)}$logo$headers"
+    }
+
+    private fun enc(value: String): String = URLEncoder.encode(value, "UTF-8")
+
+    private fun iptvParams(data: String): Map<String, String> {
+        val query = data.substringAfter("?", "")
+        if (query.isBlank()) return emptyMap()
+        return query.split("&").mapNotNull { part ->
+            if (part.isBlank()) return@mapNotNull null
+            val key = part.substringBefore("=", "")
+            val raw = part.substringAfter("=", "")
+            val value = runCatching { URLDecoder.decode(raw, "UTF-8") }.getOrDefault(raw)
+            key to value
+        }.toMap()
     }
 
     private suspend fun fetchSporekraniMatches(): List<SearchResponse> {

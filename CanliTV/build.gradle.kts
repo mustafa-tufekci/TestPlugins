@@ -1,9 +1,9 @@
-version = 6
+version = 7
 
 cloudstream {
     authors     = listOf("Panates")
     language    = "tr"
-    description = "Canlı TV & Spor: TRT Spor, tabii Spor (UEFA), ulusal ve tematik canlı yayınlar ile maç ekranı."
+    description = "Canlı TV & Spor: TRT Spor, tabii Spor (UEFA), ulusal ve tematik canlı yayınlar, iptv-org IPTV listesi ve maç ekranı."
 
     /**
      * Status int as the following:
