@@ -42,10 +42,28 @@ build.gradle.kts (root)  ── applies to ALL subprojects:
   cross-plugin dependencies — bundle an extractor in the same module if that module's core
   playback needs it (precedent: SezonlukDizi v11 used InatBox's `Dzen`, v12 bundled its own
   `DzenSez` to be self-contained).
+- Two extractors must never share the same `mainUrl` prefix (registry collision). When a
+  generic decoder would overlap an existing one, keep it **unregistered** and call it
+  directly as a fallback (`HdcGizliJsOynatici` inside HDFilmCehennemi).
 - Standard flow: page HTML → find player embed URL → `loadExtractor(url, referer, subtitleCallback)`
   → `newExtractorLink(...)` with `ExtractorLinkType` and m3u8/mp4 URL.
 - Subtitles: parse player `Tracks` JSON / page script for `.vtt`; keep **absolute** URLs.
-- Obfuscation: HDFilmCehennemi needs a splice-family decoder for packed player scripts.
+- Obfuscation: HDFilmCehennemi needs a splice-family decoder for packed player scripts;
+  HDFilmCehennemi/FilmMakinesi also run page JS in a sandboxed Rhino context
+  (`compileOnly("org.mozilla:rhino:1.8.1")`) with `JsUnpacker`/`getPacked` for P.A.C.K.E.R.
+
+## Porting from another plugin repo (neowatch precedent)
+
+- Module = `<Name>/build.gradle.kts` (`version = 1`, `status = 3` until verified) +
+  `src/main/kotlin/com/panates/*.kt`. `settings.gradle.kts` needs no change.
+- Because the package is shared, **every** top-level type and file must be prefixed and
+  unique repo-wide (`Rfm*`, `Snc*`, `Wtz*`, `Dp*`, `Hdc*`...). Duplicated helpers (Jackson
+  `jsonOku`) are copied per module under a prefixed name (`RfmJsonOku`, `WtzJsonOku`).
+- Keep source display names (`name`) only when the extractor is generic (e.g. "SibNet");
+  otherwise the prefixed class is what matters.
+- Verify live behaviour before trusting upstream selectors: neowatch's DiziBal card
+  selectors were valid while its homepage assumptions were not, and its BelgeselX parsed a
+  retired DOM.
 
 ## Error-handling pattern
 

@@ -46,9 +46,25 @@ then confirm the new entry in `plugins.json` on the `builds` branch.
 - `fixUrl` / `fixUrlNull` need an explicit `import com.lagradost.cloudstream3.fixUrl`
   (the `utils.*` star import does not supply them).
 - Nullable types reject `.ifBlank` directly — normalize with `?.trim().orEmpty()` first.
+- **Rhino** (`org.mozilla.javascript.*`) is required by modules that execute page JS:
+  add `dependencies { compileOnly("org.mozilla:rhino:1.8.1") }` (FilmMakinesi,
+  HDFilmCehennemi). The app ships Rhino at runtime; the jar is not in the Gradle cache, so
+  it must stay `compileOnly`.
+- `org.json` (JSONObject/JSONArray) **is** on the compile classpath (android.jar) — the
+  earlier "not available" note was wrong.
+- `getAndUnpack` / `getPacked` live in `com.lagradost.cloudstream3.utils` (not the root
+  package); `base64DecodeArray`, `newSubtitleFile` are in the root package.
+- `AesHelper.cryptoAESHandler(data, key.toByteArray(), false)` (in
+  `com.lagradost.cloudstream3.extractors.helper`) compiles; `StringUtils.decodeUri` works
+  but is deprecated.
+- `LoadResponse.addActors` takes `List<Pair<Actor, String>>`; for role strings prefer
+  assigning `this.actors = listOf(ActorData(...))`. `trailers` is a `MutableList` — use
+  `mutableListOf(TrailerData(url, referer, false))`.
+- `java.time` is unsafe below API 26 — parse dates with `SimpleDateFormat` + UTC.
 - `kotlinx-coroutines` is **not** on the compile classpath by default. Modules needing
   `Mutex`/`withContext`/`delay` must add
-  `implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")` (see InatBox).
+  `implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")` (InatBox,
+  Watch2Movies).
 - Helper APIs available (verified against `~/.gradle/caches/cloudstream/…/cloudstream.jar`
   via `javap -cp <jar> <class>`): `Score.from10`, `parsedSafe`, `mainPageOf`,
   `newTvSeriesLoadResponse`, `newExtractorLink`, `loadExtractor`, `getAndUnpack`,

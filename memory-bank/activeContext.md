@@ -2,191 +2,102 @@
 
 ## Current focus
 
-Nothing in flight. HEAD = `418a8e1` (`fix(BelesTivi): quickSearch override … (v7)`), pushed to
-`fork/master`, CI run `40189043379` green. Last work stream was the **BelesTivi** live-TV module
-(v1→v7, 2026-10-25) plus channel expansion in **CanliTV** (v5→v6).
+**neowatch karşılaştırması tamamlandı (2026-10-29).** Referans repo
+`neoser1984/neowatch` incelendi, 13 ortak modül karşılaştırıldı, eksikler kapatıldı:
+20 yeni sağlayıcı modülü eklendi + 9 özellik portu yapıldı. **Hiçbiri push edilmedi** —
+kullanıcı onayı bekleniyor. Sonraki adım: `git push fork master` onayı → CI → `plugins.json`
+doğrulaması.
 
-## Recent changes (see also progress.md)
+## Recent changes — neowatch portu (2026-10-29)
 
-- `fix(BelesTivi): quickSearch override eklendi, arama sorunu düzeltildi (v7)` — `418a8e1`
-- `chore(BelesTivi): kullanılmayan YOUTUBE_CATEGORY_MAP kaldırıldı (v6)` — `7fa03f2`
-- `feat(BelesTivi): Dual M3U kaynağı + YouTube canlı yayın + cache TTL + headers (v6)` — `c60b1d3`
-- `feat(BelesTivi): APK'dan 10 gömülü Turkuvaz kanalı eklendi (ATV, A Haber, A Spor vb.) (v4)` — `57e30d1`
-- `fix(BelesTivi): M3U fetch headers, retry, Tüm Kanallar kategorisi eklendi (v3)` — `1691025`
-- `feat(BelesTivi): M3U tabanlı dinamik kanal yükleme (v2)` — `a8e0518`
-- `feat(BelesTivi): Beleş TiVi uygulamasından 141 kanal … (v1)` — `64ef2f3`
-- `feat(CanliTV): Beleş TiVi kaynağından 102 doğrulanmış kanal (v6)` — `6178d0d`
-- `feat(CanliTV): iptv-org kaynağından 110 doğrulanmış kanal (v5)` — `7c5cd2b`;
-  v4 TURKTV batch reverted in `dc59b74`
-- `fix(DiziPal): dizipal1592.com Next.js App Router/Turbopack yeniden yazımı … (v37)` — `ffd433d`
-- `fix(HDFilmCehennemi2): vidload JSON.parse config çözümü … (v13)` — `543821e`
-- `fix(HDFilmCehennemi): Close hostname salt eklendi … (v37)` — `5f145a3`
-- `fix(Anizium): epochYear yıl dönüşümü, genre nesnesinden name … (v3)` — `38707ea`
-- `fix(Animecix): metaCache döndürüldü, /secure/videos ile film tespiti … (v8)` — `4bfa8a7`
-- `fix(DiziFilm): arama content_type filtresi, yıl JSON-LD'den … (v5)` — `43f7942`
-- `fix(SelcukFlix): search type field now checks used_type … (v11)` — `04ba135`
-- `feat(SezonlukDizi): Son Bölümler row, JSON-LD trailer, search word fallback … (v15)` — `6923068`
-- (older history below)
+Özellik portları (mevcut modüllerin sürüm bump'ları):
 
-- `fix(Dizilla): adapt to site redesign with Schema.org JSON-LD and clean search/loadLinks (v31)`
-- `feat(CanliTV): add CanliTV live sports and TV channels plugin with Sporekrani schedule (v1)`
-- `feat(Youtube): force Turkish localization and regional content on homepage/search (v2)`
-- `remove(DiziBOX): completely remove DiziBOX plugin from repo`
-- `feat(Youtube): add YouTube provider plugin with search, channels, playlists, kiosks and link extractor (v1)`
-- `fix(BelgeselX): drop dead empty-cid jw links, defer YouTube mirrors to last resort, sira=1 retry (v3)`
-- `docs: CloudStreamHub BelgeselX/CizgiMax comparison findings`
-- `feat(plugins): add BelgeselX (belgeselx.com) and CizgiMax (cizgimax.online) providers (v1)` — latest commit `2f04985` (local, **awaiting push approval**).
-- `feat(anizium): add Anizium anime provider via api.anizium.co (v1)` — `43c9b53` (pushed, CI green).
-- `feat(selcukflix): trim homepage to 5 rows with sort orders (v4)` — `7d4d3ab` (pushed, CI green).
-- `deneme` — `0f06e40`: user committed `memory-bank/*.md` → bank files are now **tracked** (rule change: bank updates will show as normal diffs).
-- `feat(SelcukFlix): nik-style category homepage and load extras (v3)` — `33b620e` (pushed, CI green).
-- `fix(SelcukFlix): try all episode/movie sources instead of first only (v2)` — `00a4e5d` (pushed, CI green).
-- `feat(SelcukFlix): initial port from Kekik reference (v1)` — `d325895` (pushed, CI green).
-- `feat(dizibox): ajax dwls_search with fallbacks, homepage hardening (v9)` — `4478f00` (pushed, CI green).
-- `feat(dizibox): trim homepage to 5 rows, 150ms delay (v8)` — `37b742e` (pushed, CI green).
-- `fix(dizipal): switch to rotated domain dizipal1586.com (v31)` — `5f05052` (pushed, CI green).
-- `fix(belgeselx,cizgimax): link-flow fixes (v2)` — `5dd4f0a` (pushed, CI run `39302196598` green).
-- `fix(dizipal): decode unicode escapes in subtitle labels (v35)` — `65957bb` (pushed, CI green).
-- `fix(dizipal): parse iframe-embedded captions with auth headers; rotate domain to dizipal1591.com (v34)` — `6c1836d` (pushed, CI green).
-- `feat(plugins): add BelgeselX (belgeselx.com) and CizgiMax (cizgimax.online) providers (v1)` — `2f04985` (pushed, CI green).
-- `fix(dizipal): switch to canonical domain dizipal1584.com (v30)` — `145bb3c` (pushed, CI green).
-- `fix(dizibox): detect current cloudflare challenge page (v7)` — `f3c8e4f` (pushed, CI green).
-- `feat(hdfilmcehennemi2): actor photos from oyuncu listesi block (v10)` — `b65c4c5`.
-- `fix(hdfilmcehennemi2): parse vidload Tracks JSON for subtitles (v9)`.
-- `feat(hdfilmcehennemi2): add HDFilmCehennemi2 plugin v8 (new template, vidload player)`.
-- `fix(hdfilmcehennemi): extract player subtitle tracks from page script, keep absolute vtt urls (v36)`.
-- `fix(hdfilmcehennemi): decode new splice-family player obfuscation (v35)`.
-- `docs: add AGENTS.md with build/workflow rules and compile gotchas`.
+- `fix(InatBox): 403 x-st saat farki tekrar denemesi eklendi (v17)` — `9842798`
+- `feat(Dizilla): oyuncu rolu, bolum tarihi, sure ve tur metadata'si eklendi (v32)` — `0f0964f`
+- `feat(HDFilmCehennemi): genel Rhino/PACKER JS oynatici cozucusu eklendi (v38)` — `2be1285`
+- `feat(DiziPal): PalPlayer/StreamCore/VideoPlays decoder'lari ve data-rm-k cozucusu eklendi (v38)` — `e3e02f7`
+- `feat(CanliTV): iptv-org canli liste, EXTVLCOPT headers ve oneri satiri eklendi (v7)` — `e555c7a`
+- `feat(DiziBal): platform/tur satirlari, sayfalama ve JSON-LD metadata eklendi (v4)` — `519ab50`
+- `feat(FullHDFilm): TurboImgz extractor eklendi (v4)` — `34b6525`
+- `feat(CizgiMax): SibNet/Drive/CizgiDuo/CizgiPass extractor'lari eklendi (v3)` — `644065b`
+- `feat(BelgeselX): ok.ru/odnoklassniki extractor eklendi (v4)` — `2fcfa61`
 
-**State:** HEAD = `418a8e1` == `fork/master`, pushed; CI run `40189043379` success;
-17 modules published: Animecix 8, Anizium 3, BelesTivi 7, BelgeselX 3, CanliTV 6, CizgiMax 2,
-DiziBal 3, DiziFilm 5, Dizilla 31, DiziPal 37, FullHDFilm 3, HDFilmCehennemi 37,
-HDFilmCehennemi2 13, InatBox 16, SelcukFlix 11, SezonlukDizi 15, Youtube 2.
-Working tree clean. Memory bank re-synced to this state on 2026-10-29.
-`origin/master` (upstream) is unrelated and intentionally not synced.
+Yeni modüller (hepsi `version = 1`, `status = 3`, tek commit/modül):
+`993cfe6` DiziBox · `1a0812d` DiziKorea · `da562b2` DiziMom · `13fae2c` DiziYou ·
+`8c3cb5b` FilmMakinesi · `3c4e2ae` FilmModu · `9d2b0b3` JetFilmizle · `5b8c50b` KoreanTurk ·
+`a251358` KultFilmler · `4b79962` NetflixMirror · `5c0cd48` RareFilmm · `397dac8` RecTV ·
+`2d0ff40` SetFilmIzle · `faa9ba8` SinemaCX · `b04ca55` SuperFilmGeldi · `6705723` TurkAnime ·
+`9afbd55` UgurFilm · `98a6873` Watch2Movies · `8c159df` WebDramaTurkey · `f118ef1` WebteIzle.
 
-## DiziPal SSL error (2026-09-28) — `CertPathValidatorException: Trust anchor …`
+Daha önceki akış (2026-10-25): BelesTivi v1→v7, CanliTV v5→v6.
 
-- User saw this on the plugin homepage. Origin is healthy: `dizipal1583.com`/`1584.com` serve a
-  complete chain (leaf → GTS `WE1` → `GTS Root R4` cross-signed by `GlobalSign Root CA`), certs
-  reissued **2026-09-27**; `openssl verify` against Mozilla roots passes for both the 3-cert and
-  2-cert variants. Rows/search verified live (54 cards, `cKey` + `/bg/searchcontent` OK).
-- ⇒ The cert the *device* saw was not this chain → DNS/ISP hijack (dizipal is routinely
-  BTK-blocked and rotates numbered domains) or a local TLS interceptor (AdGuard/antivirus/
-  private DNS). Cloudstream prints `Try a VPN or DNS.` for it.
-- Shipped fix: `mainUrl` + `iconUrl` moved to the canonical host `dizipal1584.com` (page
-  canonical + 222 self-links; 1583 only 301s to it). Domain numbers rotate fast — re-check
-  `rel=canonical` whenever DiziPal errors again.
+## State
 
-## DiziBOX diagnosis (2026-09-28) — root cause found & fixed in v7
+- HEAD = `0f0964f` (Dizilla v32). `fork/master` = `418a8e1` → **lokal 33 commit ileride,
+  hiçbiri push edilmedi.**
+- `./gradlew make makePluginsJson` → **BUILD SUCCESSFUL**, 37 sağlayıcı üretildi
+  (`build/plugins.json`).
+- Working tree temiz. Memory bank bu duruma göre güncellendi (2026-10-29).
+- `origin/master` (upstream) ilgisiz ve bilinçli olarak senkronize edilmiyor.
 
-- Site now returns Cloudflare **managed challenge**: `HTTP 403`, `server: cloudflare`,
-  `cf-mitigated: challenge`, title `Just a moment...`, body `/cdn-cgi/challenge-platform/`.
-  The old Turkish warning string the plugin matched **is never produced anymore**.
-- So `CloudflareInterceptor` never called `cloudflareKiller.intercept` → no WebView bypass →
-  every page returned challenge HTML → empty homepage/search, load without episodes,
-  `loadLinks` false → "no links found".
-- Fix: broaden trigger to title `Just a moment...` / `Bir dakika lütfen...`, body
-  `cdn-cgi/challenge-platform`, legacy Turkish string, or
-  `code in [403,503] && Server == cloudflare`; `response.close()` before re-invoking the
-  killer; `sequentialMainPageDelay` 50 → 200 ms; emit `User-Agent` in m3u8 headers
-  (molystream segments answer **404** to `ExoPlayerLib/2.19.1`).
-- Everything else verified live on 2026-09-28: all CSS selectors, `1.Sezon 7.Bölüm` regex,
-  POST search, `woca-linkpages-dd` options, king.php → `#Player iframe` → moly embed →
-  `CryptoJS.AES.decrypt("…","…")` regex → `file: '/embed/sheila/…'` → m3u8 → segment 200
-  **only with** `Referer: https://dbx.molystream.org/`.
-- **Reference repo `nikyokki/nik-cloudstream` uses the same stale Turkish string** → its
-  DiziBox (v10) is broken too; nothing to port from it.
+## neowatch portu — kararlar ve tuzaklar
 
-## DiziBOX homepage speed + search check (2026-09-28) — v8
-
-- User: homepage looked permanently loading → 26 sequential rows (`mainPageOf`) at 200 ms each
-  ≈ 20 s before anything shows. Cut to **5 rows**: `/` (Beklenen/Eklenen), `/efsane-diziler/`,
-  `/tum-bolumler/page/SAYFA/`, `…?tip=populer`, `/dizi-arsivi/page/SAYFA/` — dropped the
-  "Yerli" + 21 genre archive rows. Delay 200 → 150 ms. `getMainPage`'s `else` branch still
-  serves the archive row (`article.detailed-article`). Version 7 → 8.
-- All 5 rows verified live via in-page `fetch`: rec 10 / poster 25 / epcard 30 / epcard 30 /
-  detail 15.
-- **Search verified working**: plugin's exact `POST https://www.dizibox.live/` with
-  form body `s=lanterns` + cookies → 200, title `lanterns - DiziBOX`, 1 `article.detailed-article`
-  whose `h3 a` text = `Lanterns`, href `/diziler/lanterns/`, `figure img` poster present →
-  `toDetailResult()` matches every field it reads. (GET `/?s=…` also works; site search form
-  itself is `method=get`, but POST returns the same result set.)
-
-## DiziBOX search empty in app + slow homepage (2026-09-29) — v9
-
-- User: homepage perpetually loading; DiziBOX absent from in-app search results.
-- External research: `keyiflerolsun/Kekik-cloudstream` (archived Mar 2025), `nik-cloudstream`
-  (Aug 2025), `fsamet`/`maarrem`/`MakotoTokioki` cs-Kekik forks — all stale (GET `?s=` search,
-  old CF string). Only active impl: **`feroxx/Kekik-cloudstream`** (DiziBox rewritten
-  2026-09-08, v23, `status = 1`, same `mainUrl = https://www.dizibox.live`).
-- Ported from feroxx: `search()` tries AJAX `GET wp-admin/admin-ajax.php` with
-  `params = {s, action: dwls_search}` + `X-Requested-With: XMLHttpRequest` + `Referer` first
-  (our `29d1a85` attempt lacked the XRW header and used inline `parsedSafe`, hence failed),
-  parsed via repo-standard Jackson `objectMapper` into new `DbxAjaxSearchResponse`/
-  `DbxAjaxSearchResult` models (`DiziBoxModels.kt`, `Dbx`-prefixed: package `com.panates` is
-  shared across modules); then POST `/` fallback, then GET `/?s=` fallback.
-- AJAX endpoint verified live: `?s=lanterns&action=dwls_search` → 200 JSON, `results[0]` =
-  `Lanterns`, `permalink` `/diziler/lanterns/`, `attachment_thumbnail` `…/lanterns-50x50.jpg`
-  (code rewrites `50x50` → `200x290`).
-- `getMainPage()` hardening: `page == 1` strips `/page/SAYFA/` to the canonical URL
-  (verified: `/tum-bolumler/page/1/` and `/dizi-arsivi/page/1/` both 301 to the bare path),
-  plus `cacheTime = 60` on the row request (NiceHttp 0.4.11 supports it — confirmed via
-  `javap` + upstream README; compiles clean). Version 8 → 9.
-- Builds: `:DiziBOX:assembleDebug` + `make makePluginsJson` → SUCCESS; `plugins.json` →
-  `('DiziBOX', 9)`; `DiziBOX.cs3` 39221 bytes. Commit `4478f00` (local, awaiting push).
-
-
-## SelcukFlix — new module by user (2026-09-30, v1→v3, all pushed + CI green)
-
-- `d325895` v1: initial port from Kekik reference — `SelcukFlix.kt` (MainAPI,
-  `mainUrl = https://selcukflix.com`, API-based: `$mainUrl/api/bg/$endpoint` + search
-  `$mainUrl/api/bg/searchcontent?searchterm=`), `SelcukFlixModels.kt` (19 `Slc*` data
-  classes), `SelcukFlixPlugin.kt`, extractor `SlcContentXExtractor.kt`
-  (`SlcContentX` + `SlcHotlinger`). `status = 3` (Beta), Movie+TvSeries.
-- `00a4e5d` v2: try all episode/movie sources instead of first only.
-- `33b620e` v3: nik-style category homepage + load extras.
-- Verified, not built locally: all 4 pushes CI-success; `builds`/`plugins.json` lists
-  `SelcukFlix v3`; all `Slc*`/`SelcukFlix` class names unique across modules (no
-  `com.panates` collision); `settings.gradle.kts` auto-includes the module.
-
-## SelcukFlix homepage trim (2026-10-01) — v4
-
-- User: homepage with per-genre rows (29 sequential API POSTs) loads forever.
-- Live site homepage has only 4 content blocks: Popüler Diziler, Güncel Bölümler (tabbed),
-  Trend Filmler, Son Eklenen Filmler (tabbed). Trend lists are SSR (`getTrendSeries`);
-  bg API has no trend endpoint — verified orderTypes on /kesfet: `date_desc`,
-  `imdb_desc`, `comment_desc` (+ presumed `imdb_asc`); `findMovies` + `imdb_desc` /
-  `comment_desc` verified 200 with encrypted `response` payload.
-- Shipped: 29 → 5 rows (Yeni Eklenen Filmler/Diziler `date_desc`, IMDb Top Film/Dizi
-  `imdb_desc`, Popüler Diziler `comment_desc`); row `data` format is now
-  `"orderType|categoryIdsComma"`, parsed in `getMainPage`. Version 3 → 4.
-- Builds: `:SelcukFlix:assembleDebug` + `make makePluginsJson` → SUCCESS; `plugins.json`
-  → `('SelcukFlix', 4)`; `SelcukFlix.cs3` 45142 bytes. Commit `7d4d3ab` (local, awaiting push).
+- **Kanıtlanmış kazançlar:** CanliTV artık runtime `iptv-org` listesi okuyor (~1900 satır
+  gömülü kanal bayatlıyordu), DiziBal 13 satır + sayfalama + JSON-LD metadata, Dizilla
+  oyuncu rolü/bolum tarihi/süre/tür, DiziPal 3 yeni decoder, HDFilmCehennemi genel JS
+  çözücü, CizgiMax/FullHDFilm/BelgeselX eksik host'lar.
+- **Bilinçli olarak port edilmeyen: InatBox dinamik dizin** (`InatIstek` / mtlshash cert).
+  `https://raw.githubusercontent.com/mtlshash/cert/main/hash` AES-CBC ile açılıyor ama ilk
+  16 byte (IV) kurtarılamıyor; neowatch'in kendi `makulMu()` kontrolü de bu çıktıyı
+  reddeder. Statik yedek `ctls.js` sadece `test` içeriyor. Onun yerine 403 `x-st` saat
+  farkı düzeltmesi (gerçek protokol davranışı) uygulandı.
+- **Rhino iki modülde gerekli:** FilmMakinesi + HDFilmCehennemi `compileOnly` ile
+  `org.mozilla:rhino:1.8.1` (app sağlıyor, jar cache'te yok).
+- **Ortak `JsonOku` yardımcısı** her modülde ayrı isimle çoğaltıldı (`RfmJsonOku`,
+  `WtzJsonOku`, `FmdJsonOku`) — paket `com.panates` ortak olduğu için aksi halde çakışırdı.
+- Yeni modüllerin hiçbiri canlı uçtan uca doğrulanmadı → hepsi `status = 3`.
 
 ## Next steps
 
-- Cloudstream-builder full-provider verification completed 2026-10-24: all 16 sources probed, 14 ✅ verified end-to-end, 1 ⚠️ InatBox blocked by Cloudflare IP ban (code intact), 1 🛠️ Youtube build-only (NewPipeExtractor). **BelesTivi (v7) was added after that sweep and has not been re-probed end-to-end.**
-- Keep the memory bank current after every non-trivial change (`activeContext.md`,
-  `progress.md`, and `productContext.md`'s version table).
-- Watch for further site template/player changes on hdfilmcehennemi*.biz hosts.
-- When the user asks for a release: commit → local build → await push approval → push to
-  `fork` → `gh run watch` → verify `plugins.json` on `builds`.
+- **Push onayı bekle** (`git push fork master`), sonra `gh run watch` + `builds`
+  branch'indeki `plugins.json` kayıtlarını doğrula.
+- 20 yeni modülü tek tek canlı doğrula (load → loadLinks), çalışanlara `status = 1` ver.
+- BelesTivi v7 hâlâ uçtan uca yeniden denenmedi (2026-10-24 taramasından sonra eklendi).
+- Bank'ı her anlamlı değişiklikten sonra güncelle (`activeContext.md`, `progress.md`,
+  `productContext.md` sürüm tablosu).
+- hdfilmcehennemi*.biz şablonu/oynatıcısı değişirse izle.
 
 ## Patterns & preferences learned
 
-- The user wants **memory-bank discipline**: read all bank files at task start, update after
-  significant changes, and re-review everything on the trigger phrase **update memory bank**.
-- Concise commit subjects, version number in the subject, module name in parens.
-- Prefer self-contained modules over cross-plugin extractor dependencies.
-- Verify against the real site (trace load/stream flow) before flipping `status = 1`.
+- Kullanıcı **memory-bank disiplini** istiyor: görev başında tüm bank dosyalarını oku,
+  anlamlı değişiklikten sonra güncelle, "update memory bank" tetikleyicisinde hepsini gözden
+  geçir.
+- Kısa commit başlığı, sürüm numarası ve modül adı parantez içinde.
+- Cross-plugin extractor bağımlılığı yerine kendi kendine yeten modüller.
+- `status = 1` yalnızca gerçek site akışı uçtan uca doğrulandıysa.
+- Push asla onaysız yapılmaz; commit serbest, push toplu.
 
 ## Insights
 
-- `settings.gradle.kts` auto-inclusion means a new module only needs a directory with a
-  `build.gradle.kts` — no registration step.
-- Because all modules share package `com.panates`, adding a class may break *another*
-  module's compile; a full `./gradlew make` is the only safe check after adding top-level types.
+- `settings.gradle.kts` otomatik dahil etme: yeni modül için sadece `build.gradle.kts`
+  olan bir dizin yeterli.
+- Tüm modüller `com.panates` paketini paylaştığı için yeni bir top-level sınıf *başka* bir
+  modülün derlemesini bozabilir; yeni tip ekledikten sonra tam `./gradlew make` şart.
+- Extractor kayıt defteri global: `registerExtractorAPI` ile kaydedilen bir extractor,
+  kurulu herhangi bir eklentiden `loadExtractor(url)` ile erişilebilir. Bir modülün
+  kendi oynatması buna bağlıysa extractor'ı kendi içinde barındır.
+- Aynı `mainUrl` öneki ile iki extractor kaydetmek çakışır — bu yüzden
+  `HdcGizliJsOynatici` kaydedilmez, yalnızca doğrudan çağrılır.
 
-## CloudStreamHub comparison (2026-10-19)
-"nik-cloudstream" does not exist on GitHub; user clarified → Emre-Kahveci/CloudStreamHub (cloned to /tmp/opencode/hub, last commit 2026-10-15). Live-site probes: hub BelgeselX episode selectors (px-ep-row/diziGetir on series doc) match NOTHING → all documentaries load as movies without episodes; hub still sends Referer on googlevideo MP4s (our v1 403 bug). Hub CizgiMax rows /animeler /cizgi-diziler /cizgi-filmler all 404, WP selectors (.poster-box etc.) 0 matches on live (site uses div.film-item), /?s= search returns whole homepage; hub has no atob servers parsing. Ours (v2) correct on all probed criteria. Borrowables: StreamValidator preflight, BoundedParallelResolver.
+## Tarihsel notlar (önceki oturumlar)
+
+- **DiziPal SSL (2026-09-28):** `CertPathValidatorException` cihaz tarafındaydı (BTK/DNS
+  hijack veya yerel TLS aracı); origin zinciri sağlamdı. Kanonik host `dizipal1592.com`.
+- **DiziBOX (2026-09-28/29):** Cloudflare managed challenge tespiti genişletildi; AJAX
+  `admin-ajax.php?action=dwls_search` araması eklendi. Modül sonradan kullanıcı isteğiyle
+  tamamen kaldırıldı, neowatch portuyla **DiziBox v1** olarak geri geldi.
+- **SelcukFlix (v1→v11):** Kekik referansından port; v2 tüm kaynaklar, v3 nik-style
+  kategori ana sayfası, v4 ana sayfa 29 → 5 satır, v11 aramada `used_type`.
+- **CloudStreamHub karşılaştırması (2026-10-19):** Emre-Kahveci/CloudStreamHub; BelgeselX
+  seçicileri ölü, CizgiMax rotaları 404, googlevideo'ya Referer gönderiyor. Bizim sürümler
+  prob edilen tüm kriterlerde doğru. Ödünç alınabilir: StreamValidator, BoundedParallelResolver.
