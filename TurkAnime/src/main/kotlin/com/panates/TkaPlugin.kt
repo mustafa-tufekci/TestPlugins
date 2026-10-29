@@ -8,5 +8,6 @@ import android.content.Context
 class TkaPlugin: Plugin() {
     override fun load(context: Context) {
         registerMainAPI(Tka())
+        registerExtractorAPI(TkaStreamCore())
     }
 }

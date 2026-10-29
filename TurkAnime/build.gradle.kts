@@ -1,4 +1,4 @@
-version = 1
+version = 2
 
 cloudstream {
     authors     = listOf("Panates", "NeO")
@@ -12,7 +12,7 @@ cloudstream {
      * 2: Slow
      * 3: Beta only
     **/
-    status  = 3
+    status  = 1
     tvTypes = listOf("Anime")
-    iconUrl = "https://www.google.com/s2/favicons?domain=www.turkanime.co&sz=%size%"
+    iconUrl = "https://www.google.com/s2/favicons?domain=turkanime.live&sz=%size%"
 }

@@ -1,210 +1,278 @@
 package com.panates
 
-import android.util.Log
-import org.jsoup.nodes.Element
-import org.jsoup.nodes.Document
-import com.lagradost.cloudstream3.*
-import com.lagradost.cloudstream3.utils.*
 import android.util.Base64
-import com.lagradost.cloudstream3.extractors.helper.AesHelper
+import com.lagradost.cloudstream3.Episode
+import com.lagradost.cloudstream3.MainAPI
+import com.lagradost.cloudstream3.MainPageRequest
+import com.lagradost.cloudstream3.HomePageResponse
+import com.lagradost.cloudstream3.SearchResponse
+import com.lagradost.cloudstream3.LoadResponse
+import com.lagradost.cloudstream3.TvType
+import com.lagradost.cloudstream3.SubtitleFile
+import com.lagradost.cloudstream3.app
+import com.lagradost.cloudstream3.fixUrlNull
+import com.lagradost.cloudstream3.mainPageOf
+import com.lagradost.cloudstream3.newAnimeSearchResponse
+import com.lagradost.cloudstream3.newEpisode
+import com.lagradost.cloudstream3.newHomePageResponse
+import com.lagradost.cloudstream3.newTvSeriesLoadResponse
+import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.loadExtractor
+import com.lagradost.cloudstream3.Score
+import org.json.JSONObject
+import org.jsoup.nodes.Element
 
+/**
+ * turkanime.live (eski turkanime.co) - Tailwind temalı güncel Turk Anime TV.
+ *
+ * - Liste: /animeler?tab=all&genre=<tur>&page=N  -> a[href*=/dizi/] kartları (h3 baslik, img afis)
+ * - Arama: /api/search.php?q=<sorgu> -> {"results":[{"title","type","slug","poster"}]}
+ * - Detay: /dizi/<slug> -> h1, og:image, ld+json (TVSeries), bolum listesi a[href*=/bolum/]
+ * - Bolum: /bolum/<slug>-N-sezon-M-bolum -> Base64 kodlanmış <iframe> (streamcorecdn.com)
+ */
 class Tka : MainAPI() {
-    override var mainUrl              = "https://www.turkanime.co"
-    override var name                 = "TurkAnime"
-    override val hasMainPage          = true
-    override var lang                 = "tr"
-    override val hasQuickSearch       = false
-    override val supportedTypes       = setOf(TvType.Anime)
+    override var mainUrl = "https://turkanime.live"
+    override var name = "TurkAnime"
+    override val hasMainPage = true
+    override var lang = "tr"
+    override val hasQuickSearch = false
+    override val supportedTypes = setOf(TvType.Anime, TvType.AnimeMovie)
 
-    override val mainPage = mainPageOf(
-        "${mainUrl}/anime-turu/1/Aksiyon"                                   to "Aksiyon",
-        "${mainUrl}/anime-turu/3/Arabalar"                                  to "Arabalar",
-        "${mainUrl}/anime-turu/38/Askeri"                                   to "Askeri",
-        "${mainUrl}/anime-turu/5/Avangard"                                  to "Avangard",
-        "${mainUrl}/anime-turu/24/Bilim_Kurgu"                              to "Bilim Kurgu",
-        "${mainUrl}/anime-turu/16/B%C3%BCy%C3%BC"                           to "Büyü",
-        "${mainUrl}/anime-turu/15/%C3%87ocuklar"                            to "Çocuklar",
-        "${mainUrl}/anime-turu/37/Do%C4%9Fa%C3%BCst%C3%BC_G%C3%BC%C3%A7ler" to "Doğaüstü Güçler",
-        "${mainUrl}/anime-turu/17/D%C3%B6v%C3%BC%C5%9F_Sanatlar%C4%B1"      to "Dövüş Sanatları",
-        "${mainUrl}/anime-turu/8/Dram"                                      to "Dram",
-        "${mainUrl}/anime-turu/9/Ecchi"                                     to "Ecchi",
-        "${mainUrl}/anime-turu/10/Fantastik"                                to "Fantastik",
-        "${mainUrl}/anime-turu/41/Gerilim"                                  to "Gerilim",
-        "${mainUrl}/anime-turu/7/Gizem"                                     to "Gizem",
-        "${mainUrl}/anime-turu/35/Harem"                                    to "Harem",
-        "${mainUrl}/anime-turu/43/Josei"                                    to "Josei",
-        "${mainUrl}/anime-turu/4/Komedi"                                    to "Komedi",
-        "${mainUrl}/anime-turu/14/Korku"                                    to "Korku",
-        "${mainUrl}/anime-turu/2/Macera"                                    to "Macera",
-        "${mainUrl}/anime-turu/18/Mecha"                                    to "Mecha",
-        "${mainUrl}/anime-turu/19/M%C3%BCzik"                               to "Müzik",
-        "${mainUrl}/anime-turu/23/Okul"                                     to "Okul",
-        "${mainUrl}/anime-turu/11/Oyun"                                     to "Oyun",
-        "${mainUrl}/anime-turu/20/Parodi"                                   to "Parodi",
-        "${mainUrl}/anime-turu/39/Polisiye"                                 to "Polisiye",
-        "${mainUrl}/anime-turu/40/Psikolojik"                               to "Psikolojik",
-        "${mainUrl}/anime-turu/22/Romantizm"                                to "Romantizm",
-        "${mainUrl}/anime-turu/21/Samuray"                                  to "Samuray",
-        "${mainUrl}/anime-turu/42/Seinen"                                   to "Seinen",
-        "${mainUrl}/anime-turu/6/%C5%9Eeytanlar"                            to "Şeytanlar",
-        "${mainUrl}/anime-turu/25/Shoujo"                                   to "Shoujo",
-        "${mainUrl}/anime-turu/26/Shoujo_Ai"                                to "Shoujo Ai",
-        "${mainUrl}/anime-turu/27/Shounen"                                  to "Shounen",
-        "${mainUrl}/anime-turu/28/Shounen_Ai"                               to "Shounen Ai",
-        "${mainUrl}/anime-turu/30/Spor"                                     to "Spor",
-        "${mainUrl}/anime-turu/31/S%C3%BCper_G%C3%BC%C3%A7ler"              to "Süper Güçler",
-        "${mainUrl}/anime-turu/13/Tarihi"                                   to "Tarihi",
-        "${mainUrl}/anime-turu/29/Uzay"                                     to "Uzay",
-        "${mainUrl}/anime-turu/32/Vampir"                                   to "Vampir",
-        "${mainUrl}/anime-turu/33/Yaoi"                                     to "Yaoi",
-        "${mainUrl}/anime-turu/36/Ya%C5%9Famdan_Kesitler"                   to "Yaşamdan Kesitler",
-        "${mainUrl}/anime-turu/34/Yuri"                                     to "Yuri",
+    private val tarayici = mapOf(
+        "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val document = app.get(request.data).document
-        val home     = document.select("div#orta-icerik div.panel").mapNotNull { it.toMainPageResult() }
+    override val mainPage = mainPageOf(
+        "${mainUrl}/animeler?tab=all" to "Tüm Animeler",
+        "${mainUrl}/animeler?tab=all&sort=rating" to "En Yüksek Puan",
+        "${mainUrl}/animeler?tab=all&translation_type=subtitled" to "Türkçe Altyazı",
+        "${mainUrl}/animeler?tab=all&translation_type=dubbed" to "Dublaj",
+        "${mainUrl}/animeler?tab=all&genre=aksiyon" to "Aksiyon",
+        "${mainUrl}/animeler?tab=all&genre=aksiyon-macera" to "Aksiyon & Macera",
+        "${mainUrl}/animeler?tab=all&genre=bilim-kurgu-fantazi" to "Bilim Kurgu & Fantazi",
+        "${mainUrl}/animeler?tab=all&genre=dram" to "Dram",
+        "${mainUrl}/animeler?tab=all&genre=fantastik" to "Fantastik",
+        "${mainUrl}/animeler?tab=all&genre=gizem" to "Gizem",
+        "${mainUrl}/animeler?tab=all&genre=komedi" to "Komedi",
+        "${mainUrl}/animeler?tab=all&genre=macera" to "Macera",
+        "${mainUrl}/animeler?tab=all&genre=romantik" to "Romantik",
+        "${mainUrl}/animeler?tab=all&genre=savas-politik" to "Savaş & Politik",
+        "${mainUrl}/animeler?tab=all&genre=suc" to "Suç",
+    )
 
-        return newHomePageResponse(request.name, home)
+    private fun sayfaAdresi(data: String, page: Int): String =
+        if (page <= 1) data else "$data&page=$page"
+
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+        val document = app.get(sayfaAdresi(request.data, page), headers = tarayici).document
+        val sonuc = document.select("a[href*='/dizi/'], a[href*='/film/']")
+            .mapNotNull { it.toSearchResult() }
+            .distinctBy { it.url }
+
+        return newHomePageResponse(request.name, sonuc, hasNext = sonuc.isNotEmpty())
     }
 
-    private fun Element.toMainPageResult(): SearchResponse? {
-        val title     = this.selectFirst("div.panel-title a")?.text() ?: return null
-        val href      = fixUrlNull(this.selectFirst("div.panel-title a")?.attr("href")) ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("data-src"))
+    private fun Element.toSearchResult(): SearchResponse? {
+        val href = fixUrlNull(this.attr("href")) ?: return null
+        if (!href.contains("/dizi/") && !href.contains("/film/")) return null
 
-        return newAnimeSearchResponse(title, href, TvType.Anime) { this.posterUrl = posterUrl }
+        val posterEl = this.selectFirst("img")
+        val baslik = this.selectFirst("h3")?.text()?.trim()?.takeIf { it.isNotBlank() }
+            ?: posterEl?.attr("alt")?.substringBefore(" izle")?.trim()?.takeIf { it.isNotBlank() }
+            ?: return null
+        val poster = posterEl?.let { el -> el.attr("src").ifBlank { el.attr("data-src") } }
+            ?.let { fixUrlNull(it) }
+        val puan = Regex("""(\d+(?:[.,]\d+)?)""")
+            .find(this.selectFirst("span.text-primary")?.text().orEmpty())
+            ?.groupValues?.get(1)
+        val tur = if (href.contains("/film/")) TvType.AnimeMovie else TvType.Anime
+
+        return newAnimeSearchResponse(baslik, href, tur) {
+            this.posterUrl = poster
+            this.score = Score.from10(puan)
+        }
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val document = app.post("${mainUrl}/arama", data=mapOf("arama" to query)).document
+        val metin = app.get(
+            "$mainUrl/api/search.php",
+            params = mapOf("q" to query),
+            headers = tarayici
+        ).text
 
-        return document.select("div#orta-icerik div.panel").mapNotNull { it.toMainPageResult() }
+        return runCatching {
+            val dizi = JSONObject(metin).optJSONArray("results") ?: return emptyList()
+            (0 until dizi.length()).mapNotNull { i ->
+                val oge = dizi.optJSONObject(i) ?: return@mapNotNull null
+                val baslik = oge.optString("title").trim().ifBlank { return@mapNotNull null }
+                val slug = oge.optString("slug").trim().ifBlank { return@mapNotNull null }
+                val tip = oge.optString("type")
+                val href = if (tip.contains("movie") || tip.contains("film")) {
+                    "$mainUrl/film/$slug"
+                } else {
+                    "$mainUrl/dizi/$slug"
+                }
+                newAnimeSearchResponse(
+                    baslik,
+                    href,
+                    if (tip.contains("movie") || tip.contains("film")) TvType.AnimeMovie else TvType.Anime
+                ) {
+                    this.posterUrl = fixUrlNull(oge.optString("poster"))
+                }
+            }
+        }.getOrDefault(emptyList())
     }
 
     override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
 
+    private fun yapisalVeri(html: String): JSONObject? {
+        val bloklar = Regex(
+            """<script[^>]+type=["']application/ld\+json["'][^>]*>(.*?)</script>""",
+            setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)
+        ).findAll(html).map { it.groupValues[1].trim() }.toList()
+
+        for (blok in bloklar) {
+            val kok = runCatching { JSONObject(blok) }.getOrNull() ?: continue
+            val adaylar = mutableListOf<JSONObject>()
+            adaylar.add(kok)
+            kok.optJSONArray("@graph")?.let { graf ->
+                for (i in 0 until graf.length()) graf.optJSONObject(i)?.let { adaylar.add(it) }
+            }
+            for (aday in adaylar) {
+                val tip = aday.opt("@type")?.toString().orEmpty()
+                if (tip.contains("TVSeries", true) || tip.contains("Movie", true) || tip.contains("Anime", true)) {
+                    return aday
+                }
+            }
+        }
+        return null
+    }
+
+    private fun adlar(deger: Any?): List<String> = when (deger) {
+        null -> emptyList()
+        is String -> listOf(deger)
+        is org.json.JSONArray -> (0 until deger.length()).mapNotNull { i ->
+            val oge = deger.opt(i)
+            when (oge) {
+                is String -> oge
+                is JSONObject -> oge.optString("name").ifBlank { null }
+                else -> null
+            }
+        }
+        is JSONObject -> listOfNotNull(deger.optString("name").ifBlank { null })
+        else -> emptyList()
+    }
+
     override suspend fun load(url: String): LoadResponse? {
-        val document = app.get(url).document
+        val html = app.get(url, headers = tarayici).text
+        val document = org.jsoup.Jsoup.parse(html, url)
+        val veri = yapisalVeri(html)
 
-        val title       = document.selectFirst("div#detayPaylas div.panel-title")?.text()?.trim() ?: return null
-        val poster      = fixUrlNull(document.selectFirst("div#detayPaylas div.imaj img")?.attr("data-src"))
-        val description = document.selectFirst("div#detayPaylas p.ozet")?.text()?.trim()
-        val year        = document.selectFirst("div#detayPaylas a[href*='yil/']")?.attr("href")?.substringAfter("yil/")?.toIntOrNull()
-        val tags        = document.select("div#animedetay a[href*='anime-turu']").map { it.text() }
-        val rating      = document.selectFirst("span.puan")?.text()?.trim()
+        val baslik = veri?.optString("name")?.trim()?.takeIf { it.isNotBlank() }
+            ?: document.selectFirst("h1")?.text()?.trim()?.takeIf { it.isNotBlank() }
+            ?: document.selectFirst("meta[property=og:title]")?.attr("content")
+                ?.substringBefore(" izle")?.trim()
+            ?: return null
 
-        val bolumlerUrl = fixUrlNull(document.selectFirst("a[data-url*='ajax/bolumler&animeId=']")?.attr("data-url")) ?: return null
-        val bolumlerDoc = app.get(
-            bolumlerUrl,
-            headers = mapOf(
-                "X-Requested-With" to "XMLHttpRequest",
-                "token"            to document.selectFirst("meta[name='_token']")!!.attr("content")
-            ),
-            cookies = mapOf("yasOnay" to "1")
-        ).document
-
-        val episodes = bolumlerDoc.select("div#bolum-list li").mapNotNull {
-            val epHref    = fixUrlNull(it.selectFirst("a[href*='/video/']")?.attr("href")) ?: return@mapNotNull null
-            val epName    = it.selectFirst("span.bolumAdi")?.text()?.trim() ?: return@mapNotNull null
-            val epSeason  = 1
-            val epTitle   = it.selectFirst("a[href*='/video/']")?.attr("title")?.trim() ?: return@mapNotNull null
-            val epEpisode = Regex("""(\d+). Bölüm""").find(epTitle)?.groupValues?.get(1)?.toIntOrNull() ?: 1
-
-            newEpisode(epHref) {
-                this.name = epName
-                this.season = epSeason
-                this.episode = epEpisode
-            }
+        val poster = (veri?.opt("image")?.let { adlar(it).firstOrNull() })
+            ?: document.selectFirst("meta[property=og:image]")?.attr("content")
+        val aciklama = veri?.optString("description")?.trim()?.takeIf { it.isNotBlank() }
+            ?: document.selectFirst("meta[name=description]")?.attr("content")?.trim()
+        val yil = veri?.optString("datePublished")?.take(4)?.toIntOrNull()
+        val etiketler = adlar(veri?.opt("genre"))
+        val puan = veri?.optJSONObject("aggregateRating")?.optString("ratingValue")
+        val tur = when {
+            veri?.opt("@type")?.toString()?.contains("Movie", true) == true || url.contains("/film/") ->
+                TvType.AnimeMovie
+            else -> TvType.Anime
         }
 
-        return newTvSeriesLoadResponse(title, url, TvType.Anime, episodes) {
-            this.posterUrl = poster
-            this.plot      = description
-            this.year      = year
-            this.tags      = tags
-            this.score    = Score.from10(rating)
-        }
-    }
+        val bolumler = document.select("a[href*='/bolum/']")
+            .mapNotNull { it.toEpisode(url) }
+            .distinctBy { it.data }
+            .sortedWith(compareBy({ it.season ?: 0 }, { it.episode ?: 0 }))
 
-    private suspend fun iframe2AesLink(iframe: String): String? {
-        var aesData = iframe.substringAfter("embed/#/url/").substringBefore("?status")
-        aesData     = String(Base64.decode(aesData, Base64.DEFAULT))
+        val oneriler = document.select("a[href*='/dizi/'], a[href*='/film/']")
+            .mapNotNull { it.toSearchResult() }
+            .filter { !it.url.contains(url.substringAfter(mainUrl, "").trimEnd('/')) || it.url != url }
+            .distinctBy { it.url }
 
-        val aesKey  = "710^8A@3@>T2}#zN5xK?kR7KNKb@-A!LzYL5~M1qU0UfdWsZoBm4UUat%}ueUv6E--*hDPPbH7K2bp9^3o41hw,khL:}Kx8080@M"
-        val aesLink = AesHelper.cryptoAESHandler(aesData, aesKey.toByteArray(), false)?.replace("\\", "") ?: throw ErrorLoadingException("failed to decrypt")
-
-        return fixUrlNull(aesLink.replace("\"", ""))
-    }
-
-    private suspend fun iframe2Load(document: Document, @Suppress("UNUSED_PARAMETER") iframe: String, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit) {
-        // val mainVideo = iframe2AesLink(iframe)
-        // if (mainVideo != null) {
-        //     val mainKey = mainVideo.split("/").last()
-        //     val mainAPI = app.get(
-        //         "${mainUrl}/sources/${mainKey}/true",
-        //         headers = mapOf(
-        //             "Content-Type"     to "application/json",
-        //             "X-Requested-With" to "XMLHttpRequest",
-        //             "Csrf-Token"       to "EqdGHqwZJvydjfbmuYsZeGvBxDxnQXeARRqUNbhRYnPEWqdDnYFEKVBaUPCAGTZA",
-        //             "Connection"       to "keep-alive",
-        //             "Sec-Fetch-Dest"   to "empty",
-        //             "Sec-Fetch-Mode"   to "cors",
-        //             "Sec-Fetch-Site"   to "same-origin",
-        //             "Pragma"           to "no-cache",
-        //             "Cache-Control"    to "no-cache",
-        //         ),
-        //         referer = mainVideo,
-        //         cookies = mapOf("yasOnay" to "1")
-        //     ).text
-
-        //     val m3uLink = fixUrlNull(Regex("""file\":\"([^\"]+)""").find(mainAPI)?.groupValues?.get(1)?.replace("\\", ""))
-        //     Log.d("TRANM", "m3uLink » ${m3uLink}")
-
-        //     if (m3uLink != null) {
-        //         callback.invoke(
-        //             ExtractorLink(
-        //                 source  = this.name,
-        //                 name    = this.name,
-        //                 url     = m3uLink,
-        //                 referer = "${mainVideo}",
-        //                 quality = Qualities.Unknown.value,
-        //                 isM3u8  = true,
-        //             )
-        //         )
-        //     }
-        // }
-
-        for (button in document.select("button[onclick*='ajax/videosec']")) {
-            val butonLink = fixUrlNull(button.attr("onclick").substringAfter("IndexIcerik('").substringBefore("'")) ?: continue
-            val butonName = button.ownText().trim()
-            val subDoc    = app.get(butonLink, headers=mapOf("X-Requested-With" to "XMLHttpRequest")).document
-
-            val subFrame  = fixUrlNull(subDoc.selectFirst("iframe")?.attr("src")) ?: continue
-            val subLink   = iframe2AesLink(subFrame) ?: continue
-            Log.d("TRANM", "$butonName » $subLink")
-
-            loadExtractor(subLink, "${mainUrl}/", subtitleCallback, callback)
+        return newTvSeriesLoadResponse(baslik, url, tur, bolumler) {
+            this.posterUrl = fixUrlNull(poster)
+            this.plot = aciklama
+            this.year = yil
+            this.tags = etiketler
+            this.score = Score.from10(puan)
+            this.recommendations = oneriler.take(24)
         }
     }
 
-    override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
-        Log.d("TRANM", "data » $data")
-        val document  = app.get(data).document
-        val iframe    = fixUrlNull(document.selectFirst("iframe")?.attr("src")) ?: return false
+    private fun Element.toEpisode(sayfaUrl: String): Episode? {
+        val href = fixUrlNull(this.attr("href")) ?: return null
+        if (!href.contains("/bolum/")) return null
 
-        if (iframe.contains("a-ads.com")) {
-            for (button in document.select("button[onclick*='ajax/videosec']")) {
-                val butonLink = fixUrlNull(button.attr("onclick").substringAfter("IndexIcerik('").substringBefore("'")) ?: continue
-                val subDoc    = app.get(butonLink, headers=mapOf("X-Requested-With" to "XMLHttpRequest")).document
+        val hamEtiket = this.selectFirst("h4")?.text()?.trim().orEmpty()
+        val eslesme = Regex("""(\d+)\.\s*Sezon\s*(\d+)\.\s*Bölüm""").find(hamEtiket)
+        val slugEslesme = Regex("""-(\d+)-sezon-(\d+)-bolum""").find(href)
 
-                val subFrame  = fixUrlNull(subDoc.selectFirst("iframe")?.attr("src")) ?: continue
-                iframe2Load(subDoc, subFrame, subtitleCallback, callback)
-            }
+        val sezon = eslesme?.groupValues?.get(1)?.toIntOrNull()
+            ?: slugEslesme?.groupValues?.get(1)?.toIntOrNull()
+            ?: 1
+        val bolum = eslesme?.groupValues?.get(2)?.toIntOrNull()
+            ?: slugEslesme?.groupValues?.get(2)?.toIntOrNull()
+            ?: return null
+
+        val ad = hamEtiket.ifBlank { "$sezon. Sezon $bolum. Bölüm" }
+
+        return newEpisode(href) {
+            this.name = ad
+            this.season = sezon
+            this.episode = bolum
+        }
+    }
+
+    override suspend fun loadLinks(
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
+        val html = app.get(data, headers = tarayici).text
+        var bulundu = false
+
+        // Oynatıcı iframe'i Base64 kodlu olarak gömülüyor
+        val kodlu = Regex("""const\s+encodedContent\s*=\s*['"]([^'"]+)['"]""")
+            .find(html)?.groupValues?.get(1)
+        val cozulmus = if (kodlu != null) {
+            runCatching { String(Base64.decode(kodlu, Base64.DEFAULT)) }.getOrNull()
         } else {
-            iframe2Load(document, iframe, subtitleCallback, callback)
+            null
         }
 
-        return true
+        val adaylar = mutableListOf<String>()
+        if (cozulmus != null) {
+            Regex("""<iframe[^>]+src=["']([^"']+)["']""", RegexOption.IGNORE_CASE).findAll(cozulmus)
+                .forEach { adaylar.add(it.groupValues[1]) }
+        }
+        if (adaylar.isEmpty()) {
+            Regex("""<iframe[^>]+src=["']([^"']+)["']""", RegexOption.IGNORE_CASE).findAll(html)
+                .forEach { adaylar.add(it.groupValues[1]) }
+        }
+
+        for (ham in adaylar.distinct()) {
+            val iframe = fixUrlNull(ham) ?: continue
+            if (!iframe.startsWith("http")) continue
+            val basarili = runCatching {
+                if (TkaStreamCore.uygunMu(iframe)) {
+                    TkaStreamCore().getUrl(iframe, "$mainUrl/", subtitleCallback, callback)
+                    true
+                } else {
+                    loadExtractor(iframe, "$mainUrl/", subtitleCallback, callback)
+                }
+            }.getOrDefault(false)
+            if (basarili) bulundu = true
+        }
+
+        return bulundu
     }
 }
