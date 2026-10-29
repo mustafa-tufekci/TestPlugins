@@ -2,11 +2,12 @@
 
 ## Current focus
 
-**neowatch karşılaştırması tamamlandı (2026-10-29).** Referans repo
+**neowatch karşılaştırması tamamlandı ve yayınlandı (2026-10-29).** Referans repo
 `neoser1984/neowatch` incelendi, 13 ortak modül karşılaştırıldı, eksikler kapatıldı:
-20 yeni sağlayıcı modülü eklendi + 9 özellik portu yapıldı. **Hiçbiri push edilmedi** —
-kullanıcı onayı bekleniyor. Sonraki adım: `git push fork master` onayı → CI → `plugins.json`
-doğrulaması.
+20 yeni sağlayıcı modülü eklendi + 9 özellik portu yapıldı. `fork/master`'a push edildi
+(31 commit, `418a8e1..dc598d9`), CI run `40906447013` **success**, `builds/plugins.json`
+37 sağlayıcı ile doğrulandı. Açık iş: 20 beta modülün (`status = 3`) canlı oynatma
+doğrulaması → `status = 1`.
 
 ## Recent changes — neowatch portu (2026-10-29)
 
@@ -33,8 +34,10 @@ Daha önceki akış (2026-10-25): BelesTivi v1→v7, CanliTV v5→v6.
 
 ## State
 
-- HEAD = `0f0964f` (Dizilla v32). `fork/master` = `418a8e1` → **lokal 33 commit ileride,
-  hiçbiri push edilmedi.**
+- HEAD = `dc598d9` (memory bank senkronu). `fork/master` = `dc598d9` → **push edildi**,
+  CI run `40906447013` **success**; `builds` branch'inde 37 sağlayıcı doğrulandı
+  (Dizilla v32, DiziPal v38, HDFilmCehennemi v38, InatBox v17, CanliTV v7, DiziBal v4,
+  BelgeselX v4, CizgiMax v3, FullHDFilm v4, 20 yeni modül v1).
 - `./gradlew make makePluginsJson` → **BUILD SUCCESSFUL**, 37 sağlayıcı üretildi
   (`build/plugins.json`).
 - Working tree temiz. Memory bank bu duruma göre güncellendi (2026-10-29).
@@ -59,8 +62,8 @@ Daha önceki akış (2026-10-25): BelesTivi v1→v7, CanliTV v5→v6.
 
 ## Next steps
 
-- **Push onayı bekle** (`git push fork master`), sonra `gh run watch` + `builds`
-  branch'indeki `plugins.json` kayıtlarını doğrula.
+- ~~Push onayı bekle~~ → **push edildi** (`418a8e1..dc598d9`, 31 commit), CI
+  `40906447013` success, `builds/plugins.json` 37 kayıtla doğrulandı (2026-10-29).
 - 20 yeni modülü tek tek canlı doğrula (load → loadLinks), çalışanlara `status = 1` ver.
 - BelesTivi v7 hâlâ uçtan uca yeniden denenmedi (2026-10-24 taramasından sonra eklendi).
 - Bank'ı her anlamlı değişiklikten sonra güncelle (`activeContext.md`, `progress.md`,

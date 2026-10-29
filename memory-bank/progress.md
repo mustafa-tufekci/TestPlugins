@@ -1,9 +1,11 @@
 # Progress — TestPlugins
 
-## Status at last review (2026-10-29, HEAD `0f0964f`)
+## Status at last review (2026-10-29, HEAD `dc598d9`, push edildi + CI green)
 
 - **37 modül**, hepsi derleniyor; `./gradlew make makePluginsJson` → BUILD SUCCESSFUL,
-  `build/plugins.json` 37 sağlayıcı listeliyor.
+  `build/plugins.json` 37 sağlayıcı listeliyor. `fork/master` = `dc598d9`, CI run
+  `40906447013` **success**, `builds` branch'inde 37 kayıt doğrulandı.
+- 20 yeni modül Beta (`status = 3`), canlı oynatma doğrulaması bekliyor.
 - Sürümler: Animecix 8, Anizium 3, BelesTivi 7, BelgeselX 4, CanliTV 7, CizgiMax 3,
   DiziBal 4, DiziBox 1, DiziFilm 5, DiziKorea 1, Dizilla 32, DiziMom 1, DiziPal 38,
   DiziYou 1, FilmMakinesi 1, FilmModu 1, FullHDFilm 4, HDFilmCehennemi 38,
