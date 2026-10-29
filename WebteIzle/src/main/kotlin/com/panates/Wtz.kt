@@ -35,7 +35,7 @@ import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import com.lagradost.cloudstream3.Score
 
 class Wtz : MainAPI() {
-    override var mainUrl              = "https://webteizle.click"
+    override var mainUrl              = "https://webteizle.info"
     override var name                 = "WebteIzle"
     override val hasMainPage          = true
     override var lang                 = "tr"
@@ -152,14 +152,9 @@ class Wtz : MainAPI() {
         val filmId  = document.selectFirst("button#wip")?.attr("data-id") ?: return false
         Log.d("WBTI", "filmId » $filmId")
 
-        val dilList = mutableListOf<String>()
-        if (document.selectFirst("div.golge a[href*=dublaj]")?.attr("src") != null) {
-            dilList.add("0")
-        }
-
-        if (document.selectFirst("div.golge a[href*=altyazi]")?.attr("src") != null) {
-            dilList.add("1")
-        }
+        // ! Dil seçimi sayfadaki bağlantılardan güvenilir okunamıyor (tema değişti), her iki dili de dene.
+        val dilList = mutableListOf("0", "1")
+        val gorulenEmbed = mutableSetOf<String>()
 
         dilList.forEach {
             val dilAd = if (it == "0") "Dublaj" else "Altyazı"
@@ -177,7 +172,9 @@ class Wtz : MainAPI() {
             ).text
             val playerData = wtzJsonOku<WtzDataAlternatif>(playerApi) ?: return@forEach
 
-            for (thisEmbed in playerData.data) { 
+            for (thisEmbed in playerData.data) {
+                if (!gorulenEmbed.add(thisEmbed.id.toString())) continue
+
                 val embedApi = app.post(
                     "${mainUrl}/ajax/dataEmbed.asp",
                     headers = mapOf("X-Requested-With" to "XMLHttpRequest"),
@@ -185,6 +182,12 @@ class Wtz : MainAPI() {
                 ).document
 
                 var iframe = fixUrlNull(embedApi.selectFirst("iframe")?.attr("src"))
+
+                // ! Site artık Cloudflare Turnstile doğrulaması istiyor, doğrulanmamış embed oynatılamaz.
+                if (iframe != null && iframe.contains("reCAPTCHA")) {
+                    Log.d("WBTI", "embed ${thisEmbed.id} Turnstile korumalı, atlanıyor")
+                    continue
+                }
 
                 if (iframe == null) {
                     val scriptSource = embedApi.html()

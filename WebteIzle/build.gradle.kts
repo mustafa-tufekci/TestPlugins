@@ -1,4 +1,4 @@
-version = 1
+version = 2
 
 cloudstream {
     authors     = listOf("Panates", "NeO")
@@ -14,5 +14,5 @@ cloudstream {
     **/
     status  = 3
     tvTypes = listOf("Movie")
-    iconUrl = "https://www.google.com/s2/favicons?domain=webteizle2.com&sz=%size%"
+    iconUrl = "https://www.google.com/s2/favicons?domain=webteizle.info&sz=%size%"
 }

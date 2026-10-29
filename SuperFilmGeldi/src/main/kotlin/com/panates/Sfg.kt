@@ -3,6 +3,7 @@ package com.panates
 import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
+import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
@@ -10,10 +11,10 @@ import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 
-// Eski superfilmgeldi.* alan adlarının hepsi park/kapalı (Ekim 2026). Site superfilmizle.org olarak
-// yeni bir altyapıyla (film + dizi + anime) devam ediyor; eklenti adı aynı kaldı.
+// Eski superfilmgeldi.* alan adlarının hepsi park/kapalı (Ekim 2026). Site sırasıyla
+// superfilmizle.org -> superfilmizle.net -> superfilmizle.icu adreslerine taşındı; eklenti adı aynı kaldı.
 class Sfg : MainAPI() {
-    override var mainUrl              = "https://superfilmizle.org"
+    override var mainUrl              = "https://superfilmizle.icu"
     override var name                 = "SuperFilmGeldi"
     override val hasMainPage          = true
     override var lang                 = "tr"
@@ -235,8 +236,23 @@ class Sfg : MainAPI() {
 
         // Oynatıcı (Pilavyer): <div data-pv="SLUG"> + <script src="https://SUNUCU/assets/js/core.js">
         // core.js iframe'i SUNUCU/assets/js/s.php?s=SLUG olarak kurar; sunucu Referer'ı (site kökeni) denetler.
-        val slug = Regex("""data-pv="([^"]+)"""").find(html)?.groupValues?.get(1) ?: return false
-        val base = Regex("""src="(https://[^"]+?)/(?:assets/js/core|e/c)\.js""").find(html)?.groupValues?.get(1) ?: return false
+        val slug = Regex("""data-pv="([^"]+)"""").find(html)?.groupValues?.get(1)
+        val base = Regex("""src="(https://[^"]+?)/(?:assets/js/core|e/c)\.js""").find(html)?.groupValues?.get(1)
+
+        // ! Yeni tema oynatıcıyı pilavyer yerine doğrudan iframe olarak gömüyor.
+        if (slug == null || base == null) {
+            var bulundu = false
+            Jsoup.parse(html)
+                .select("iframe[data-player-frame][src], iframe[src]")
+                .map { it.attr("src").ifBlank { it.attr("data-src") } }
+                .filter { it.startsWith("http") && !it.contains("youtube.com") }
+                .distinct()
+                .forEach { kaynak ->
+                    bulundu = true
+                    runCatching { loadExtractor(kaynak, "${mainUrl}/", subtitleCallback, callback) }
+                }
+            return bulundu
+        }
         val embed = "$base/assets/js/s.php?s=$slug"
         Log.d("SFG", "embed » $embed")
 

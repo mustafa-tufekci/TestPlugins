@@ -17,7 +17,7 @@ import com.lagradost.cloudstream3.utils.*
  */
 open class WdtFirePlayer : ExtractorApi() {
     override val name            = "FirePlayer"
-    override val mainUrl         = "https://playerdkorea.xyz"
+    override val mainUrl         = "https://dtpasn.asia"
     override val requiresReferer = true
 
     companion object {
