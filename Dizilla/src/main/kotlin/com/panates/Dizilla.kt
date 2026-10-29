@@ -6,16 +6,17 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.lagradost.cloudstream3.Actor
+import com.lagradost.cloudstream3.ActorData
 import com.lagradost.cloudstream3.Episode
 import com.lagradost.cloudstream3.HomePageResponse
 import com.lagradost.cloudstream3.LoadResponse
-import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.lagradost.cloudstream3.MainAPI
 import com.lagradost.cloudstream3.MainPageRequest
 import com.lagradost.cloudstream3.Score
 import com.lagradost.cloudstream3.SearchResponse
 import com.lagradost.cloudstream3.SubtitleFile
 import com.lagradost.cloudstream3.TvType
+import com.lagradost.cloudstream3.TrailerData
 import com.lagradost.cloudstream3.app
 import com.lagradost.cloudstream3.fixUrl
 import com.lagradost.cloudstream3.fixUrlNull
@@ -139,19 +140,24 @@ class Dizilla : MainAPI() {
     override suspend fun load(url: String): LoadResponse? {
         val document = app.get(url, interceptor = interceptor).document
 
-        // Try Schema.org TVSeries JSON-LD
-        var seriesNode: JsonNode? = null
+        // Schema.org TVSeries JSON-LD: the first node carries episodes/actors/country,
+        // a second node (#series) carries genre/director/season counts.
+        val seriesNodes = mutableListOf<JsonNode>()
         for (script in document.select("script[type=application/ld+json]")) {
             val raw = script.data().ifBlank { script.html() }.trim()
             if (raw.isBlank()) continue
             try {
                 val node = objectMapper.readTree(raw)
-                if (node.path("@type").asText() == "TVSeries") {
-                    seriesNode = node
-                    break
+                val adaylar = if (node.path("@graph").isArray) node.path("@graph").toList() else listOf(node)
+                for (aday in adaylar) {
+                    if (aday.path("@type").asText() == "TVSeries") seriesNodes.add(aday)
                 }
             } catch (_: Exception) {}
         }
+
+        val seriesNode = seriesNodes.firstOrNull()
+        val richNode = seriesNodes.firstOrNull { it.path("genre").isArray && it.path("genre").size() > 0 }
+            ?: seriesNode
 
         val ogTitle = document.selectFirst("meta[property=og:title]")?.attr("content").orEmpty()
         val ogDesc = document.selectFirst("meta[property=og:description]")?.attr("content").orEmpty()
@@ -173,20 +179,61 @@ class Dizilla : MainAPI() {
         val rating = seriesNode?.path("aggregateRating")?.path("ratingValue")
             ?.takeIf { !it.isMissingNode && !it.isNull }?.asText()
 
-        val yearMatch = Regex("""\b(19\d\d|20\d\d)\b""").find(ogDesc)
-        val year = yearMatch?.groupValues?.get(1)?.toIntOrNull()
+        val year = Regex("""(19\d\d|20\d\d)""")
+            .find(seriesNode?.path("datePublished")?.asText("").orEmpty())
+            ?.groupValues?.get(1)?.toIntOrNull()
+            ?: Regex("""\b(19\d\d|20\d\d)\b""").find(ogDesc)?.groupValues?.get(1)?.toIntOrNull()
 
-        val tags = Regex("""\b(?:19\d\d|20\d\d)\s+([^yapım\n]+?)\s+yapımını""").find(ogDesc)
-            ?.groupValues?.get(1)
-            ?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() }
+        val genreTags = richNode?.path("genre")
+            ?.takeIf { it.isArray }
+            ?.mapNotNull { it.asText(null)?.takeIf { t -> t.isNotBlank() } }
+            ?: emptyList()
+        val countryTags = richNode?.path("countryOfOrigin")?.path("name")?.asText(null)
+            ?.takeIf { it.isNotBlank() }?.let { listOf(it) }
             ?: emptyList()
 
-        val actors = mutableListOf<Actor>()
+        val tags = if (genreTags.isNotEmpty()) {
+            (genreTags + countryTags).distinct()
+        } else {
+            Regex("""\b(?:19\d\d|20\d\d)\s+([^yapım\n]+?)\s+yapımını""").find(ogDesc)
+                ?.groupValues?.get(1)
+                ?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() }
+                ?: emptyList()
+        }
+
+        val runtime = parseIsoDuration(
+            seriesNode?.path("timeRequired")?.asText(null)
+                ?: seriesNode?.path("duration")?.asText(null)
+                ?: Regex(""""duration"\s*:\s*"(PT[^"]+)"""").find(document.html())?.groupValues?.get(1)
+        )
+
+        val actorList = mutableListOf<ActorData>()
         seriesNode?.path("actor")?.forEach { actorNode ->
             val actorName = actorNode.path("name").asText(null)
             if (!actorName.isNullOrBlank()) {
-                val actorImage = actorNode.path("image").asText(null)
-                actors.add(Actor(actorName, actorImage))
+                val role = actorNode.path("additionalName").asText(null)?.takeIf { it.isNotBlank() }
+                val actorImage = fixUrlNull(actorNode.path("image").asText(null))
+                actorList.add(ActorData(Actor(actorName, actorImage), roleString = role))
+            }
+        }
+        richNode?.path("director")?.forEach { directorNode ->
+            val directorName = directorNode.path("name").asText(null)
+            if (!directorName.isNullOrBlank()) {
+                actorList.add(ActorData(Actor(directorName, null), roleString = "Yönetmen"))
+            }
+        }
+        val actors = actorList.distinctBy { it.actor?.name }
+
+        val trailerUrls = mutableListOf<String>()
+        seriesNode?.path("trailer")?.let { trailerNode ->
+            val entries = if (trailerNode.isArray) trailerNode.toList() else listOf(trailerNode)
+            for (entry in entries) {
+                // Dizilla usually points contentUrl at its own "#trailer" tab; only keep real video URLs.
+                val candidate = entry.path("embedUrl").asText(null)?.takeIf { it.isNotBlank() }
+                    ?: entry.path("contentUrl").asText(null)?.takeIf { it.isNotBlank() }
+                    ?: continue
+                if (candidate.contains("#") || candidate.startsWith(mainUrl)) continue
+                trailerUrls.add(candidate)
             }
         }
 
@@ -198,12 +245,19 @@ class Dizilla : MainAPI() {
                 val epNo = epNode.path("episodeNumber").takeIf { !it.isMissingNode && !it.isNull }?.asInt()
                 val epName = epNode.path("name").asText(null)
                 val epDesc = epNode.path("description").asText(null)
+                val epDate = parseDate(epNode.path("datePublished").asText(null))
+                    ?: parseDate(epNode.path("dateModified").asText(null))
+                val epRuntime = parseIsoDuration(
+                    epNode.path("timeRequired").asText(null) ?: epNode.path("duration").asText(null)
+                ) ?: runtime
 
                 episodes.add(newEpisode(epUrl) {
                     this.name = epName
                     this.season = seasonNo
                     this.episode = epNo
                     this.description = epDesc
+                    this.date = epDate
+                    this.runTime = epRuntime
                 })
             }
         }
@@ -235,8 +289,31 @@ class Dizilla : MainAPI() {
             this.plot = description
             this.tags = tags
             this.score = Score.from10(rating)
-            if (actors.isNotEmpty()) addActors(actors)
+            this.duration = runtime
+            if (actors.isNotEmpty()) this.actors = actors
+            if (trailerUrls.isNotEmpty()) this.trailers = mutableListOf<TrailerData>().also { list -> trailerUrls.forEach { list.add(TrailerData(it, mainUrl, false)) } }
         }
+    }
+
+    /** "PT48M" / "PT1H2M" / "PT1H2M30S" -> minutes (>=30s rounds up). */
+    private fun parseIsoDuration(value: String?): Int? {
+        val raw = value?.trim()?.takeIf { it.isNotBlank() } ?: return null
+        val match = Regex("""^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?""").find(raw) ?: return null
+        val hours = match.groupValues[1].toIntOrNull() ?: 0
+        val minutes = match.groupValues[2].toIntOrNull() ?: 0
+        val seconds = match.groupValues[3].toIntOrNull() ?: 0
+        val total = hours * 60 + minutes + if (seconds >= 30) 1 else 0
+        return total.takeIf { it > 0 }
+    }
+
+    /** "2022-04-01" -> epoch millis (UTC). */
+    private fun parseDate(value: String?): Long? {
+        val raw = value?.trim()?.takeIf { it.length >= 10 } ?: return null
+        return runCatching {
+            val format = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+            format.timeZone = java.util.TimeZone.getTimeZone("UTC")
+            format.parse(raw.substring(0, 10))?.time
+        }.getOrNull()
     }
 
     override suspend fun loadLinks(
