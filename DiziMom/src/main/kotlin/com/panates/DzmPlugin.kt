@@ -8,6 +8,5 @@ import android.content.Context
 class DzmPlugin: Plugin() {
     override fun load(context: Context) {
         registerMainAPI(Dzm())
-        registerExtractorAPI(DzmFirePlayer())
     }
 }
