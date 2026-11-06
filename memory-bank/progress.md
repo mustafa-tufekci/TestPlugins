@@ -1,5 +1,15 @@
 # Progress
 
+## 2026-11-06 — 32 sağlayıcıya inildi, DiziMom/Watch2Movies yenilendi
+
+- SinemaCX, NetflixMirror, UgurFilm, WebteIzle modülleri tamamen silindi (36 → 32).
+- RecTV v4, `status = 0` (API Cloudflare Access arkasında; `/api` 404/401).
+- DiziMom v3: `ddizimom.net` Tailwind teması, pilavyer oynatıcı, ld+json detay,
+  `?page=N` sayfalama. `DzmFirePlayer` kaldırıldı.
+- Watch2Movies v3 (beta): `movies2watch.watch`, `h3.film-name a` kartları,
+  `pl_url` → sunucu listesi → `W2mExtractor` hostları yeni alan adlarıyla.
+- Build + `makePluginsJson` temiz, 32 kayıt.
+
 ## 2026-10-30 — bozuk kaynak onarım turu
 
 Tamamlanan:

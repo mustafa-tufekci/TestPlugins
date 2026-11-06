@@ -1,5 +1,39 @@
 # Active Context — TestPlugins
 
+## 2026-11-06 — DiziMom / Watch2Movies canlandırma, 4 kaynak kaldırıldı
+
+Kullanıcı: DiziMom için `https://ddizimom.net/`, Watch2Movies için
+`https://movies2watch.watch/` kullanılacak; SinemaCX, NetflixMirror, UgurFilm, WebteIzle
+tamamen kaldırılacak; RecTV disabled olacak.
+
+**Silinen modüller (32 sağlayıcı kaldı):** SinemaCX, NetflixMirror, UgurFilm, WebteIzle.
+**RecTV:** `status = 0` (v4). API Cloudflare Access arkasında, `/api/...` 404/401.
+
+**DiziMom (v3) — `ddizimom.net`, Tailwind teması:**
+- Kart `a.group.block[href]` (`/dizi/`, `/film/`, `/anime/`), başlık `img[alt]` → " izle" kesilir.
+- Sayfalama `?page=N`; `/` 82, `/diziler` 24, `/filmler` 24, `/animes` 24, `/takvim` 138,
+  arama `GET /ara?q=` 48 kart.
+- Detay: ld+json `@graph` TVSeries/Movie (name, image, description, startDate, genre,
+  actor), `h1`/`og:image` yedek. Bölümler `a[href*="/sezon-"][href*="/bolum-"]`,
+  `-(\d+)-sezon/bolum-(\d+)` ile sezon/bölüm.
+- Oynatma: **pilavyer** (`div[data-pv]` + `assets/js/core.js`) — DiziBal/FilmModu ile aynı
+  zincir; `DzmFirePlayer.kt` silindi. Afişler `posters/w\d+/` → `w780`.
+- **Filmlerde oynatma yok** (sadece YouTube fragman); diziler çalışıyor.
+
+**Watch2Movies (v3, `status = 3` beta) — `movies2watch.watch`:**
+- Aynı "filmweb" teması; kart `div.flw-item`, başlık **`h3.film-name a`** (eski `h2 a` değil),
+  afiş `img.film-poster-img[src]` (eski `data-src`), TMDB `w185` → `w500`.
+- `/home` 120, `/movies?page=` 24, `/tv-series?page=` 24, `/genre/<x>?page=` 24,
+  `/search/<q>` 10 kart.
+- Detay: `h2.heading-name a`, afiş `div.dp-i-c-poster img` (**`og:image` yok**),
+  `div.row-line` (Released/Genre/Casts/Duration), `btn-imdb` yok.
+- Oynatma: inline `const pl_url = '.../ajax/ajax.php?vdkz=...'` → sunucu listesi
+  `a.link-item[data-id]` (UpCloud/Vidmoly → `0123movie.space`, Videasy, Vidsrc, Vidfast);
+  hepsi `W2mExtractor` (WebView HLS koklayıcı) ile denenir. Embed'ler curl ile m3u8
+  vermiyor → beta.
+
+**plugins.json:** 32 kayıt (`./gradlew make makePluginsJson` temiz).
+
 ## 2026-11-06 — bağlantı denetimi (36 sağlayıcı)
 
 Kullanıcı: "tüm kaynakların ulaşılabilir olup olmadığını kontrol et, linkleri değişmiş olabilir".
