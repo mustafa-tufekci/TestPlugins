@@ -1,9 +1,9 @@
-version = 2
+version = 3
 
 cloudstream {
     authors     = listOf("Panates", "NeO")
     language    = "en"
-    description = "!!! YAPIM AŞAMASINDA !!! Watch2Movies is a Free Movies streaming site with zero ads. We let you watch movies online without having to register or paying, with over 10000 movies and TV-Series. You can also Download full movies from Watch2Movies and watch it later if you want."
+    description = "Watch2Movies - Filmlere ve dizilere reklamsız, üyeliksiz erişim."
 
     /**
      * Status int as the following:
@@ -12,9 +12,9 @@ cloudstream {
      * 2: Slow
      * 3: Beta only
     **/
-    status  = 0
-    tvTypes = listOf("Movie")
-    iconUrl = "https://www.google.com/s2/favicons?domain=watch2movies.net&sz=%size%"
+    status  = 3
+    tvTypes = listOf("Movie", "TvSeries")
+    iconUrl = "https://www.google.com/s2/favicons?domain=movies2watch.watch&sz=%size%"
 }
 
 dependencies {
