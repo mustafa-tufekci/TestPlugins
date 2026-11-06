@@ -9,6 +9,9 @@
 - Watch2Movies v3 (beta): `movies2watch.watch`, `h3.film-name a` kartları,
   `pl_url` → sunucu listesi → `W2mExtractor` hostları yeni alan adlarıyla.
 - Build + `makePluginsJson` temiz, 32 kayıt.
+- Push: `fork/master` `be9b4d7..3dfd715`; CI run `42248902009` **success**.
+- `builds` branch doğrulaması: `plugins.json` 32 kayıt, 32 `.cs3` dosyası 200;
+  silinen dört modülün artifact'ları (SinemaCX, NetflixMirror, UgurFilm, WebteIzle) 404.
 
 ## 2026-10-30 — bozuk kaynak onarım turu
 
