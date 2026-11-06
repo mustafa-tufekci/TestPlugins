@@ -36,7 +36,7 @@ import org.jsoup.nodes.Element
 import java.net.URLEncoder
 
 class Dizilla : MainAPI() {
-    override var mainUrl = "https://dizilla.now"
+    override var mainUrl = "https://dizilla.la"
     override var name = "Dizilla"
     override val hasMainPage = true
     override var lang = "tr"
@@ -281,6 +281,36 @@ class Dizilla : MainAPI() {
             }
         }
 
+        // Fallback 2: yeni Next.js tema — bölüm linkleri yalnızca sezon sayfalarında bulunur,
+        // detay sayfası sadece `seasonUrls` haritasını taşır.
+        if (episodes.isEmpty()) {
+            val govde = document.html().replace("\\\"", "\"")
+            val sezonGovdesi = Regex("""seasonUrls"\s*:\s*\{([^}]*)\}""").find(govde)?.groupValues?.get(1)
+            val sezonYollari = sezonGovdesi?.let { g ->
+                Regex(""""(/[^"]*sezon[^"]*)""").findAll(g).map { it.groupValues[1] }.toList()
+            }.orEmpty()
+
+            for (sezonYolu in sezonYollari.distinct()) {
+                val sezonUrl = fixUrl(sezonYolu) ?: continue
+                val sezonDoc = runCatching { app.get(sezonUrl, interceptor = interceptor).document }.getOrNull() ?: continue
+                sezonDoc.select("""a[href*="-bolum"]""").forEach { a ->
+                    val epHref = fixUrlNull(a.attr("href")) ?: return@forEach
+                    val epText = a.attr("aria-label").ifBlank { a.text() }.trim()
+                    val sNo = Regex("""(\d+)\.\s*Sezon""").find(epText)?.groupValues?.get(1)?.toIntOrNull()
+                        ?: Regex("""-(\d+)-sezon""").find(epHref)?.groupValues?.get(1)?.toIntOrNull()
+                        ?: 1
+                    val eNo = Regex("""(\d+)\.\s*Bölüm""").find(epText)?.groupValues?.get(1)?.toIntOrNull()
+                        ?: Regex("""-bolum(?:-(\d+))?""").find(epHref)?.groupValues?.get(1)?.toIntOrNull()
+
+                    episodes.add(newEpisode(epHref) {
+                        this.name = epText.split(",").firstOrNull()?.trim()?.ifBlank { null } ?: "Bölüm ${eNo ?: 0}"
+                        this.season = sNo
+                        this.episode = eNo
+                    })
+                }
+            }
+        }
+
         if (episodes.isEmpty()) return null
 
         return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes.distinctBy { it.data }) {
@@ -358,7 +388,7 @@ class Dizilla : MainAPI() {
 
         // 2) Fallback: Regex search for direct iframe player URLs
         if (!found) {
-            Regex("""https?://[^"'\s<>]*(?:pichive|filese|hotlinger|playru|okvip)[^"'\s<>]*iframe\.php\?v=[^"'\s<>&]+""").findAll(html).forEach {
+            Regex("""https?://[^"'\\\s<>]*(?:pichive|filese|hotlinger|playru|okvip)[^"'\\\s<>]*iframe\.php\?v=[^"'\\\s<>&]+""").findAll(html).forEach {
                 val iframeUrl = it.value
                 loadExtractor(iframeUrl, data, subtitleCallback, callback)
                 found = true
