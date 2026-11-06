@@ -159,3 +159,11 @@ BelesTivi v7, CanliTV v7 ve 20 yeni modül bu taramada yok.
   UgurFilm v2 & status 0).
 - Açık kalan bilinen sınırlar: WebteIzle oynatma (Turnstile), InatBox + Youtube
   ağdan doğrulanamıyor, SuperFilmGeldi `luciferplays.com` buradan erişilemiyor.
+
+## 2026-11-06 — bağlantı denetimi
+
+- 36 sağlayıcının tamamı prob edildi; 26 sağlıklı, 4 kısmen, 5 ölü.
+- Dizilla `dizilla.la` (v35), DiziPal `dizipal1594.com` (v42) — yeni alan adları + Dizilla
+  için RSC `seasonUrls` bölüm ayrıştırması.
+- RecTV `status = 1` yapıldı (v3) ama API Cloudflare Access arkasında, çalışmıyor.
+- `./gradlew make makePluginsJson` → 36 sağlayıcı, build temiz.

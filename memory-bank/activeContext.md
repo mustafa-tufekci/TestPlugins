@@ -1,5 +1,26 @@
 # Active Context — TestPlugins
 
+## 2026-11-06 — bağlantı denetimi (36 sağlayıcı)
+
+Kullanıcı: "tüm kaynakların ulaşılabilir olup olmadığını kontrol et, linkleri değişmiş olabilir".
+36 modülün `mainUrl`'i canlı prob edildi.
+
+**Değişen alan adları (düzeltildi):**
+- Dizilla: `dizilla.now` → **`https://dizilla.la`** (v35). Site Next.js/RSC'ye geçmiş;
+  detay sayfasında bölüm linki yok, `seasonUrls` haritasından sezon sayfaları çekiliyor.
+  `iframe.php` **site referer'ı** ister, `nm.php`/`nsub.php` **oynatıcı origin'i** ister —
+  mevcut `ContentX.getUrl` iki kurala da uyuyor.
+- DiziPal: `dizipal1592.com` → **`https://dizipal1594.com`** (v42); yapı aynı.
+
+**Durum özeti:** 26 sağlıklı, 4 kısmen (WebteIzle bot koruması, InatBox imzalı CDN,
+RecTV Cloudflare Access, UgurFilm parked), 5 ölü (DiziMom, NetflixMirror, SinemaCX,
+Watch2Movies — DNS/SSL yok; hepsi `status = 0`).
+
+**RecTV:** kullanıcı "aktif et" dedi → `status = 1` (v3), fakat API artık Cloudflare
+Access arkasında (`/api/...` → 404/401), Firebase remote config hâlâ eski tabanı
+(`a.psrectv80.xyz/api/`) veriyor. Çalışmıyor; yeni taban bulunursa düzeltilecek.
+
+
 ## Current focus
 
 **Bozuk kaynak onarım turu (2026-10-29/30) — kod tamam, push onayı bekliyor.**
