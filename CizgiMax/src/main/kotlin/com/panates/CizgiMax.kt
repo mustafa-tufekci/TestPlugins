@@ -6,6 +6,8 @@
 
 package com.panates
 
+import org.json.JSONArray
+import org.json.JSONObject
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
@@ -20,6 +22,8 @@ data class CmxServer(
     val streamUrl: String? = null,
     /** iframe servers carry their route here (/oynat/?t=...), not streamUrl */
     val src: String? = null,
+    /** dzen servers carry an opaque resolve route here (/api/np-resolve/?t=...) -> {"id": "<tau embed id>"} */
+    val resolveUrl: String? = null,
     val label: String? = null,
     val embedId: Int? = null,
     val videoId: String? = null,
@@ -44,6 +48,12 @@ data class CmxCaption(
 )
 
 class CizgiMax : MainAPI() {
+    private companion object {
+        const val TAU_API = "https://tau-video.xyz"
+        const val USER_AGENT =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+    }
+
     // Only engages on actual Cloudflare challenges — reading the challenge-free
     // response body inside a custom interceptor corrupts it (body already consumed).
     private val cloudflareKiller by lazy { CloudflareKiller() }
@@ -148,6 +158,109 @@ class CizgiMax : MainAPI() {
         }
     }
 
+    /**
+     * dzen servers (new player, 2026-05): two-step resolve.
+     *   1) /api/np-resolve/?t=<token>  -> {"id": "<tau embed id>"}
+     *   2) https://tau-video.xyz/api/video/<id> -> { urls: [{label, url}], title_id, season_number, episode_number }
+     *   3) soft subs (optional) via animecix.tv/secure/episode-videos?titleId=&season=&episode=
+     * The mp4 urls are CDN links: sending a Referer makes the CDN refuse, so none is attached.
+     */
+    private suspend fun emitTauServer(
+        server: CmxServer,
+        referer: String,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit,
+    ): Boolean {
+        val label = server.label?.takeIf { it.isNotBlank() } ?: "Dzen"
+        val resolveUrl = server.resolveUrl ?: return false
+
+        val embedId = runCatching {
+            JSONObject(app.get(fixUrl(resolveUrl), referer = referer, interceptor = cloudflareKiller).text)
+                .optString("id")
+        }.getOrNull()?.takeIf { it.isNotBlank() } ?: return false
+
+        val body = runCatching {
+            app.get(
+                "$TAU_API/api/video/$embedId",
+                headers = mapOf(
+                    "User-Agent" to USER_AGENT,
+                    "Referer" to "$TAU_API/",
+                    "Origin" to TAU_API
+                )
+            ).text
+        }.getOrNull() ?: return false
+
+        val root = runCatching { JSONObject(body) }.getOrNull() ?: return false
+        val urls = root.optJSONArray("urls") ?: return false
+
+        var emitted = false
+        for (i in 0 until urls.length()) {
+            val entry = urls.optJSONObject(i) ?: continue
+            val link = entry.optString("url")
+            if (link.isBlank()) continue
+            val qualityLabel = entry.optString("label")
+            callback.invoke(
+                newExtractorLink(
+                    source = label,
+                    name   = "$label $qualityLabel".trim(),
+                    url    = link,
+                    type   = ExtractorLinkType.VIDEO
+                ) {
+                    this.referer = ""
+                    this.quality = cmxQuality(qualityLabel)
+                }
+            )
+            emitted = true
+        }
+
+        // Soft subtitles live on Animecix's secure endpoint, keyed by title/season/episode.
+        val titleId = root.optInt("title_id", -1)
+        val season  = root.optInt("season_number", -1)
+        val episode = root.optInt("episode_number", -1)
+        if (titleId >= 0 && season >= 0 && episode >= 0) {
+            runCatching {
+                val arr = JSONArray(
+                    app.get(
+                        "https://animecix.tv/secure/episode-videos?titleId=$titleId&season=$season&episode=$episode",
+                        headers = mapOf("User-Agent" to USER_AGENT, "Accept" to "application/json")
+                    ).text
+                )
+                for (i in 0 until arr.length()) {
+                    val entry = arr.optJSONObject(i) ?: continue
+                    if (!entry.optString("url").contains("/embed/$embedId")) continue
+                    val caps = entry.optJSONArray("captions") ?: break
+                    for (j in 0 until caps.length()) {
+                        val cap = caps.optJSONObject(j) ?: continue
+                        val capUrl = cap.optString("url")
+                        if (capUrl.isBlank()) continue
+                        subtitleCallback.invoke(
+                            newSubtitleFile(
+                                cap.optString("name").ifBlank { cap.optString("language").ifBlank { "Türkçe" } },
+                                fixUrl(capUrl)
+                            )
+                        )
+                    }
+                    break
+                }
+            }
+        }
+
+        return emitted
+    }
+
+    private fun cmxQuality(label: String?): Int {
+        val value = label?.lowercase().orEmpty()
+        val digits = Regex("""(\d{3,4})""").find(value)?.groupValues?.get(1)?.toIntOrNull()
+        return when {
+            value.contains("4k") || (digits ?: 0) >= 2160 -> Qualities.P2160.value
+            (digits ?: 0) >= 1080 || value.contains("full") -> Qualities.P1080.value
+            (digits ?: 0) >= 720 -> Qualities.P720.value
+            (digits ?: 0) >= 480 -> Qualities.P480.value
+            (digits ?: 0) >= 360 -> Qualities.P360.value
+            else -> Qualities.Unknown.value
+        }
+    }
+
     override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
@@ -165,7 +278,14 @@ class CizgiMax : MainAPI() {
             ?: emptyList()
 
         for (server in servers) {
-            val route = server.streamUrl ?: server.src ?: continue
+            val route = server.streamUrl ?: server.src ?: server.resolveUrl ?: continue
+
+            // dzen servers: /api/np-resolve/?t=<token> -> {"id": "<embed id>"} on the
+            // tau-video API (same upstream Animecix serves), which returns mp4 urls[].
+            if (server.resolveUrl != null && (server.type.isNullOrBlank() || server.type.equals("dzen", true))) {
+                emitTauServer(server, data, subtitleCallback, callback)
+                continue
+            }
 
             // byse servers: /api/stream sequence -> json {url, urls[], captions}
             if (server.type.equals("byse", true)) {
