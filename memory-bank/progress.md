@@ -43,7 +43,7 @@ Bekleyen:
 ## Status at last review (2026-11-15, HEAD `534ce24`)
 
 - 32 sağlayıcı; DiziPal 43, CizgiMax 4 (dzen/tau-video), Dizilla 35, SelcukFlix 9.
-- HEAD = `fork/master` + 2 (**not pushed, awaiting approval**).
+- HEAD == `fork/master` (pushed, CI `43734774890` success); `builds` verified: 32 modules.
 
 ## Previous review (2026-10-29, HEAD `dc598d9`, push edildi + CI green)
 

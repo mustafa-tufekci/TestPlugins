@@ -22,7 +22,7 @@ www.mixtiger.com, yildizkisafilm.org, turbo.imgz.me, setplay.shop; `cizgipass5.o
 expireddomains'e düşüyor; `filese.me`/`okvip.cab` → okvip.law. RecTV API'si canlı
 (`/api/movie/...` → 403 missing_hmac = beklenen), Firebase Remote Config `api_url` doğrulandı.
 
-**State:** HEAD = `534ce24` = `fork/master` + 2 (v43 + v4, **push onayı bekliyor**).
+**State:** HEAD = `db118b7` == `fork/master`, **pushed**; CI run `43734774890` success; `builds` branch 32 modül, DiziPal 43 (62358 B) + CizgiMax 4 (33973 B) yayında.
 
 ## 2026-11-06 — DiziMom / Watch2Movies canlandırma, 4 kaynak kaldırıldı
 
