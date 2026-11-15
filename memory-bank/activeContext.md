@@ -1,5 +1,29 @@
 # Active Context — TestPlugins
 
+## 2026-11-15 — Domain denetimi (32 modül), DiziPal v43 + CizgiMax v4
+
+Tüm `mainUrl` sabitleri (84 adet) Chrome UA ile curl'lendi. Sağlayıcı sitelerinin hepsi 200;
+tek kırık **DiziPal** idi:
+- `dizipal1594.com` → 000 (ölü). Yeni adres **`dizipal1595.com`** (200, canonical+og:url=1595).
+  Sayfa sıradaki adresi `dizipal1596.com` diye duyuruyor ama DNS'te yok (1596–1601 hepsi 000).
+- `fix(dizipal): rotate domain to dizipal1595.com (v43)` — `534ce24`.
+
+**CizgiMax oynatıcıları değişmişti** (v3 hiç link üretmiyordu): bölüm sayfaları artık sadece
+`var servers = JSON.parse(atob(...))` → `{type:"dzen", resolveUrl:"/api/np-resolve/?t=…"}`.
+Zincir canlı doğrulandı: `/api/np-resolve/` (Referer+X-Requested-With) → video id →
+`https://tau-video.xyz/api/video/<id>` → `urls[{label:"480p|720p|1080p", url:…mp4}]`
+(Animecix ile aynı Tau upstream; gerçek dzen embed'leri 2026-05-14'te ölmüş).
+`fix(cizgimax): resolve new dzen/tau-video players via np-resolve (v4)` — `6a19e27`.
+Linkler **referer'sız** veriliyor (CDN referer'ı reddediyor).
+
+**Ölü ama kullanılmayan extractor sabitleri (kullanıcıya etkisi yok):** contentx.me,
+four.contentx.me, cizgiduo.online, four.filese.me, four.okvip.cab, four.playru.net,
+www.mixtiger.com, yildizkisafilm.org, turbo.imgz.me, setplay.shop; `cizgipass5.online`
+expireddomains'e düşüyor; `filese.me`/`okvip.cab` → okvip.law. RecTV API'si canlı
+(`/api/movie/...` → 403 missing_hmac = beklenen), Firebase Remote Config `api_url` doğrulandı.
+
+**State:** HEAD = `534ce24` = `fork/master` + 2 (v43 + v4, **push onayı bekliyor**).
+
 ## 2026-11-06 — DiziMom / Watch2Movies canlandırma, 4 kaynak kaldırıldı
 
 Kullanıcı: DiziMom için `https://ddizimom.net/`, Watch2Movies için

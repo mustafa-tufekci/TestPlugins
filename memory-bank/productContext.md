@@ -34,14 +34,14 @@ ships those fixes.
 | BelesTivi | 7 | 1 | Live TV from the Beleş TiVi app; dual M3U + 10 Turkuvaz channels, `quickSearch` |
 | BelgeselX | 4 | 3 | belgeselx.com docs; v4 adds ok.ru/odnoklassniki extractors |
 | CanliTV | 7 | 1 | Live TV & sports; v7 adds runtime iptv-org `tr.m3u` rows + `#EXTVLCOPT` headers |
-| CizgiMax | 3 | 3 | cizgimax.online; v3 adds SibNet/Drive/CizgiDuo/CizgiPass extractors |
+| CizgiMax | 4 | 3 | cizgimax.online; v4 resolves dzen/tau-video players (atob `servers` → `resolveUrl` → `/api/np-resolve/` → `tau-video.xyz/api/video/<id>`, referer-less MP4 links) |
 | DiziBal | 4 | 1 | dizibal.org; v4 platform/genre rows + JSON-LD metadata |
 | DiziBox | 1 | 3 | dizibox.live (ported from neowatch) |
 | DiziFilm | 5 | 1 | dizifilmizle.to Next.js RSC flight, vidmixi.com bePlayer |
 | DiziKorea | 1 | 3 | dizikorea3.com + FirePlayer (neowatch port) |
 | Dizilla | 32 | 1 | dizilla.now JSON-LD; v32 actor roles, episode dates, runtime, genres |
 | DiziMom | 1 | 3 | dizidad.com + FirePlayer (neowatch port) |
-| DiziPal | 38 | 1 | dizipal1592.com RSC/PBKDF2; v38 PalPlayer/StreamCore/VideoPlays + data-rm-k |
+| DiziPal | 43 | 1 | dizipal1595.com RSC/PBKDF2; v43 domain rotation (1592→1594→1595); PalPlayer/StreamCore/VideoPlays + data-rm-k |
 | DiziYou | 1 | 3 | diziyou3.com (neowatch port) |
 | FilmMakinesi | 1 | 3 | filmmakinesi.to, Rhino/PACKER JS player |
 | FilmModu | 1 | 3 | filmmodu.news + Pilavyer (neowatch port) |
