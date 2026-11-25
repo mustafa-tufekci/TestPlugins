@@ -1,5 +1,20 @@
 # Progress
 
+## 2026-11-25 — InatBox Türkçe karakter mojibake onarımı (v19)
+
+- Kullanıcı raporu: eklenti listesinde ad ve kategoriler bozuk ("İnatBox" → "Ä°natBox",
+  "Kanalları" → "KanallarÄ±", "Çocuk" → "Ã‡ocuk").
+- **Kök neden:** v18 domain değişikliği sırasında InatBox.kt PowerShell'de
+  `Get-Content -Raw | Set-Content` ile döndürüldü; PS 5.1 BOM'suz UTF-8'i Windows-1254
+  sanıp geri yazdı → UTF-8→CP1254→UTF-8 çift kodlama. **Ders: .kt dosyalarında asla
+  PS boru hattı kullanma; yalnız edit aracı (veya git checkout ile bayt-restorasyon).**
+- Onarım: dosya git'ten bayt-exact geri alındı (`git checkout b18c599 -- …`), v18
+  değişiklikleri edit aracıyla yeniden uygulandı (domainler, canlı kategori dizini,
+  çağrı noktaları). Bayt doğrulaması: isim C4 B0 (İ) ✓, FFFD 0, çift-kodlama imzası 0;
+  repo geneli 32 modül taraması temiz; üretilen dex'te "İnatBox" doğru, mojibake yok.
+- **v18'i bozuk yayınladık** → düzeltme v19 (build.gradle 17→18→19).
+- Push onayı bekliyor.
+
 ## 2026-11-25 — Tüm kaynakların bağlantı denetimi + InatBox v18 domain onarımı
 
 - 32 kaynağın ana alan adı tarandı (curl, bu makineden; makine Türkiye dışı çıkışlı,
