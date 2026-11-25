@@ -1,5 +1,31 @@
 # Progress
 
+## 2026-11-25 — DiziPal v45 "no links found" onarımı (neowatch Kasım 2026 portu)
+
+- Kullanıcı raporu: DiziPal sayfalar açılıyor ama oynatma "no links found" veriyor.
+  Canlı site bu makinadan geo-bloklu; neowatch'un Kasım 2026 güncellemesi referans alındı
+  (DiziPalGuncel + ContentXGenel + NpKapi).
+- Kök nedenler (üçü birden onarıldı):
+  1. `parseEnc` kırılgandı: `"enc":{...},"k":"..."` bitişikliğini zorunlu kılıyordu;
+     site araya tek anahtar eklese çözüm null düşüyor → kaynak tamamen kayboluyordu.
+     Yeni `decryptPlayer(raw)`: parantez eşleştirmeli enc nesnesi + konum-kapsamlı "k"
+     + DpRmk.PAROLA sabit yedeği (neowatch oynaticiCoz portu).
+  2. `parseSources` `],"language"` bitişikliği ve sabit anahtar sırası istiyordu;
+     anahtar sırasından bağımsız nesne taramasına çevrildi.
+  3. NP_CONFIG'e Kasım 2026'da "gate" PoW eklendi: `{"n","b"}` varken master/altyazı
+     adreslerine `&p=<çözüm>` eklenmezse CDN 404 veriyor. `DpNpGate` portu eklendi:
+     sayfa başına üretilen `window.NP_GATE` fonksiyonu çözümlenir, yoksa
+     `sha256(n:i)[0] >>> (32-b) == 0` yedeği kullanılır (InatBox x-st PoW ailesi).
+- `DpRmk.decryptFromPage` şabona dayalı çift desen (attribute + element metni).
+- `DpContentX`'e eski tip oynatıcı yedeği (openPlayer yoksa gömülü `file:`).
+- loadLinks dispatch artık emisyon-farkında: DpContentX bağlantı üretmezse extractor
+  kayıt defterine düşülüyor (daha önce sessizce "kaynak yok" bitiriyordu).
+- Sentetik RSC testiyle anahtar sırası/bitşiklik senaryoları doğrulandı; build temiz.
+- **Dikkat:** gate aynı ContentX/dplayer oynatıcı ailesini kullanan SelcukFlix
+  (SlcContentX) ve Dizilla (ContentXExtractor/Hotlinger) için de risk taşıyor;
+  kullanıcı geri bildirimi gelirse aynı port oraya da yapılmalı.
+- **Push onayı bekliyor** (DiziPal v45 commit'i; önceki 4 commit'lik batch push edildi).
+
 ## 2026-11-25 — DiziPal/Dizilla runtime domain fallback + README rewrite
 
 - DiziPal v44: `ensureDomain()` — aday listesi (1595…1592 + 1596/1597) ilk istekte
