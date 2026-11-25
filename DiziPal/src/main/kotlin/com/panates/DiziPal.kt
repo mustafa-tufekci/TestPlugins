@@ -13,7 +13,7 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 /**
- * dizipal1592.com — Next.js App Router (Turbopack) rewrite.
+ * dizipal15xx.com (see domainCandidates) — Next.js App Router (Turbopack) rewrite.
  *
  * The site renders server components, so every page ships its data as an escaped RSC
  * flight payload (`self.__next_f.push([1,"..."])`). Cards are plain anchors:
@@ -28,7 +28,17 @@ import javax.crypto.spec.SecretKeySpec
  * DpSnHotlinger extractor.
  */
 class DiziPal : MainAPI() {
-    override var mainUrl = "https://dizipal1595.com"
+    /**
+     * The site rotates its numbered domain every few weeks. Candidates are probed once per
+     * app session (see [ensureDomain]) and mainUrl is pointed at the first one that answers,
+     * so a rotation no longer needs an emergency plugin release.
+     */
+    private val domainCandidates = listOf(
+        "https://dizipal1595.com", "https://dizipal1596.com", "https://dizipal1597.com",
+        "https://dizipal1594.com", "https://dizipal1593.com", "https://dizipal1592.com",
+    )
+
+    override var mainUrl = domainCandidates.first()
     override var name = "DiziPal"
     override val hasMainPage = true
     override var lang = "tr"
@@ -44,8 +54,10 @@ class DiziPal : MainAPI() {
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+        ensureDomain()
         if (page > 1) return newHomePageResponse(request.name, emptyList())
-        val doc = app.get(request.data).document
+        // mainPage URLs were baked with the first candidate at construction; remap to the live domain.
+        val doc = app.get(request.data.replace(domainCandidates.first(), mainUrl)).document
         val items = LinkedHashMap<String, SearchResponse>()
 
         doc.select("a.tc[href]").forEach { card ->
@@ -59,7 +71,31 @@ class DiziPal : MainAPI() {
         return newHomePageResponse(request.name, items.values.toList())
     }
 
+    @Volatile private var domainProbed = false
+
+    /**
+     * Probe the candidate domains once and keep the first whose homepage lists series cards.
+     * A dead DNS or a parked page both fail the "/series/" content check. If nothing answers
+     * (temporary outage) we keep the first candidate and still mark probed, to avoid probing
+     * on every request; a plugin reload re-probes.
+     */
+    private suspend fun ensureDomain() {
+        if (domainProbed) return
+        for (d in domainCandidates) {
+            val ok = runCatching {
+                val res = app.get(d, timeout = 8L)
+                res.isSuccessful && res.text.contains("/series/")
+            }.getOrDefault(false)
+            if (ok) {
+                mainUrl = d
+                break
+            }
+        }
+        domainProbed = true
+    }
+
     override suspend fun search(query: String): List<SearchResponse> {
+        ensureDomain()
         val doc = app.get("$mainUrl/arama-yap", params = mapOf("s" to query)).document
         val out = LinkedHashMap<String, SearchResponse>()
         doc.select("a.tc[href], a[href^=/series/], a[href^=/movies/]").forEach { card ->
@@ -122,6 +158,7 @@ class DiziPal : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse? {
+        ensureDomain()
         val html = unescape(app.get(url).text)
         val isMovie = url.contains("/movies/")
 
@@ -192,6 +229,7 @@ class DiziPal : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
+        ensureDomain()
         val firstRaw = unescape(app.get(data).text)
         val sources = parseSources(firstRaw)
         val pages = LinkedHashMap<String, String>()
