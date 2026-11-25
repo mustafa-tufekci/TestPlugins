@@ -36,7 +36,17 @@ import org.jsoup.nodes.Element
 import java.net.URLEncoder
 
 class Dizilla : MainAPI() {
-    override var mainUrl = "https://dizilla.la"
+    /**
+     * The site moves between tlds every few months. Candidates are probed once per app
+     * session (see [ensureDomain]) and mainUrl is pointed at the first one whose homepage
+     * lists series cards, so a move no longer needs an emergency plugin release.
+     */
+    private val domainCandidates = listOf(
+        "https://dizilla.la", "https://dizilla.org", "https://dizilla.co",
+        "https://dizilla.tv", "https://dizilla.net",
+    )
+
+    override var mainUrl = domainCandidates.first()
     override var name = "Dizilla"
     override val hasMainPage = true
     override var lang = "tr"
@@ -78,8 +88,33 @@ class Dizilla : MainAPI() {
         "${mainUrl}/imdb-top-100" to "IMDb Top 100",
     )
 
+    @Volatile private var domainProbed = false
+
+    /**
+     * Probe the candidates once, plain request (no CF interceptor). Keep the first whose
+     * homepage contains series links. If Cloudflare challenges the probe we get a non-2xx
+     * and fall through; failing every candidate keeps the current known domain, i.e. the
+     * pre-fallback behavior. A plugin reload re-probes.
+     */
+    private suspend fun ensureDomain() {
+        if (domainProbed) return
+        for (d in domainCandidates) {
+            val ok = runCatching {
+                val res = app.get(d, timeout = 8L)
+                res.isSuccessful && res.text.contains("/dizi/")
+            }.getOrDefault(false)
+            if (ok) {
+                mainUrl = d
+                break
+            }
+        }
+        domainProbed = true
+    }
+
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val document = app.get(request.data, interceptor = interceptor).document
+        ensureDomain()
+        // mainPage URLs were baked with the first candidate at construction; remap to the live domain.
+        val document = app.get(request.data.replace(domainCandidates.first(), mainUrl), interceptor = interceptor).document
         val home = document.select("""a[href^="/dizi/"]""")
             .mapNotNull { it.kart() }
             .distinctBy { it.url }
@@ -120,6 +155,7 @@ class Dizilla : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
+        ensureDomain()
         val url = "${mainUrl}/ara?q=${URLEncoder.encode(query, "UTF-8")}"
         val document = app.get(
             url,
@@ -138,6 +174,7 @@ class Dizilla : MainAPI() {
     override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
 
     override suspend fun load(url: String): LoadResponse? {
+        ensureDomain()
         val document = app.get(url, interceptor = interceptor).document
 
         // Schema.org TVSeries JSON-LD: the first node carries episodes/actors/country,
@@ -353,6 +390,7 @@ class Dizilla : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
+        ensureDomain()
         val response = app.get(
             data,
             headers = mapOf(
