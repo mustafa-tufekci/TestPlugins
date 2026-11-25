@@ -1,5 +1,33 @@
 # Progress
 
+## 2026-11-25 — Tüm kaynakların bağlantı denetimi + InatBox v18 domain onarımı
+
+- 32 kaynağın ana alan adı tarandı (curl, bu makineden; makine Türkiye dışı çıkışlı,
+  birkaç site geo/bot filtreli). Sonuçlar:
+  - ✅ Doğrudan 200: Animecix, BelgeselX, CanliTV (m3u), CizgiMax, DiziFilm, DiziKorea,
+    DiziYou, HDFilmCehennemi2, KultFilmler, RareFilmm, SetFilmIzle, SezonlukDizi,
+    SuperFilmGeldi (→superfilmizle2.icu yönlendirmesiyle), TurkAnime, Youtube (15).
+  - ⚠️ Canlı ama bot/geo-kapılı (301-no-location challenge, derin doğrulama yapılamadı):
+    DiziPal, Dizilla, DiziBal, Anizium, DiziBox, FilmMakinesi, FullHDFilm,
+    HDFilmCehennemi, JetFilmizle, KoreanTurk, SelcukFlix, Watch2Movies, WebDramaTurkey.
+  - 🔄 Rotasyon sinyali: FilmModu news→icu (301), SuperFilmGeldi icu→superfilmizle2.icu
+    (yönlendirme çalışıyor; mainUrl güncellemesi ertelenebilir).
+  - ❌ DiziMom (ddizimom.net): iki çıkıştan da TLS el sıkışması reddi — TR-geo sanılıyor;
+    cihazda doğrulanmalı.
+  - ❌ RecTV: Cloudflare Access login'i arkasında (status=0 zaten doğru).
+- **InatBox gerçek arıza**: diziboxen.help NXDOMAIN (Google DNS'te bile yok), sprboxs.bar
+  da ölü. Uygulamanın uzak ayar zinciri elle çözüldü ve uçtan uca doğrulandı:
+  mtlshash/cert (katmanlı AES, IV-dizesi anahtar) → DC2 ct.php (imzalı POST) →
+  30 kategorili canlı liste → **diziboxen.top** ve **sprbox.top**. İmzalı POST +
+  katmanlı çözüm PS'te elle koşturuldu; "Ulusal" 42 kanal döndü.
+- InatBox v18: hardcoded alan adları canlılara güncellendi (diziboxen.top / sprbox.top)
+  + neowatch'un dinamik kategori dizini portu: kategori URL'leri 30 dk cache'li
+  dizinden yol-eşleşmesiyle çözülür (kategoriAdresi), alan adı değişince eklenti
+  güncellemesi gerekmez. 4K Filmler (4k.filmizleeeee.cfd) dizinde yok ve bu makineden
+  erişilemiyor; satır boş düşüyor, dokunulmadı.
+- Build temiz, plugins.json 32 kayıt, InatBox v18 artifact üretildi.
+- **Push onayı bekliyor** (InatBox v18 + bu kayıt).
+
 ## 2026-11-25 — DiziPal v45 "no links found" onarımı (neowatch Kasım 2026 portu)
 
 - Kullanıcı raporu: DiziPal sayfalar açılıyor ama oynatma "no links found" veriyor.
