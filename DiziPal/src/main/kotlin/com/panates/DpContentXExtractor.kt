@@ -42,13 +42,24 @@ open class DpContentX : ExtractorApi() {
                 "User-Agent" to userAgent
             )
 
+            // Kasım 2026: NP_CONFIG içinde "gate":{"n":"…","b":12} varsa master ve altyazı
+            // adreslerine iş kanıtı eklenmezse CDN 404 verir. (neowatch NpKapi portu)
+            val gateNode = npConfig.path("gate")
+            var pow: String? = null
+            if (!gateNode.isMissingNode) {
+                val n = gateNode.path("n").asText(null)
+                if (n != null) pow = DpNpGate.solve(iSource, n, gateNode.path("b").asInt(12))
+            }
+            fun gated(adres: String): String =
+                if (pow == null) adres else adres + (if (adres.contains("?")) "&" else "?") + "p=$pow"
+
             npConfig.path("subtitles").forEach { node ->
                 val raw   = node.path("url").asText("").ifBlank { node.path("file").asText("") }
                 val fixed = fixSubUrl(raw, playerOrigin) ?: return@forEach
                 val label = node.path("label").asText("").trim()
                     .ifBlank { node.path("lang").asText("").trim() }
                     .ifBlank { "Altyazı" }
-                subtitleCallback.invoke(SubtitleFile(label, fixed).apply { headers = npHeaders })
+                subtitleCallback.invoke(SubtitleFile(label, gated(fixed)).apply { headers = npHeaders })
             }
 
             val seen = mutableSetOf<String>()
@@ -62,7 +73,7 @@ open class DpContentX : ExtractorApi() {
                     newExtractorLink(
                         source = this.name,
                         name   = label.ifBlank { this.name },
-                        url    = fixed,
+                        url    = gated(fixed),
                         type   = if (fixed.contains(".mp4")) ExtractorLinkType.VIDEO else ExtractorLinkType.M3U8
                     ) {
                         this.referer = playerOrigin
@@ -81,7 +92,8 @@ open class DpContentX : ExtractorApi() {
             Regex("[?&]v=([^&]+)").find(url)?.groupValues?.get(1).orEmpty()
         } else {
             Regex("""window\.openPlayer\('([^']+)'""").find(iSource)?.groups?.get(1)?.value
-                ?: throw ErrorLoadingException("iExtract is null")
+                // Eski tip oynatıcı: openPlayer yok, dosya adresi doğrudan gömülü gelir.
+                ?: return directFile(iSource, base, callback)
         }
 
         val subPairs = mutableListOf<Pair<String, String>>()
@@ -159,6 +171,23 @@ open class DpContentX : ExtractorApi() {
 
     private fun baseUrl(url: String): String =
         if (url.contains("://")) url.substringAfter("://").substringBefore("/").let { "https://$it" } else mainUrl
+
+    /** Eski tip oynatıcı: NP_CONFIG/openPlayer yok, dosya adresi sayfada gömülü. */
+    private suspend fun directFile(iSource: String, base: String, callback: (ExtractorLink) -> Unit) {
+        val dosya = Regex("""file\s*:\s*"([^"]+)"""").find(iSource)?.groupValues?.get(1) ?: return
+        val file = dosya.replace("\\", "")
+        callback.invoke(
+            newExtractorLink(
+                source = this.name,
+                name   = this.name,
+                url    = file,
+                type   = if (file.contains(".m3u8")) ExtractorLinkType.M3U8 else null
+            ) {
+                this.referer = "$base/"
+                this.quality = Qualities.Unknown.value
+            }
+        )
+    }
 
     /** Oynatıcı URL'sinin şema + host kökü (yeni akış referer doğrulaması bunu bekliyor). */
     private fun originOf(url: String): String {
@@ -282,4 +311,83 @@ class DpFourPichive : DpContentX() {
 class DpSnHotlinger : DpContentX() {
     override var name    = "DpSnHotlinger"
     override var mainUrl = "https://sn.hotlinger.com"
+}
+
+/**
+ * dplayer / np.js oynatıcısının "gate" iş kanıtı (Kasım 2026). NP_CONFIG.gate = {n, b}
+ * varsa master/altyazı adreslerine &p=<çözüm> eklenmeli, yoksa CDN 404 verir.
+ *
+ * Sayfadaki window.NP_GATE fonksiyonu her yüklemede farklı üretilir: önek (String.fromCharCode),
+ * ayraç, birleştirme sırası, sayı tabanı ve denetlenen SHA-256 sözcüğü/maskesi değişir.
+ * Fonksiyon metni çözümlenip aynı arama yapılır. NP_GATE yoksa np.js'teki yedek kullanılır:
+ *   sha256(n + ":" + i) ilk 32-bit sözcüğünün (32-b) sağa kaydırması 0 olmalı.
+ * (neowatch NpKapi portu; yedek algoritması InatBox'ın x-st PoW'suyla aynı aile.)
+ */
+object DpNpGate {
+    private const val LIMIT = 30_000_000
+
+    fun solve(page: String, n: String, b: Int): String? =
+        runCatching { custom(page, n) ?: fallback(n, b) }.getOrNull()
+
+    private fun custom(page: String, n: String): String? {
+        val f = Regex("""NP_GATE\s*=\s*function\s*\(\s*([\w$]+)\s*,\s*([\w$]+)\s*\)\s*\{([\s\S]*?)\}\s*;""")
+            .find(page) ?: return null
+        val (pN, pH, body) = f.destructured
+
+        val consts = mutableMapOf<String, String>()
+        Regex("""var\s+([\w$]+)\s*=\s*String\.fromCharCode\(([\d\s,]+)\)""").findAll(body).forEach { m ->
+            consts[m.groupValues[1]] =
+                m.groupValues[2].split(",").mapNotNull { it.trim().toIntOrNull()?.toChar() }.joinToString("")
+        }
+        Regex("""var\s+([\w$]+)\s*=\s*(["'])([^"']*)\2\s*[;,]""").findAll(body).forEach { m ->
+            consts[m.groupValues[1]] = m.groupValues[3]
+        }
+
+        val loop = Regex("""var\s+([\w$]+)\s*=\s*[\w$]+\.toString\(\s*(\d+)\s*\)""").find(body) ?: return null
+        val counter = loop.groupValues[1]
+        val base = loop.groupValues[2].toInt().takeIf { it in 2..36 } ?: return null
+
+        val call = Regex(Regex.escape(pH) + """\(([^()]*)\)\s*\[\s*(\d+)\s*]\s*&\s*(\d+)\s*\)?\s*===?\s*0""")
+            .find(body) ?: return null
+        val word = call.groupValues[2].toInt().takeIf { it in 0..7 } ?: return null
+        val mask = call.groupValues[3].toLong()
+
+        // Birleştirilen parçalar: n parametresi, sayaç (null), sabit değişkenler ve tırnaklı metinler.
+        val parts: List<String?> = call.groupValues[1].split("+").map { p ->
+            when {
+                p == pN              -> n
+                p == counter         -> null
+                consts.containsKey(p) -> consts.getValue(p)
+                Regex("""^(["'])(.*)\1$""").matches(p) -> p.substring(1, p.length - 1)
+                else -> return null
+            }
+        }
+        // Sayaç parçası yoksa PoW girdisi her turda aynı olur; anlamını yitirir.
+        if (parts.none { it == null }) return null
+
+        val md = java.security.MessageDigest.getInstance("SHA-256")
+        for (i in 0 until LIMIT) {
+            val s = i.toString(base)
+            val input = parts.joinToString("") { it ?: s }
+            val h = md.digest(input.toByteArray(Charsets.UTF_8))
+            if ((wordAt(h, word) and mask) == 0L) return s
+        }
+        return null
+    }
+
+    private fun fallback(n: String, b: Int): String? {
+        val shift = 32 - b.coerceIn(1, 31)
+        val md = java.security.MessageDigest.getInstance("SHA-256")
+        for (i in 0 until LIMIT) {
+            val h = md.digest("$n:$i".toByteArray(Charsets.UTF_8))
+            if ((wordAt(h, 0) ushr shift) == 0L) return i.toString()
+        }
+        return null
+    }
+
+    private fun wordAt(h: ByteArray, i: Int): Long {
+        val o = i * 4
+        return ((h[o].toLong() and 0xff) shl 24) or ((h[o + 1].toLong() and 0xff) shl 16) or
+            ((h[o + 2].toLong() and 0xff) shl 8) or (h[o + 3].toLong() and 0xff)
+    }
 }

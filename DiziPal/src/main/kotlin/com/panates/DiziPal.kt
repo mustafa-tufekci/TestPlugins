@@ -249,10 +249,8 @@ class DiziPal : MainAPI() {
                 full == pageUrl
             }?.label ?: "DiziPal"
             val playerUrl = run {
-                val enc = parseEnc(raw)
-                val decrypted = if (enc != null) decryptPlayer(enc) else null
-                val fallback = decrypted ?: DpRmk.decryptFromPage(raw) ?: return@forEach
-                normalizePlayer(fallback)
+                val decrypted = decryptPlayer(raw) ?: DpRmk.decryptFromPage(raw) ?: return@forEach
+                normalizePlayer(decrypted)
             }
             if (!seen.add(playerUrl)) return@forEach
 
@@ -276,15 +274,17 @@ class DiziPal : MainAPI() {
                 ?: return@forEach
             val token = Regex("openPlayer\\('([^']+)'").find(iframe)?.groupValues?.get(1)
 
-            // Unknown player layout: try our own ContentX/NP_CONFIG decoder first, then the registry.
+            // Unknown player layout: try our own ContentX/NP_CONFIG decoder first; if it
+            // emits nothing, fall through to the extractor registry instead of giving up.
             if (token == null) {
-                val handled = runCatching {
+                var emitted = false
+                runCatching {
                     DpContentX().getUrl(playerUrl, "$mainUrl/", subtitleCallback) { link ->
+                        emitted = true
                         callback(renameLink(link, label))
                     }
-                    true
-                }.getOrDefault(false)
-                if (handled) {
+                }
+                if (emitted) {
                     found = true
                     return@forEach
                 }
@@ -297,10 +297,13 @@ class DiziPal : MainAPI() {
             val source2 = "https://$host/source2.php?v=$token"
 
             runCatching {
+                var emitted = false
                 DpContentX().getUrl(source2, "$mainUrl/", subtitleCallback) { link ->
+                    emitted = true
                     callback(renameLink(link, label))
                 }
-            }.onSuccess { found = true }
+                if (emitted) found = true
+            }
         }
         return found
     }
@@ -319,31 +322,87 @@ class DiziPal : MainAPI() {
     // ── player payload ────────────────────────────────────────────────────
 
     private data class DpSource(val label: String, val href: String)
-    private data class DpEnc(val ciphertext: String, val iv: String, val salt: String, val key: String)
 
+    /**
+     * player.sources → (etiket, href). Anahtar sırasına ve bitişikliğe bağlı değil:
+     * "player":{ içindeki "sources" dizisi parantez eşleştirmeyle alınır, her üye
+     * kendi içinde label/href aranır. (neowatch Rsc.kaynaklar portu)
+     */
     private fun parseSources(raw: String): List<DpSource> {
-        val block = Regex("\"sources\":\\[(.*?)\\],\"language\"", RegexOption.DOT_MATCHES_ALL)
-            .find(raw)?.groupValues?.get(1) ?: return emptyList()
-        return Regex("\\{\"label\":\"([^\"]+)\",\"quality\":\"([^\"]*)\",\"href\":\"([^\"]+)\"")
-            .findAll(block)
-            .map { DpSource(it.groupValues[1], it.groupValues[3]) }
-            .toList()
+        val playerPos = raw.indexOf("\"player\":{").takeIf { it >= 0 } ?: return emptyList()
+        val arrPos = raw.indexOf("\"sources\":", playerPos)
+        if (arrPos < 0) return emptyList()
+        val arr = jsonBlock(raw, arrPos + "\"sources\":".length) ?: return emptyList()
+        return Regex("\\{[^{}]*\\}").findAll(arr).mapNotNull { m ->
+            val href = Regex("\"href\":\"([^\"]+)\"").find(m.value)?.groupValues?.get(1) ?: return@mapNotNull null
+            val label = Regex("\"label\":\"([^\"]+)\"").find(m.value)?.groupValues?.get(1) ?: return@mapNotNull null
+            DpSource(label, href)
+        }.toList()
     }
 
-    private fun parseEnc(raw: String): DpEnc? {
-        val m = Regex(
-            "\"enc\":\\{\"ciphertext\":\"([^\"]+)\",\"iv\":\"([^\"]+)\",\"salt\":\"([^\"]+)\"\\},\"k\":\"([^\"]+)\""
-        ).find(raw) ?: return null
-        return DpEnc(m.groupValues[1], m.groupValues[2], m.groupValues[3], m.groupValues[4])
+    /**
+     * RSC'deki player.enc {ciphertext,iv,salt} + "k" parolasıyla iframe adresini çözer.
+     * Anahtar sırasına/bitişikliğe bağlı değil: enc nesnesi parantez eşleştirmeyle alınır,
+     * "k" enc konumundan sonraki ilk eşleşmeden okunur; "k" yoksa ya da çözüm başarısızsa
+     * site paketindeki sabit parola (DpRmk.PAROLA) denenir. (neowatch oynaticiCoz portu)
+     */
+    private fun decryptPlayer(raw: String): String? {
+        val playerPos = raw.indexOf("\"player\":{").takeIf { it >= 0 } ?: return null
+        val encPos = raw.indexOf("\"enc\":", playerPos).takeIf { it >= 0 } ?: return null
+        val encObj = jsonBlock(raw, encPos + "\"enc\":".length) ?: return null
+
+        Regex("\"k\":\"([^\"]+)\"").find(raw, encPos)?.groupValues?.get(1)?.let { parola ->
+            runCatching {
+                val ciphertext = Regex("\"ciphertext\":\"([^\"]+)\"").find(encObj)?.groupValues?.get(1) ?: return@runCatching null
+                val iv = Regex("\"iv\":\"([^\"]+)\"").find(encObj)?.groupValues?.get(1) ?: return@runCatching null
+                val salt = Regex("\"salt\":\"([^\"]+)\"").find(encObj)?.groupValues?.get(1) ?: return@runCatching null
+                val key = pbkdf2Sha512(parola.toByteArray(Charsets.UTF_8), hexToBytes(salt), 999, 32)
+                val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+                cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(key, "AES"), IvParameterSpec(hexToBytes(iv)))
+                String(cipher.doFinal(Base64.decode(ciphertext, Base64.NO_WRAP)), Charsets.UTF_8).trim()
+            }.getOrNull()?.let { return it }
+        }
+        // Sabit parola yedeği: DpRmk.decrypt enc nesnesini PAROLA ile çözer.
+        return DpRmk.decrypt(encObj)?.trim()
     }
 
-    private fun decryptPlayer(enc: DpEnc): String? = runCatching {
-        val key = pbkdf2Sha512(enc.key.toByteArray(Charsets.UTF_8), hexToBytes(enc.salt), 999, 32)
-        val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
-        cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(key, "AES"), IvParameterSpec(hexToBytes(enc.iv)))
-        val plain = cipher.doFinal(Base64.decode(enc.ciphertext, Base64.NO_WRAP))
-        String(plain, Charsets.UTF_8).trim()
-    }.getOrNull()
+    /** [bas] konumundan itibaren ilk {…} ya da […] bloğunu dize kaçışlarına dikkat ederek döndürür. */
+    private fun jsonBlock(s: String, from: Int): String? {
+        var i = from
+        while (i < s.length && s[i] != '{' && s[i] != '[') {
+            if (!s[i].isWhitespace()) return null
+            i++
+        }
+        if (i >= s.length) return null
+        val opener = s[i]
+        val closer = if (opener == '{') '}' else ']'
+        var depth = 0
+        while (i < s.length) {
+            when (val c = s[i]) {
+                '"' -> { i = skipString(s, i + 1); continue }
+                opener -> depth++
+                closer -> {
+                    depth--
+                    if (depth == 0) return s.substring(from, i + 1)
+                }
+            }
+            i++
+        }
+        return null
+    }
+
+    /** [bas] konumundaki açılış tırnağından kapanış tırnağına kadar atlar; kapanış sonrası konumu döndürür. */
+    private fun skipString(s: String, from: Int): Int {
+        var i = from
+        while (i < s.length) {
+            when (s[i]) {
+                '\\' -> i++
+                '"' -> return i + 1
+            }
+            i++
+        }
+        return i
+    }
 
     /** PBKDF2-HMAC-SHA512 done by hand: the platform SecretKeyFactory variant needs API 26. */
     private fun pbkdf2Sha512(password: ByteArray, salt: ByteArray, iterations: Int, dkLen: Int): ByteArray {

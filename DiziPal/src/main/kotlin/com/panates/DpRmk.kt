@@ -24,11 +24,12 @@ object DpRmk {
         @JsonProperty("salt") val salt: String? = null
     )
 
-    /** Finds a `data-rm-k` attribute in the page and returns the decrypted player URL. */
+    /** Şablona göre payload `data-rm-k` attribute'ünde ya da elementin metninde olabilir. */
     fun decryptFromPage(html: String): String? {
         val payload = Regex("""data-rm-k=["']([^"']+)["']""").find(html)?.groupValues?.get(1)
+            ?: Regex("""data-rm-k[^>]*>([^<]+)<""").find(html)?.groupValues?.get(1)
             ?: return null
-        return decrypt(payload)
+        return decrypt(payload.replace("&quot;", "\""))
     }
 
     fun decrypt(json: String): String? = runCatching {
