@@ -1,58 +1,81 @@
-**⚠️ This is currently under development, dont use it yet if you're not comfortable with constantly merging new changes**
+# TestPlugins — Cloudstream Türkçe Eklenti Deposu
 
-# `Cloudstream3 Plugin Repo Template`
+[Cloudstream](https://github.com/recloudstream/cloudstream) için Türkçe film/dizi/canlı yayın sağlayıcıları üreten eklenti monoreposu. Her modül ayrı bir `.cs3` eklentisi olarak derlenir ve `builds` dalında yayınlanır.
 
-Template for a [Cloudstream3](https://github.com/recloudstream) plugin repo
+> **Uyarı:** Depo aktif geliştirme altındadır; kaynak siteler sık sık tasarım/alan adı değiştirdiği için eklentiler de sık güncellenir.
 
-**⚠️ Make sure you check "Include all branches" when using this template**
+## Kurulum
 
- 
-## Getting started with writing your first plugin
+1. Cloudstream'i açın: **Ayarlar → Eklentiler → Depo ekle**
+2. Repo adresi olarak şunu girin:
 
-This template includes 1 example plugin.
+   ```
+   https://raw.githubusercontent.com/mustafa-tufekci/TestPlugins/builds/plugins.json
+   ```
 
-1. Open the root build.gradle.kts, read the comments and replace all the placeholders
-2. Familiarize yourself with the project structure. Most files are commented
-3. Build or deploy your first plugin using:
-   - Windows: `.\gradlew.bat ExampleProvider:make` or `.\gradlew.bat ExampleProvider:deployWithAdb`
-   - Linux & Mac: `./gradlew ExampleProvider:make` or `./gradlew ExampleProvider:deployWithAdb`
+3. Listeden istediğiniz sağlayıcıları kurun. Yeni sürümler `builds` dalına otomatik düşer, uygulama güncellemeyi kendisi algılar.
 
+## Sağlayıcılar (32)
 
-## Granting All Files Access on Newer Android Devices
+Durum göstergeleri eklenti manifest'indeki `status` alanını yansıtır:
+✅ = tam akış doğrulandı · 🧪 = beta, oynatma testi sürüyor · ⛔ = geçici olarak devre dışı
 
-For local plugin testing, you need to grant the app "All Files Access" on newer Android devices (Android 11 and above). Here’s how to do it:
+| Sağlayıcı | Kaynak | Durum |
+|---|---|---|
+| Animecix | animecix.tv | ✅ |
+| Anizium | anizium.co | 🧪 |
+| BelgeselX | belgeselx.com | 🧪 |
+| CanliTV | iptv-org TR listesi + canlı kanallar | ✅ |
+| CizgiMax | cizgimax.online | 🧪 |
+| DiziBal | dizibal.org | ✅ |
+| DiziBox | dizibox.live | 🧪 |
+| DiziFilm | dizifilmizle.to | ✅ |
+| DiziKorea | dizikorea3.com | 🧪 |
+| Dizilla | dizilla.la *(alan adı otomatik döner)* | ✅ |
+| DiziMom | ddizimom.net | ✅ |
+| DiziPal | dizipal159x.com *(alan adı otomatik döner)* | ✅ |
+| DiziYou | diziyou.net | ✅ |
+| FilmMakinesi | filmmakinesi.to | 🧪 |
+| FilmModu | filmmodu.news | 🧪 |
+| FullHDFilm | fullhdfilmizlesene.now | ✅ |
+| HDFilmCehennemi | hdfilmcehennemi.nl | ✅ |
+| HDFilmCehennemi2 | hdfilmcehennemi2.biz | ✅ |
+| InatBox | diziboxen.help | ✅ |
+| JetFilmizle | jetfilmizle.app | 🧪 |
+| KoreanTurk | koreanturk.tv | 🧪 |
+| KultFilmler | kultfilmler.net | 🧪 |
+| RareFilmm | rarefilmm.com | 🧪 |
+| RecTV | psrectv | ⛔ (API erişimi kapalı) |
+| SelcukFlix | selcukflix.app | 🧪 |
+| SetFilmIzle | setfilmizle.ltd | 🧪 |
+| SezonlukDizi | sezonlukdizi.cc | ✅ |
+| SuperFilmGeldi | superfilmizle.icu | 🧪 |
+| TurkAnime | turkanime.live | ✅ |
+| Watch2Movies | movies2watch.watch | 🧪 |
+| WebDramaTurkey | webdramaturkey2.com | 🧪 |
+| Youtube | youtube.com (TR yerelleştirmeli) | ✅ |
 
-### Using ADB
+## Geliştiriciler için
 
-* `adb shell appops set --uid PACKAGE_NAME MANAGE_EXTERNAL_STORAGE allow`
-* Replace `PACKAGE_NAME` with the name of the package for the Cloudstream3 version you are using:
-   - debug: `com.lagradost.cloudstream3.prerelease.debug`
-   - prerelease: `com.lagradost.cloudstream3.prerelease`
-   - stable: `com.lagradost.cloudstream3`
+Her modül bir Gradle alt projesidir (ayar kaydı gerekmez; kök dizinde `build.gradle.kts` olan her klasör otomatik dahil olur). Tüm sınıflar paylaşımlı `com.panates` paketindedir; bu yüzden modüller arası top-level sınıf adları benzersiz olmalıdır.
 
-### Manually
+```sh
+# Windows
+.\gradlew.bat :Dizilla:assembleDebug        # tek modül derleme kontrolü
+.\gradlew.bat make makePluginsJson          # tüm .cs3'ler + build/plugins.json
 
-1. **Open Settings**: Go to your device’s Settings menu.
+# Linux / Mac
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk
+export ANDROID_HOME=$HOME/Android/Sdk
+./gradlew make makePluginsJson
+```
 
-2. **Navigate to Special Access**:
-   - Tap on "Apps & notifications" or "Apps".
-   - Select "Special app access" or "Special access".
+- Çıktılar `<Modül>/build/<Modül>.cs3` ve `build/plugins.json` — ikisi de `.gitignore`'ladır, commit edilmez.
+- `master`'a push, CI'ı tetikler; CI tüm eklentileri derleyip `builds` dalına `.cs3` + `plugins.json` olarak zorla iter.
+- Kullanıcıya yönelik her değişiklikte modülün `build.gradle.kts` içindeki `version` sayısı artırılır; sürüm artırılmadan güncelleme yayınlanmaz.
+- `status` alanı: `1` = doğrulanmış, `3` = beta, `0` = kapalı, `2` = yavaş.
+- Önemli mimari notlar ve derleme tuzakları için bkz. [`AGENTS.md`](AGENTS.md) ve [`memory-bank/`](memory-bank/).
 
-3. **Select All Files Access**:
-   - Tap on "All files access".
-   - It may be under the three vertical dots menu towards the top of the screen.
+## Sorumluluk reddi
 
-4. **Grant Access to the App**: Find the app in the list and tap on it to toggle it, if it is not already enabled.
-
-6. **Restart the App**: Close and reopen the app to apply the changes.
-
-
-## License
-
-Everything in this repo is released into the public domain. You may use it however you want with no conditions whatsoever
-
-
-## Attribution
-
-This template as well as the gradle plugin and the whole plugin system is **heavily** based on [Aliucord](https://github.com/Aliucord).
-*Go use it, it's a great mobile discord client mod!*
+Bu eklentiler hiçbir içeriği barındırmaz; halka açık web sitelerindeki bağlantıları ayrıştırıp oynatıcıya iletir. İlgili sitelerin içerik politikalarından bu depo sorumlu değildir.
