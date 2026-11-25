@@ -1,4 +1,4 @@
-package com.panates
+﻿package com.panates
 
 import android.util.Base64
 import android.util.Log
@@ -23,8 +23,8 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 class InatBox : MainAPI() {
-    override var mainUrl = "https://diziboxen.help"
-    override var name = "İnatBox"
+    override var mainUrl = "https://diziboxen.top"
+    override var name = "Ä°natBox"
     override val hasMainPage = true
     override var lang = "tr"
     override var hasQuickSearch = true
@@ -44,7 +44,16 @@ class InatBox : MainAPI() {
 
     companion object {
         private const val CACHE_TTL_MS = 15 * 60 * 1000L
+        private const val KATEGORI_OMRU_MS = 30 * 60 * 1000L
+        private const val HATA_OMRU_MS = 5 * 60 * 1000L
         private const val HMK = "x7kkk0qmqz63kj68tla5i7u26192v7zqnnddhjgm"
+        /** Uygulamanın uzak ayar dosyasının (mtlshash/cert) varsayılan çözme anahtarı. */
+        private const val VARSAYILAN_ANAHTAR = "ywevqtjrurkwtqgz"
+        /** Uygulamanın uzak ayar adresleri: DC2 (canlı) / DC10 (statik) uçlarını içerir. */
+        private val AYAR_ADRESLERI = listOf(
+            "https://raw.githubusercontent.com/mtlshash/cert/main/hash",
+            "https://cdn.jsdelivr.net/gh/mtlshash/cert@main/hash"
+        )
         private val SECURE_RANDOM = SecureRandom()
         private val HEX_CHARS = "0123456789abcdef".toCharArray()
 
@@ -146,29 +155,30 @@ class InatBox : MainAPI() {
     }
 
     override val mainPage = mainPageOf(
-        "https://sprboxs.bar/CDN/001/SPR/v2/spor_v3.php"                        to "Spor",
-        "https://diziboxen.help/CDN/001/002/dizibox/v2/tv/ulusal.php"           to "Ulusal Kanallar",
-        "https://diziboxen.help/CDN/001/002/dizibox/v2/tv/haber.php"            to "Haber Kanalları",
-        "https://diziboxen.help/CDN/001/002/dizibox/v2/tv/cocuk.php"            to "Çocuk Kanalları",
-        "https://diziboxen.help/CDN/001/002/dizibox/v2/tv/sinema.php"           to "Sinema Kanalları",
-        "https://diziboxen.help/CDN/001/002/dizibox/v2/tv/belgesel.php"         to "Belgesel Kanalları",
-        "https://diziboxen.help/CDN/001/002/dizibox/v2/ex/index.php"            to "Exxen",
-        "https://diziboxen.help/CDN/001/002/dizibox/v2/nf/index.php"            to "Netflix",
-        "https://sprboxs.bar/CDN/001/SPR/v2/ccc/a/index.php"                    to "TOD",
-        "https://diziboxen.help/CDN/001/002/dizibox/v2/hb/index.php"            to "BluTV & HBO",
-        "https://diziboxen.help/CDN/001/002/dizibox/v2/dsny/index.php"          to "Disney+",
-        "https://diziboxen.help/CDN/001/002/dizibox/v2/ga/index.php"            to "Gain",
-        "https://diziboxen.help/CDN/001/002/dizibox/v2/amz/index.php"           to "Amazon Prime",
-        "https://diziboxen.help/CDN/001/002/dizibox/v2/tbi/index.php"           to "Tabii",
-        "https://diziboxen.help/CDN/001/002/dizibox/v2/yerli-dizi/index.php"    to "Yerli Diziler",
-        "https://diziboxen.help/CDN/001/002/dizibox/v2/yabanci-dizi/index.php"  to "Yabancı Diziler",
-        "https://diziboxen.help/CDN/001/002/dizibox/v2/film/yerli-filmler.php"  to "Yerli Filmler",
-        "https://diziboxen.help/CDN/001/002/dizibox/v2/film/mubi.php"           to "Mubi",
+        "https://sprbox.top/CDN/001/SPR/v2/spor_v3.php"                        to "Spor",
+        "https://diziboxen.top/CDN/001/002/dizibox/v2/tv/ulusal.php"           to "Ulusal Kanallar",
+        "https://diziboxen.top/CDN/001/002/dizibox/v2/tv/haber.php"            to "Haber KanallarÄ±",
+        "https://diziboxen.top/CDN/001/002/dizibox/v2/tv/cocuk.php"            to "Ã‡ocuk KanallarÄ±",
+        "https://diziboxen.top/CDN/001/002/dizibox/v2/tv/sinema.php"           to "Sinema KanallarÄ±",
+        "https://diziboxen.top/CDN/001/002/dizibox/v2/tv/belgesel.php"         to "Belgesel KanallarÄ±",
+        "https://diziboxen.top/CDN/001/002/dizibox/v2/ex/index.php"            to "Exxen",
+        "https://diziboxen.top/CDN/001/002/dizibox/v2/nf/index.php"            to "Netflix",
+        "https://sprbox.top/CDN/001/SPR/v2/ccc/a/index.php"                    to "TOD",
+        "https://diziboxen.top/CDN/001/002/dizibox/v2/hb/index.php"            to "BluTV & HBO",
+        "https://diziboxen.top/CDN/001/002/dizibox/v2/dsny/index.php"          to "Disney+",
+        "https://diziboxen.top/CDN/001/002/dizibox/v2/ga/index.php"            to "Gain",
+        "https://diziboxen.top/CDN/001/002/dizibox/v2/amz/index.php"           to "Amazon Prime",
+        "https://diziboxen.top/CDN/001/002/dizibox/v2/tbi/index.php"           to "Tabii",
+        "https://diziboxen.top/CDN/001/002/dizibox/v2/yerli-dizi/index.php"    to "Yerli Diziler",
+        "https://diziboxen.top/CDN/001/002/dizibox/v2/yabanci-dizi/index.php"  to "YabancÄ± Diziler",
+        "https://diziboxen.top/CDN/001/002/dizibox/v2/film/yerli-filmler.php"  to "Yerli Filmler",
+        "https://diziboxen.top/CDN/001/002/dizibox/v2/film/mubi.php"           to "Mubi",
         "https://4k.filmizleeeee.cfd/4k/01/public/catalog-exo.php"              to "4K Filmler"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val url = request.data
+        // Ana sayfa URL'leri kurulum anında sabitlenir; canlı dizinden güncel karşılığını al.
+        val url = kategoriAdresi(request.data)
         val now = System.currentTimeMillis()
         val cached = tabCache[url]
 
@@ -192,7 +202,7 @@ class InatBox : MainAPI() {
             return newHomePageResponse(request.name, emptyList(), hasNext = false)
         }
 
-        val isLiveCategory = request.name in listOf("Spor", "Ulusal Kanallar", "Haber Kanalları", "Çocuk Kanalları", "Sinema Kanalları", "Belgesel Kanalları")
+        val isLiveCategory = request.name in listOf("Spor", "Ulusal Kanallar", "Haber KanallarÄ±", "Ã‡ocuk KanallarÄ±", "Sinema KanallarÄ±", "Belgesel KanallarÄ±")
 
         if (allResults.size <= 150) {
             return if (page == 1) {
@@ -218,14 +228,15 @@ class InatBox : MainAPI() {
 
         if (tabCache.isEmpty()) {
             val keyUrls = listOf(
-                "https://sprboxs.bar/CDN/001/SPR/v2/spor_v3.php",
-                "https://diziboxen.help/CDN/001/002/dizibox/v2/tv/ulusal.php",
-                "https://diziboxen.help/CDN/001/002/dizibox/v2/nf/index.php",
-                "https://diziboxen.help/CDN/001/002/dizibox/v2/yerli-dizi/index.php",
-                "https://diziboxen.help/CDN/001/002/dizibox/v2/yabanci-dizi/index.php",
-                "https://diziboxen.help/CDN/001/002/dizibox/v2/film/yerli-filmler.php"
+                "https://sprbox.top/CDN/001/SPR/v2/spor_v3.php",
+                "https://diziboxen.top/CDN/001/002/dizibox/v2/tv/ulusal.php",
+                "https://diziboxen.top/CDN/001/002/dizibox/v2/nf/index.php",
+                "https://diziboxen.top/CDN/001/002/dizibox/v2/yerli-dizi/index.php",
+                "https://diziboxen.top/CDN/001/002/dizibox/v2/yabanci-dizi/index.php",
+                "https://diziboxen.top/CDN/001/002/dizibox/v2/film/yerli-filmler.php"
             )
-            for (url in keyUrls) {
+            for (hamUrl in keyUrls) {
+                val url = kategoriAdresi(hamUrl)
                 val res = makeInatPostRequest(url) ?: continue
                 val items = getSearchResponseList(res)
                 if (items.isNotEmpty()) {
@@ -770,6 +781,129 @@ class InatBox : MainAPI() {
             }
         }
         return null
+    }
+
+    // ── canlı kategori dizini ──────────────────────────────────────────────
+    // Uygulama kategori adreslerini kendi uzak ayarından (mtlshash/cert → DC2/DC10)
+    // çalışma zamanında alır; alan adı değiştiğinde eklenti güncellemesi gerekmez.
+
+    @Volatile private var kategoriHaritasi: Map<String, String>? = null
+    @Volatile private var kategoriZamani = 0L
+
+    /** Varsayılan adresi dizindeki aynı yolu taşıyan canlı adresle değiştirir. */
+    private suspend fun kategoriAdresi(varsayilan: String): String {
+        val yol = runCatching { URI(varsayilan).path }.getOrNull() ?: return varsayilan
+        if (yol.isBlank() || yol == "/") return varsayilan
+        return dizinHaritasi().values.firstOrNull { it.contains(yol) } ?: varsayilan
+    }
+
+    private suspend fun dizinHaritasi(): Map<String, String> {
+        val simdi = System.currentTimeMillis()
+        kategoriHaritasi?.let { if (simdi - kategoriZamani < KATEGORI_OMRU_MS) return it }
+        val yeni = dizinGetir()
+        if (yeni.isNotEmpty()) {
+            kategoriHaritasi = yeni
+            kategoriZamani = simdi
+        } else {
+            // Dizin alınamadı: mevcut harita (varsa) korunur, 5 dk sonra yeniden denenir.
+            kategoriZamani = simdi - KATEGORI_OMRU_MS + HATA_OMRU_MS
+        }
+        return kategoriHaritasi.orEmpty()
+    }
+
+    private suspend fun dizinGetir(): Map<String, String> {
+        for (adres in AYAR_ADRESLERI) {
+            val ayarMetin = runCatching { app.get(adres, timeout = 15L).text }.getOrNull() ?: continue
+            val ayar = cozKatmanli(ayarMetin)?.let { runCatching { JSONObject(it) }.getOrNull() } ?: continue
+            val uclar = listOf("DC2", "DC10").mapNotNull { anahtar ->
+                ayar.optString(anahtar).takeIf { it.startsWith("http") }
+            }
+            for (uc in uclar) {
+                val ham = runCatching {
+                    if (uc.substringBefore("?").endsWith(".php")) makeInatPostRequest(uc)
+                    else cozKatmanli(app.get(uc, timeout = 15L).text)
+                }.getOrNull() ?: continue
+                val dizi = runCatching { JSONArray(ham) }.getOrNull() ?: continue
+                val harita = mutableMapOf<String, String>()
+                for (i in 0 until dizi.length()) {
+                    val k = dizi.optJSONObject(i) ?: continue
+                    val catUrl = k.optString("catUrl")
+                    if (!catUrl.startsWith("http")) continue
+                    harita[k.optString("catName")] = catUrl
+                }
+                if (harita.isNotEmpty()) {
+                    Log.d("InatBox", "kategori dizini » $uc (${harita.size})")
+                    return harita
+                }
+            }
+        }
+        return emptyMap()
+    }
+
+    /** Çok katmanlı "sifre:iv" AES-CBC verisini katman katman çözüp JSON döndürür. */
+    private fun cozKatmanli(metin: String?, anahtarlar: List<String> = listOf(VARSAYILAN_ANAHTAR)): String? {
+        var veri = metin
+            ?.replace("-----BEGIN CERTIFICATE-----", "")
+            ?.replace("-----END CERTIFICATE-----", "")
+            ?.trim() ?: return null
+        repeat(5) {
+            jsonAyikla(veri)?.let { return it }
+            veri = katmanCoz(veri, anahtarlar) ?: return null
+        }
+        return jsonAyikla(veri)
+    }
+
+    /** Bir AES katmanını [anahtarlar] ve gelen IV kombinasyonlarıyla dener. */
+    private fun katmanCoz(veri: String, anahtarlar: List<String>): String? {
+        val ayrac = veri.indexOf(':')
+        val sifre = (if (ayrac >= 0) veri.substring(0, ayrac) else veri).trim()
+        val ek = if (ayrac >= 0) veri.substring(ayrac + 1).trim() else ""
+        val sifreB = runCatching { Base64.decode(sifre, Base64.DEFAULT) }.getOrNull() ?: return null
+        val ekB = if (ek.isNotEmpty()) runCatching { Base64.decode(ek, Base64.DEFAULT) }.getOrNull() else null
+
+        val denemeler = mutableListOf<Pair<ByteArray, ByteArray>>()
+        for (a in anahtarlar) {
+            val ab = anahtarBaytlari(a)
+            if (ekB != null && ekB.size == 16) denemeler.add(ab to ekB)      // anahtar + gelen IV
+            denemeler.add(ab to ab.copyOf(16))                                 // anahtar = IV
+        }
+        // Gelen IV parçası (16 bayt) bazen anahtarın kendisidir (mtlshash/cert biçimi).
+        if (ekB != null && ekB.size == 16) denemeler.add(ekB to ekB.copyOf(16))
+
+        for ((anahtar, iv) in denemeler) {
+            val sonuc = runCatching {
+                val c = Cipher.getInstance("AES/CBC/PKCS5Padding")
+                c.init(Cipher.DECRYPT_MODE, SecretKeySpec(anahtar, "AES"), IvParameterSpec(iv))
+                String(c.doFinal(sifreB), StandardCharsets.ISO_8859_1).trim()
+            }.getOrNull() ?: continue
+            if (makulMu(sonuc)) return sonuc
+        }
+        return null
+    }
+
+    /** Doğru anahtarla çözülen veri ya JSON ya da yeni bir base64 katmanıdır. */
+    private fun makulMu(s: String): Boolean {
+        if (s.isEmpty()) return false
+        if (s.startsWith("[") || s.startsWith("{")) return true
+        return s.length >= 16 && s.all { it.isLetterOrDigit() || it in "+/=:-_\r\n" }
+    }
+
+    private fun jsonAyikla(veri: String): String? {
+        val s = veri.trim()
+        if (!(s.startsWith("[") || s.startsWith("{"))) return null
+        val son = maxOf(s.lastIndexOf(']'), s.lastIndexOf('}'))
+        return if (son > 0) s.substring(0, son + 1) else s
+    }
+
+    private fun anahtarBaytlari(anahtar: String): ByteArray {
+        val b = anahtar.toByteArray(StandardCharsets.UTF_8)
+        return when {
+            b.size in setOf(16, 24, 32) -> b
+            b.size < 16                 -> b.copyOf(16)
+            b.size < 24                 -> b.copyOf(16)
+            b.size < 32                 -> b.copyOf(24)
+            else                        -> b.copyOf(32)
+        }
     }
 
     private fun getSearchResponseList(jsonResponse: String): List<SearchResponse> {
