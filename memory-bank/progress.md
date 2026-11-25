@@ -1,5 +1,21 @@
 # Progress
 
+## 2026-11-25 — DiziPal/Dizilla runtime domain fallback + README rewrite
+
+- DiziPal v44: `ensureDomain()` — aday listesi (1595…1592 + 1596/1597) ilk istekte
+  8sn timeout'la probe edilir, ana sayfasında `/series/` geçen ilk aday `mainUrl` olur;
+  `mainPage` URL'leri init'te ilk adayla piştiği için `getMainPage`'te remap yapılır.
+  Park edilmiş alan adları içerik kontrolüyle elenir. Hiçbiri cevap vermezse mevcut
+  davranış (ilk aday) korunur. NiceHttp parametreleri: `timeout` var, `cache` yok
+  (doğrusu `cacheTime`/`cacheUnit`).
+- Dizilla v36: aynı desen, tld adayları (la/org/co/tv/net), `/dizi/` içerik kontrolü,
+  probe interceptorsuz (CF challenge gelirse aday elenir, hepsi elenirse ilk aday kalır).
+- README.md upstream template'ten gerçek 32 sağlayıcılı repo readme'ine çevrildi
+  (kurulum URL'i `builds` dalı + durum göstergeleri + geliştirici komutları). CI `*.md`'yi
+  yok sayar, tetiklenmez.
+- DiziBOX → DiziBox klasör adı Windows diskine düzeltildi (git index zaten doğruydu).
+- Build + `makePluginsJson` temiz, 32 kayıt. **Push onayı bekliyor** (3 commit).
+
 ## 2026-11-06 — 32 sağlayıcıya inildi, DiziMom/Watch2Movies yenilendi
 
 - SinemaCX, NetflixMirror, UgurFilm, WebteIzle modülleri tamamen silindi (36 → 32).
