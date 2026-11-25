@@ -1,5 +1,16 @@
 # Progress
 
+## 2026-11-25 — DiziMom modülü tamamen kaldırıldı (31 sağlayıcı)
+
+- Kullanıcı raporu: ddizimom.net devlet tarafından engellenmiş, erişime kapatılmış.
+  Derin doğrulama siteyi "canlı" gösteriyordu (arama motoru tarayıcısı sayfaları
+  çekiyordu) ama TR'den erişim BTK/ISP düzeyinde kapalıymış → kullanıcı için ölü.
+  DiziMom (Dzm/DzmPlugin) repodan `git rm` ile tamamen kaldırıldı; çapraz referans
+  yoktu (self-contained). README güncellendi: 32 → 31 sağlayıcı.
+- Kapalı/erişilemez turu sonucu: RecTV zaten status=0 (Cloudflare Access), InatBox
+  v19 ile onarıldı, diğer kaynaklar canlı. DiziMom'dan artık plugins.json kaydı yok.
+- Build + makePluginsJson temiz, 31 kayıt. Push onayı bekliyor.
+
 ## 2026-11-25 — InatBox Türkçe karakter mojibake onarımı (v19)
 
 - Kullanıcı raporu: eklenti listesinde ad ve kategoriler bozuk ("İnatBox" → "Ä°natBox",

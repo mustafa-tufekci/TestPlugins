@@ -15,7 +15,7 @@
 
 3. Listeden istediğiniz sağlayıcıları kurun. Yeni sürümler `builds` dalına otomatik düşer, uygulama güncellemeyi kendisi algılar.
 
-## Sağlayıcılar (32)
+## Sağlayıcılar (31)
 
 Durum göstergeleri eklenti manifest'indeki `status` alanını yansıtır:
 ✅ = tam akış doğrulandı · 🧪 = beta, oynatma testi sürüyor · ⛔ = geçici olarak devre dışı
@@ -32,7 +32,6 @@ Durum göstergeleri eklenti manifest'indeki `status` alanını yansıtır:
 | DiziFilm | dizifilmizle.to | ✅ |
 | DiziKorea | dizikorea3.com | 🧪 |
 | Dizilla | dizilla.la *(alan adı otomatik döner)* | ✅ |
-| DiziMom | ddizimom.net | ✅ |
 | DiziPal | dizipal159x.com *(alan adı otomatik döner)* | ✅ |
 | DiziYou | diziyou.net | ✅ |
 | FilmMakinesi | filmmakinesi.to | 🧪 |
