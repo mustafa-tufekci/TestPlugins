@@ -1,4 +1,4 @@
-﻿package com.panates
+package com.panates
 
 import android.util.Base64
 import android.util.Log
@@ -24,7 +24,7 @@ import javax.crypto.spec.SecretKeySpec
 
 class InatBox : MainAPI() {
     override var mainUrl = "https://diziboxen.top"
-    override var name = "Ä°natBox"
+    override var name = "İnatBox"
     override val hasMainPage = true
     override var lang = "tr"
     override var hasQuickSearch = true
@@ -157,10 +157,10 @@ class InatBox : MainAPI() {
     override val mainPage = mainPageOf(
         "https://sprbox.top/CDN/001/SPR/v2/spor_v3.php"                        to "Spor",
         "https://diziboxen.top/CDN/001/002/dizibox/v2/tv/ulusal.php"           to "Ulusal Kanallar",
-        "https://diziboxen.top/CDN/001/002/dizibox/v2/tv/haber.php"            to "Haber KanallarÄ±",
-        "https://diziboxen.top/CDN/001/002/dizibox/v2/tv/cocuk.php"            to "Ã‡ocuk KanallarÄ±",
-        "https://diziboxen.top/CDN/001/002/dizibox/v2/tv/sinema.php"           to "Sinema KanallarÄ±",
-        "https://diziboxen.top/CDN/001/002/dizibox/v2/tv/belgesel.php"         to "Belgesel KanallarÄ±",
+        "https://diziboxen.top/CDN/001/002/dizibox/v2/tv/haber.php"            to "Haber Kanalları",
+        "https://diziboxen.top/CDN/001/002/dizibox/v2/tv/cocuk.php"            to "Çocuk Kanalları",
+        "https://diziboxen.top/CDN/001/002/dizibox/v2/tv/sinema.php"           to "Sinema Kanalları",
+        "https://diziboxen.top/CDN/001/002/dizibox/v2/tv/belgesel.php"         to "Belgesel Kanalları",
         "https://diziboxen.top/CDN/001/002/dizibox/v2/ex/index.php"            to "Exxen",
         "https://diziboxen.top/CDN/001/002/dizibox/v2/nf/index.php"            to "Netflix",
         "https://sprbox.top/CDN/001/SPR/v2/ccc/a/index.php"                    to "TOD",
@@ -170,7 +170,7 @@ class InatBox : MainAPI() {
         "https://diziboxen.top/CDN/001/002/dizibox/v2/amz/index.php"           to "Amazon Prime",
         "https://diziboxen.top/CDN/001/002/dizibox/v2/tbi/index.php"           to "Tabii",
         "https://diziboxen.top/CDN/001/002/dizibox/v2/yerli-dizi/index.php"    to "Yerli Diziler",
-        "https://diziboxen.top/CDN/001/002/dizibox/v2/yabanci-dizi/index.php"  to "YabancÄ± Diziler",
+        "https://diziboxen.top/CDN/001/002/dizibox/v2/yabanci-dizi/index.php"  to "Yabancı Diziler",
         "https://diziboxen.top/CDN/001/002/dizibox/v2/film/yerli-filmler.php"  to "Yerli Filmler",
         "https://diziboxen.top/CDN/001/002/dizibox/v2/film/mubi.php"           to "Mubi",
         "https://4k.filmizleeeee.cfd/4k/01/public/catalog-exo.php"              to "4K Filmler"
@@ -202,7 +202,7 @@ class InatBox : MainAPI() {
             return newHomePageResponse(request.name, emptyList(), hasNext = false)
         }
 
-        val isLiveCategory = request.name in listOf("Spor", "Ulusal Kanallar", "Haber KanallarÄ±", "Ã‡ocuk KanallarÄ±", "Sinema KanallarÄ±", "Belgesel KanallarÄ±")
+        val isLiveCategory = request.name in listOf("Spor", "Ulusal Kanallar", "Haber Kanalları", "Çocuk Kanalları", "Sinema Kanalları", "Belgesel Kanalları")
 
         if (allResults.size <= 150) {
             return if (page == 1) {
@@ -865,7 +865,7 @@ class InatBox : MainAPI() {
         for (a in anahtarlar) {
             val ab = anahtarBaytlari(a)
             if (ekB != null && ekB.size == 16) denemeler.add(ab to ekB)      // anahtar + gelen IV
-            denemeler.add(ab to ab.copyOf(16))                                 // anahtar = IV
+            denemeler.add(ab to ab.copyOf(16))                               // anahtar = IV
         }
         // Gelen IV parçası (16 bayt) bazen anahtarın kendisidir (mtlshash/cert biçimi).
         if (ekB != null && ekB.size == 16) denemeler.add(ekB to ekB.copyOf(16))
